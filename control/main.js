@@ -244,6 +244,10 @@ function createWindow() {
   // Nothing remote, ever: links open in the browser, navigation away is refused.
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (e) => e.preventDefault());
+  // The page's errors, in the terminal that started the app.
+  win.webContents.on("console-message", (e) => {
+    if (e.level === "error" || e.level === "warning") console.error(`[page] ${e.message} (${e.sourceId}:${e.lineNumber})`);
+  });
 }
 
 app.whenReady().then(() => {

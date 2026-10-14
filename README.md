@@ -44,6 +44,18 @@ brew install --cask font-ibm-plex-sans font-ibm-plex-mono   # captions + preview
 bin/pugrec setup                  # builds macos/pugrec-capture, .venv, the whisper model
 ```
 
+**Control panel** (`control/`): a Stream Deck-style window of big keys for record/stop, screen,
+mic, camera and keys, and the pipeline on the latest session (clean audio, transcript, draft,
+preview, builds, WhatsApp copy, folder, edit script). It keeps itself out of the recording.
+
+```bash
+cd control && npm install && npm start
+```
+
+Right-click (or long-press) Screen, Mic, Camera or Session to choose; the gear holds the countdown,
+the transcript vocabulary and "keep on top". Started from the panel, macOS asks for permissions in
+*Electron's* name, separately from the terminal's.
+
 Permissions, once, for the app you record from (your terminal): **Screen Recording**, **Camera**,
 **Microphone**, and **Input Monitoring** for `--keys`. macOS also asks now and then to let it
 "bypass the system private window picker": allow it (it can appear over the countdown).

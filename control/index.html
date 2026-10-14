@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <title>pugrec</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="drag" aria-hidden="true"></div>
+  <main class="deck" aria-label="pugrec control deck">
+    <div class="keys" id="keys" role="group" aria-label="Keys"></div>
+    <footer class="strip">
+      <span class="led" id="led" aria-hidden="true"></span>
+      <span class="session" id="session" title="Current session">no session</span>
+      <span class="log" id="log" aria-live="polite"></span>
+      <button class="gear" id="gear" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"/></svg>
+      </button>
+    </footer>
+  </main>
+
+  <div class="picker" id="picker" role="listbox" hidden></div>
+
+  <div class="sheet" id="sheet" hidden>
+    <form class="panel" id="settings">
+      <h2>Settings</h2>
+      <label>Countdown
+        <select name="countdown">
+          <option value="0">None</option><option value="3">3 seconds</option><option value="5">5 seconds</option>
+        </select>
+      </label>
+      <label>Vocabulary for transcripts
+        <textarea name="vocabulary" rows="3" placeholder="FieldPal, Retool, Dependabot"></textarea>
+        <small>Names whisper should spell right, comma-separated.</small>
+      </label>
+      <label class="check"><input type="checkbox" name="onTop"> Keep this window on top</label>
+      <p class="note" id="perm"></p>
+      <div class="row"><button type="submit">Done</button></div>
+    </form>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
