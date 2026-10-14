@@ -11,6 +11,8 @@ EDIT.md's reference sections - when the script changes, update both.
 ```
 bin/pugrec             launcher: system python3 for recording, .venv for everything after
 pugrec/recorder.py     Session: wf-recorder + camera ffmpeg + pollers + input helper -> session.jsonl
+pugrec/recorder_mac.py MacSession: the same Session driven by macos/pugrec-capture (stdin: camera/screen/stop)
+macos/                 Swift helper: ScreenCaptureKit + AVFoundation + CGEventTap + window list + overlay
 pugrec/hypr.py         Hyprland IPC (request socket, socket2 events), window/monitor state + diffs
 pugrec/input_helper.py root helper (pkexec), evdev -> JSON lines; stdlib + evdev only
 pugrec/jsonl.py        single writer thread (append-only, flush 100 ms), crash-tolerant reader
@@ -67,6 +69,11 @@ James's rule (2026-10-13): **commit little and often.**
 - **No customer names anywhere** - files, tests, examples, commit messages. Examples use Acme.
 
 ## Gotchas
+
+- macOS: the helper's timestamps are host time (mach_absolute_time) = Python's time.monotonic_ns()
+  there, so frame PTS are the anchor directly. ScreenCaptureKit's mic starts ~0.15 s after the first
+  frame: audio extracts use audio.PAD_TO_ZERO. TCC permissions belong to the launching app (the
+  terminal, or Obsidian's terminal plugin) - not the helper.
 
 - Sync anchor = wf-recorder's "pts_time: 0" log line; if a wf-recorder update changes its
   logging, `session_start.sync` falls back to "Output #0 log line" (~ms worse). With audio,

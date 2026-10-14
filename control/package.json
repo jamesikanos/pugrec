@@ -1,0 +1,15 @@
+{
+  "name": "pugrec-control",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Stream Deck-style control panel for pugrec on macOS",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "node node_modules/electron/install.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "44.5.0"
+  }
+}

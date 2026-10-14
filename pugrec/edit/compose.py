@@ -264,9 +264,17 @@ def font_file(family, weight):
         fc_weight = {100: 0, 200: 40, 300: 50, 400: 80, 500: 100, 600: 180, 700: 200, 800: 205, 900: 210}
         w = fc_weight.get(round(weight / 100) * 100, 80)
         try:
-            r = subprocess.run(["fc-match", "-f", "%{file}", f"{family}:weight={w}"], capture_output=True,
+            r = subprocess.run(["fc-match", "-f", "%{family}\t%{file}", f"{family}:weight={w}"], capture_output=True,
                                text=True, timeout=5)
-            _font_files[key] = r.stdout.strip() or FONT
+            got, _, path = r.stdout.strip().partition("\t")
+            # fontconfig never says "not found": it substitutes (Verdana on a Mac without Plex),
+            # and the browser preview would substitute something else. Say so once.
+            if path and family.lower() not in (f.strip().lower() for f in got.split(",")):
+                hint = " (brew install --cask font-ibm-plex-sans)" if "plex" in family.lower() and \
+                    sys.platform == "darwin" else ""
+                print(f"build: font {family!r} isn't installed; captions use {got.split(',')[0]}{hint}",
+                      file=sys.stderr)
+            _font_files[key] = path or FONT
         except (FileNotFoundError, subprocess.TimeoutExpired):
             _font_files[key] = FONT
     return _font_files[key]

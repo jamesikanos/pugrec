@@ -7,6 +7,8 @@ A session is a folder, by default `~/Videos/PugRec/<YYYY-MM-DD_HH-MM-SS>/`:
 | `session.jsonl` | the timeline: metadata and every event, append-only |
 | `screen.mkv` | screen video, AV1 (VAAPI), native resolution, variable frame rate (frames only when the screen changes), plus the mic as an Opus track |
 | `camera.mkv` | webcam, AV1, 1920x1080 @ up to 30 fps (the BRIO lowers it in low light), PTS from 0 = its first frame; no audio |
+| `screen.mov`, `camera.mov` | **macOS** instead of the two above: HEVC (no AV1 encoder on Apple Silicon), the mic as ALAC (lossless). The mic track may start ~0.15 s after the video: extracts pad it back to 0. Readers take the names from `stream_start.file` |
+| `capture.log` | **macOS**: pugrec-capture's log, instead of `wf-recorder.log` / `camera.log` |
 | `wf-recorder.log`, `camera.log` | the capture tools' logs, for debugging |
 | `faces.jsonl` | **derived** (`pugrec faces`, recomputable): the webcam face track, see below |
 | `transcript.jsonl` | **derived** (`pugrec transcript`): a `meta` line (model, backend, speed, `vocabulary` it was given), then `segment` lines `{t, end, text, words: [{t, end, w, p}]}`, ns on the session clock |
@@ -75,7 +77,8 @@ coordinates**, as Hyprland reports them. Screen video pixels:
 
 **Window state:** `address`, `class`, `title`, `at` [x, y], `size` [w, h], `workspace` (id),
 `floating`, `fullscreen` (0/1/2), `monitor` (index), `mapped`, `hidden`, `pid`.
-A window is visible when its `workspace` is its monitor's `workspace` or `special`.
+A window is visible when its `workspace` is its monitor's `workspace` or `special`. A window that isn't visible has an
+empty `title` (privacy: other workspaces/Spaces aren't in the picture); it comes back when it is.
 
 **Monitor state:** `name`, `x`, `y`, `width`, `height` (pixels), `scale`, `transform`,
 `workspace` (active id), `special` (special workspace id, 0 = none), `focused`, `locked`.

@@ -68,6 +68,16 @@ def window_state(c):
     }
 
 
+def blank_offscreen_titles(windows, monitors):
+    """Privacy: no title for a window that isn't on screen (another workspace, a hidden special
+    one, hidden): those can carry client names or tokens. The window itself stays, so a shot can
+    follow it back; its title returns with it. windows: {address: state}; monitors: [monitor state].
+    Returns a new dict."""
+    shown = {i for m in monitors for i in (m.get("workspace"), m.get("special")) if i}
+    return {a: (w if w.get("workspace") in shown and not w.get("hidden") else dict(w, title=""))
+            for a, w in windows.items()}
+
+
 def diff_windows(old, new):
     """old/new: {address: window_state}. Returns a list of event records (no t)."""
     out = []

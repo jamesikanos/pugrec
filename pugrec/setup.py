@@ -5,6 +5,7 @@ system Python, before any venv exists) - the PugPal dotfiles' install.sh calls i
      Python version changed (hash marker inside .venv)
   2. the whisper model in ~/.cache/pugrec, pinned SHA-256 (skip with --no-model):
      downloaded to .part, verified, renamed; skipped if present and valid
+  3. macOS: the capture helper (macos/, Swift) built when missing or older than its sources
 Exit 0 when done; non-zero with one line "setup: <reason>" otherwise.
 """
 
@@ -96,8 +97,27 @@ def model():
     _say(f"whisper model ready ({path})")
 
 
+def capture_helper():
+    """macOS: swift build -c release in macos/ when the binary is missing or out of date."""
+    src = os.path.join(REPO, "macos")
+    binary = os.path.join(src, ".build", "release", "pugrec-capture")
+    newest = max(os.path.getmtime(os.path.join(d, f)) for d, _, fs in os.walk(os.path.join(src, "Sources"))
+                 for f in fs)
+    newest = max(newest, os.path.getmtime(os.path.join(src, "Package.swift")))
+    if os.path.exists(binary) and os.path.getmtime(binary) >= newest:
+        _say("pugrec-capture up to date")
+        return
+    _say("building pugrec-capture (swift build -c release)")
+    r = subprocess.run(["swift", "build", "-c", "release", "--package-path", src], capture_output=True, text=True)
+    if r.returncode:
+        errs = [l for l in (r.stderr + r.stdout).splitlines() if "error" in l]
+        raise SetupError(f"swift build failed: {errs[0] if errs else 'exit ' + str(r.returncode)}")
+
+
 def run(no_model=False):
     try:
+        if sys.platform == "darwin":
+            capture_helper()
         venv()
         if not no_model:
             model()

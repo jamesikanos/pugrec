@@ -51,6 +51,19 @@ class WindowDiffTest(unittest.TestCase):
         self.assertEqual(hypr.diff_windows({"0xa": a}, {"0xa": dict(a)}), [])
 
 
+class OffscreenTitleTest(unittest.TestCase):
+    def test_only_shown_windows_keep_titles(self):
+        mons = [{"workspace": 1, "special": -98}, {"workspace": 4, "special": 0}]
+        ws = {"0xa": {"title": "Shown", "workspace": 1}, "0xb": {"title": "Scratchpad", "workspace": -98},
+              "0xc": {"title": "Other monitor", "workspace": 4}, "0xd": {"title": "Client token", "workspace": 2},
+              "0xe": {"title": "Hidden", "workspace": 1, "hidden": True}}
+        out = hypr.blank_offscreen_titles(ws, mons)
+        self.assertEqual({a: w["title"] for a, w in out.items()},
+                         {"0xa": "Shown", "0xb": "Scratchpad", "0xc": "Other monitor", "0xd": "", "0xe": ""})
+        self.assertEqual(ws["0xd"]["title"], "Client token")  # input untouched
+        self.assertEqual(out["0xd"]["workspace"], 2)          # the window itself is kept
+
+
 class RedactTest(unittest.TestCase):
     def test_password_windows(self):
         for name in ("1Password", "pinentry-gnome3", "polkit-gnome-authentication-agent-1", "gcr-prompter"):
