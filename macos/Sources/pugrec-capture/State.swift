@@ -60,13 +60,18 @@ struct WindowList {
 /// Every normal (layer 0) window, front to back, and the focused one: the frontmost
 /// app's frontmost on-screen window. (Accessibility would say which exactly, but needs one
 /// more permission; the topmost one is right nearly always.)
-func windowList() -> WindowList {
+/// `exclude`: an app kept out of the video (the control panel): its windows aren't listed, and
+/// while it's frontmost (you just pressed one of its keys), focus is the topmost window that
+/// *is* in the picture - so `focused` never points at something the viewer can't see.
+func windowList(exclude: pid_t? = nil) -> WindowList {
     let opts: CGWindowListOption = [.optionAll, .excludeDesktopElements]
     guard let info = CGWindowListCopyWindowInfo(opts, kCGNullWindowID) as? [[String: Any]] else {
         return WindowList(windows: [], focus: nil)
     }
     let screens = NSScreen.screens.map { CGDisplayBounds(displayID($0)) }
-    let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+    var front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+    if front == exclude { front = nil }
+    var topmost: String?
     var bundles: [pid_t: String] = [:]
     var out: [[String: Any]] = []
     var focus: String?
@@ -80,7 +85,7 @@ func windowList() -> WindowList {
               ((w[kCGWindowAlpha as String] as? Double) ?? 1) > 0
         else { continue }
         let owner = w[kCGWindowOwnerName as String] as? String ?? ""
-        if owner == ownName { continue }  // our own countdown overlay
+        if owner == ownName || pid == exclude { continue }  // our countdown overlay, the control panel
         if bundles[pid] == nil {
             bundles[pid] = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? owner
         }
@@ -95,6 +100,7 @@ func windowList() -> WindowList {
         let center = CGPoint(x: r.midX, y: r.midY)
         let address = String(format: "0x%x", num)
         if focus == nil && onscreen && pid == front { focus = address }
+        if topmost == nil && onscreen { topmost = address }
         out.append([
             "address": address,
             "class": bundles[pid]!,
@@ -111,7 +117,7 @@ func windowList() -> WindowList {
             "app": owner,
         ])
     }
-    return WindowList(windows: out, focus: focus)
+    return WindowList(windows: out, focus: front == nil ? topmost : focus)
 }
 
 func devices() -> [String: Any] {

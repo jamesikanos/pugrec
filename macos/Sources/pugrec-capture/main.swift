@@ -135,10 +135,11 @@ final class Recording {
                 Out.emit("cursor", ["x": (p.x * 10).rounded() / 10, "y": (p.y * 10).rounded() / 10])
             }
         })
+        let exclude = arg("--exclude-pid", args).flatMap { pid_t($0) }
         var lastState = Data()
         timers.append(Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             let mono = nowNs()
-            let wl = windowList()
+            let wl = windowList(exclude: exclude)
             let rec: [String: Any] = ["windows": wl.windows, "focus": wl.focus as Any, "monitors": monitors()]
             let data = (try? JSONSerialization.data(withJSONObject: rec, options: [.sortedKeys])) ?? Data()
             if data != lastState {
@@ -171,7 +172,7 @@ case "devices":
     printJSON(devices())
 case "state":
     _ = NSApplication.shared
-    let wl = windowList()
+    let wl = windowList(exclude: arg("--exclude-pid", argv).flatMap { pid_t($0) })
     printJSON(["monitors": monitors(), "windows": wl.windows, "focus": wl.focus as Any,
                "cursor": [cursorPoint().x, cursorPoint().y],
                "permissions": ["screen": CGPreflightScreenCaptureAccess(), "keys": CGPreflightListenEventAccess()]])

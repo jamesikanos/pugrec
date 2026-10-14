@@ -36,9 +36,10 @@ def capture_bin():
     return CAPTURE
 
 
-def state():
-    """Monitors, windows, focus, cursor and permissions, right now."""
-    r = subprocess.run([capture_bin(), "state"], capture_output=True, text=True, timeout=10)
+def state(exclude_pid=None):
+    """Monitors, windows, focus, cursor and permissions, right now (without exclude_pid's windows)."""
+    cmd = [capture_bin(), "state"] + (["--exclude-pid", str(exclude_pid)] if exclude_pid else [])
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     if r.returncode:
         raise SystemExit(f"pugrec-capture state failed: {r.stderr.strip()}")
     return json.loads(r.stdout)
@@ -214,7 +215,7 @@ class MacSession(Session):
         for sig in (signal.SIGINT, signal.SIGTERM):
             signal.signal(sig, lambda *_: self.stop.set())
         t0 = time.monotonic()
-        st = state()
+        st = state(getattr(self.args, "exclude_pid", None))
         if not st["permissions"]["screen"]:
             notify("pugrec needs Screen Recording", "System Settings > Privacy & Security > Screen Recording: "
                    "allow your terminal, then restart it", "critical")
