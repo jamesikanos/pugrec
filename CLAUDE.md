@@ -74,7 +74,7 @@ James's rule (2026-10-13): **commit little and often.**
 - macOS: the helper's timestamps are host time (mach_absolute_time) = Python's time.monotonic_ns()
   there, so frame PTS are the anchor directly. ScreenCaptureKit's mic starts ~0.15 s after the first
   frame: audio extracts use audio.PAD_TO_ZERO. TCC permissions belong to the launching app (the
-  terminal, or Obsidian's terminal plugin) - not the helper.
+  terminal, or Electron for `pugrec panel`) - not the helper.
 
 - Sync anchor = wf-recorder's "pts_time: 0" log line; if a wf-recorder update changes its
   logging, `session_start.sync` falls back to "Output #0 log line" (~ms worse). With audio,

@@ -6,11 +6,15 @@ system Python, before any venv exists) - the PugPal dotfiles' install.sh calls i
   2. the whisper model in ~/.cache/pugrec, pinned SHA-256 (skip with --no-model):
      downloaded to .part, verified, renamed; skipped if present and valid
   3. macOS: the capture helper (macos/, Swift) built when missing or older than its sources
+  4. macOS, first: the Xcode Command Line Tools (swift) and, from Homebrew, whichever of ffmpeg,
+     whisper-cpp, node and the IBM Plex fonts are missing; last: control/node_modules (Electron)
+     from package-lock.json, when it changed (hash marker, like .venv)
 Exit 0 when done; non-zero with one line "setup: <reason>" otherwise.
 """
 
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -21,6 +25,11 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENV = os.path.join(REPO, ".venv")
 REQS = os.path.join(REPO, "requirements.txt")
 MARKER = os.path.join(VENV, ".pugrec-requirements.sha256")
+CONTROL = os.path.join(REPO, "control")
+PANEL_MARKER = os.path.join(CONTROL, "node_modules", ".pugrec-lock.sha256")
+# macOS: command on PATH -> the Homebrew formula that provides it; the fonts are casks.
+BREW_FORMULAE = {"ffmpeg": "ffmpeg", "whisper-cli": "whisper-cpp", "npm": "node"}
+BREW_CASKS = ["font-ibm-plex-sans", "font-ibm-plex-mono"]  # captions + preview
 
 
 class SetupError(Exception):
@@ -114,13 +123,62 @@ def capture_helper():
         raise SetupError(f"swift build failed: {errs[0] if errs else 'exit ' + str(r.returncode)}")
 
 
+def mac_tools():
+    """macOS: the Xcode Command Line Tools, then what's missing from Homebrew (its output shown:
+    a first install takes minutes)."""
+    if subprocess.run(["xcode-select", "-p"], capture_output=True).returncode:
+        subprocess.run(["xcode-select", "--install"], capture_output=True)  # opens Apple's installer
+        raise SetupError("needs the Xcode Command Line Tools: finish the installer that just opened, "
+                         "then run setup again")
+    brew = shutil.which("brew") or next((b for b in ("/opt/homebrew/bin/brew", "/usr/local/bin/brew")
+                                         if os.access(b, os.X_OK)), None)
+    if not brew:
+        raise SetupError("needs Homebrew (https://brew.sh), then run setup again")
+    formulae = [f for cmd, f in BREW_FORMULAE.items() if not shutil.which(cmd)]
+    have = subprocess.run([brew, "list", "--cask"], capture_output=True, text=True).stdout.split()
+    casks = [c for c in BREW_CASKS if c not in have]
+    for kind, names in (("--formula", formulae), ("--cask", casks)):
+        if not names:
+            continue
+        _say(f"brew install {' '.join(names)}")
+        if subprocess.run([brew, "install", kind, *names]).returncode:
+            raise SetupError(f"brew install {' '.join(names)} failed (see above)")
+    if not formulae and not casks:
+        _say("Homebrew tools present")
+
+
+def panel():
+    """macOS: npm ci in control/ when package-lock.json changed or Electron is missing."""
+    want = _sha256(os.path.join(CONTROL, "package-lock.json"))
+    try:
+        have = open(PANEL_MARKER).read().strip()
+    except OSError:
+        have = None
+    if have == want and os.path.isdir(os.path.join(CONTROL, "node_modules", "electron", "dist")):
+        _say("control panel up to date")
+        return
+    npm = shutil.which("npm")
+    if not npm:
+        raise SetupError("no npm on PATH (brew install node)")
+    _say("installing the control panel (npm ci: Electron, ~300 MB)")
+    r = subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=CONTROL, capture_output=True, text=True)
+    if r.returncode:
+        last = (r.stderr or r.stdout).strip().splitlines()
+        raise SetupError(f"npm ci failed: {last[-1] if last else 'exit ' + str(r.returncode)}")
+    with open(PANEL_MARKER, "w") as f:
+        f.write(want + "\n")
+
+
 def run(no_model=False):
     try:
         if sys.platform == "darwin":
+            mac_tools()
             capture_helper()
         venv()
         if not no_model:
             model()
+        if sys.platform == "darwin":
+            panel()
     except SetupError as e:
         print(f"setup: {e}", file=sys.stderr)
         return 1
