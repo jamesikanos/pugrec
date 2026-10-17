@@ -622,7 +622,8 @@ can't say (a role, what a feature is, what's next). Few of them - one every 30-4
   left edge and the text slides out from behind it; `pill` - one short label, faded in;
   `section` - a section header: a full-frame panel in the card colours wipes across, a big title
   and an accent bar appear on it, then it fades back to the video, which kept running (unlike
-  `intro`/`outro`, which stop it). Good over a tab switch or a load.
+  `intro`/`outro`, which stop it). Good over a tab switch or a load. Its title follows
+  `card.title_case`, like the cards.
 - **Travel**: `from` (`auto` = from the box's own side, `left|right|up|down|none`), `to` (out,
   `none` = just fade), `distance` (fraction of the shorter side). A section wipes in from `from`.
 - **Text**: `title`, plus `text` with up to 3 lines (`\n`); a pill is a title only.

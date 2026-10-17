@@ -825,6 +825,8 @@ def callout(v, path, style, sources):
     if c["source"] not in sources:
         _err(f"{path}.source", f"unknown source {c['source']!r} (have: {', '.join(sources)})")
     c["title"] = str(v["title"])
+    if c["look"] == "section" and style["card"]["title_case"]:   # a section is a card: the same house style
+        c["title"] = title_case(c["title"])
     lines = [] if v.get("text") in (None, "") else str(v["text"]).split("\n")
     if len(lines) > 3:
         _err(f"{path}.text", "at most 3 lines: a callout is read in a glance")
