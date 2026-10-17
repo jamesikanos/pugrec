@@ -210,7 +210,7 @@ Rules that matter:
 - *Punch-in* - an option for emphasis: `punch: <s>` on a camera scene, `at` on the stressed
   word of the point being made (from transcript.jsonl). Use few (one per ~30 s at most, or they
   stop meaning anything), on talking-head shots - not on the app, and never in a scene with
-  `push` (drop the push). Use it when James asks for
+  `push` (drop the push). Use it when the author asks for
   emphasis / "punch in" / "zoom on that line".
 - *Vertical output:* give it tighter shots via `vertical:` overrides (cursor zoom 1.2-1.4).
 - *For a customer / brand:* `style: {theme: <name>}` (`pugrec themes` lists them; an unknown name
