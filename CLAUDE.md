@@ -111,7 +111,10 @@ James's rule (2026-10-13): **commit little and often.**
   Detected from the signal (digital zeros), because PodMic RAW's own mute flag stays off.
 - Audio clean-up (`pugrec audio`): DeepFilterNet needs `-D` (delay compensation) or it drifts out of
   sync. Lessons from the dotfiles' podmic.conf: no 2-5 kHz boost (mouth clicks), no live level gate
-  (chatters on breaths) - breaths are handled offline with Silero VAD segments instead.
+  (chatters on breaths) - breaths are handled offline with Silero VAD segments instead. The VAD
+  counts breaths *between phrases* as speech, so a fluent talker kept every one (2026-10-17: 314 s
+  "speech" of a 322 s take); step 4 finds those from the sound (unvoiced, breath-level, centroid
+  1.1-4 kHz, >= 0.22 s) after loudnorm, where the dBFS thresholds hold for every take.
   Loudness: gain -> limiter -> linear loudnorm; linear loudnorm alone stopped at -17.2 LUFS (TP cap).
   James can't be asked "does it sound good" by numbers alone: measure (sync lag, taps at key-event
   times vs speech, LUFS) AND have him listen.

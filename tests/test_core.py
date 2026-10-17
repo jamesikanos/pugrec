@@ -159,6 +159,46 @@ class SpeechGateTest(unittest.TestCase):
         self.assertEqual(float(g[int(10 * hop * 48000)]), 1.0)
         self.assertLess(float(abs(g[1:] - g[:-1]).max()), 0.01)     # smooth fades, no clicks
 
+    def _take(self):
+        """1 s voice, 0.4 s breath, 1 s voice, 0.4 s "sss", 1 s voice, 0.15 s breath, 1 s voice:
+        at the levels of a normalised take (voice ~-14 dBFS, breath ~-35)."""
+        import numpy as np
+        sr, rng = self.audio.BREATH_SR, np.random.default_rng(1)
+
+        def level(x, db):
+            return (x * 10 ** (db / 20) / np.sqrt(np.mean(x ** 2))).astype(np.float32)
+
+        def band(n, lo, hi):
+            spec = np.fft.rfft(rng.standard_normal(n))
+            f = np.fft.rfftfreq(n, 1 / sr)
+            spec[(f < lo) | (f > hi)] = 0
+            return np.fft.irfft(spec, n)
+
+        t = np.arange(sr) / sr
+        voice = level(sum(np.sin(2 * np.pi * 140 * k * t) / k for k in range(1, 12)), -14)
+        breath = level(band(int(0.4 * sr), 800, 3500), -35)
+        hiss = level(band(int(0.4 * sr), 4500, 7900), -25)
+        short = level(band(int(0.15 * sr), 800, 3500), -35)
+        return np.concatenate([voice, breath, voice, hiss, voice, short, voice])
+
+    def test_breath_inside_speech_found_consonants_left(self):
+        runs = self.audio.breath_runs(*self.audio.breath_features(self._take()))
+        self.assertEqual(len(runs), 1)                               # the breath, not the "sss" or the short one
+        a, b = runs[0]
+        self.assertGreater(a, 0.95)
+        self.assertLess(b, 1.45)
+        self.assertGreater(b - a, 0.3)
+
+    def test_dip_curve_lowers_runs_smoothly_and_leaves_the_rest(self):
+        sr = 48000
+        g = self.audio.dip_curve(3 * sr, [(1.0, 1.5)], sr=sr)
+        floor = 10 ** (self.audio.BREATH_IN_SPEECH_DB / 20)
+        self.assertAlmostEqual(float(g[int(1.25 * sr)]), floor, places=5)
+        self.assertEqual(float(g[int(0.999 * sr)]), 1.0)              # nothing touched outside the run
+        self.assertEqual(float(g[int(1.501 * sr)]), 1.0)
+        self.assertLess(float(abs(g[1:] - g[:-1]).max()), 0.01)     # smooth fades, no clicks
+        self.assertTrue(bool((self.audio.dip_curve(sr, [(0.5, 0.51)], sr=sr) == 1).all()))  # too short to fade: skipped
+
 
 class TranscriptTest(unittest.TestCase):
     def test_tokens_to_words(self):
