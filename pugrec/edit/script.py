@@ -49,6 +49,9 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
     # Slow push-in while a shot holds (Ken Burns): {to: 0.8, over: 10} = the view shrinks to 80%
     # over 10 s. null = off; scenes say `push: true` (or a theme sets it here).
     "push": None,
+    # Punch-in on an important point: a quick ~6% zoom in (with a slight dip out first - the
+    # anticipation), held, then eased back out. Only where a scene says `punch: <source s>`.
+    "punch": {"zoom": 0.06, "dip": 0.006, "hold": 1.5},
     # One window sharp, the rest of the screen blurred + dimmed: {window: SEL, blur, dim}. Off by default.
     "spotlight": None,
     "transition": {"move": 0.6},       # default between scenes
@@ -258,8 +261,8 @@ def bubble(v, path, base):
     return out
 
 
-SCENE_KEYS = ["at", "source", "shot", "fit", "background", "inset", "push", "transition", "bubble", "spotlight",
-              "label"]
+SCENE_KEYS = ["at", "source", "shot", "fit", "background", "inset", "push", "punch", "transition", "bubble",
+              "spotlight", "label"]
 
 
 def spotlight(v, path, base):
@@ -295,6 +298,8 @@ def _scene(v, path, out_names, style, sources):
     sc["push_raw"] = v.get("push", "style")
     if sc["push_raw"] != "style":
         push(sc["push_raw"], f"{path}.push")  # validate now
+    sc["punch_raw"] = v.get("punch")
+    punch(sc["punch_raw"], f"{path}.punch", style["punch"], sc["at"])  # validate now
     sc["inset_raw"] = v.get("inset")
     if sc["inset_raw"] is not None:
         inset(sc["inset_raw"], f"{path}.inset", DEFAULT_STYLE["inset"])  # validate now
@@ -337,6 +342,9 @@ def scene_for_output(sc, output, style, path, bubble_base=None):
     # Push-in: the scene's (or this output's override), else the style's. Not sticky.
     pr = ov["push"] if ov and "push" in ov else sc.get("push_raw", "style")
     s["push"] = style["push"] if pr == "style" else push(pr, f"{path}.push")
+    # Punch-ins: the scene's (or this output's own list). Not sticky.
+    pn = ov["punch"] if ov and "punch" in ov else sc.get("punch_raw")
+    s["punch"] = punch(pn, f"{path}.punch", style["punch"], sc["at"])
     # Inset: the style's <- the scene's <- a pane's own.
     ins_raw = ov["inset"] if ov and "inset" in ov else sc.get("inset_raw")
     s["inset"] = inset(ins_raw, f"{path}.inset", style["inset"])
@@ -684,6 +692,31 @@ def push(v, path):
             "over": _num(v.get("over", 10.0), f"{path}.over", 1, 120)}
 
 
+def punch(v, path, base, scene_at):
+    """Scene punch-ins: a source time, or a list of them / of {at, zoom, dip, hold} (the rest from
+    style.punch). `at` = when the zoom lands - put it on the word. Style: {zoom, dip, hold}."""
+    if v is None or v is False:
+        return []
+    out = []
+    for i, p in enumerate(v if isinstance(v, list) else [v]):
+        pi = f"{path}[{i}]" if isinstance(v, list) else path
+        if not isinstance(p, dict):
+            p = {"at": p}
+        _keys(p, pi, ["at", "zoom", "dip", "hold"], ["at"])
+        at = _num(p["at"], f"{pi}.at", 0)
+        if at < scene_at:
+            _err(f"{pi}.at", f"{at} is before the scene starts ({scene_at})")
+        out.append(dict(punch_style(p, pi, base), at=at))
+    return sorted(out, key=lambda p: p["at"])
+
+
+def punch_style(v, path, base):
+    _keys(v, path, ["zoom", "dip", "hold"] + (["at"] if "at" in v else []))
+    return {"zoom": _num(v.get("zoom", base["zoom"]), f"{path}.zoom", 0.01, 0.5),
+            "dip": _num(v.get("dip", base["dip"]), f"{path}.dip", 0, 0.1),
+            "hold": _num(v.get("hold", base["hold"]), f"{path}.hold", 0, 60)}
+
+
 def _background(v, path):
     if v in ("blur", "backdrop") or (isinstance(v, str) and v.startswith("#") and len(v) == 7):
         return v
@@ -825,6 +858,8 @@ def apply_style(style, st, path, base_dir):
             style[k] = inset(v, p, style[k])
         elif k == "push":
             style[k] = push(v, p)
+        elif k == "punch":
+            style[k] = punch_style(v, p, style[k])
         else:
             style[k] = _num(v, p, 0)
     return style

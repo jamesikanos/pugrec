@@ -267,6 +267,40 @@ def push_amount(elapsed, over, ramp=1.0):
     return 1 - 0.5 * v * (over - elapsed) ** 2 / r
 
 
+PUNCH_DIP, PUNCH_IN, PUNCH_OUT = 0.15, 0.3, 0.3   # s: anticipation, the punch, the release
+
+
+def punch_amount(e, hold, dip):
+    """Zoom progress of a punch-in `e` s after it starts: 0 -> -dip (a small pull back, the
+    anticipation) -> 1 with a slight overshoot (it lands at PUNCH_DIP + PUNCH_IN) -> held -> eased
+    back to 0. `dip` is relative to the zoom. Negative = wider than the view."""
+    if e <= 0:
+        return 0.0
+    if e < PUNCH_DIP:
+        return -dip * ease(e / PUNCH_DIP)
+    e -= PUNCH_DIP
+    if e < PUNCH_IN:
+        u, c = e / PUNCH_IN - 1, 0.8              # easeOutBack, gentle: lands ~3% past, settles back
+        return -dip + (1 + dip) * (1 + (c + 1) * u ** 3 + c * u ** 2)
+    e -= PUNCH_IN + hold
+    if e < 0:
+        return 1.0
+    return 1 - ease(e / PUNCH_OUT) if e < PUNCH_OUT else 0.0
+
+
+def grow_rect(r, s, bw, bh):
+    """r scaled by s about its centre; when s > 1, kept inside the source (bw x bh): moved in
+    if it pokes out, capped (same aspect) if it can't fit - a view already showing the whole
+    source has no room for the dip, so it's skipped there."""
+    if s <= 1:
+        return shrink_rect(r, s)
+    s = max(1.0, min(s, bw / r[2], bh / r[3]))
+    x, y, w, h = shrink_rect(r, s)
+    if w <= bw and h <= bh:
+        x, y = min(max(x, 0.0), bw - w), min(max(y, 0.0), bh - h)
+    return (x, y, w, h)
+
+
 def shrink_rect(r, s):
     """r scaled by s about its centre."""
     x, y, w, h = r
@@ -463,12 +497,20 @@ class OutputResolver:
         self.clock = -1.0
         self.frame_i = -1   # output frames counted by frame(); clock = frame_i * dt (no float drift)
         self.scene_t0 = {}  # scene index -> output clock when it (last) started: push-ins run on it
+        self.punch_t0 = {}  # (scene index, punch i) -> output clock its anticipation started
         self.bubble_from = None
         self.bubble_cur = None
         self.bubble_spring = None
         self.spot_addr = {}  # scene index -> spotlit window address (resolved once per scene)
         self.images = {}     # image layers' files: id -> {file, size} (the plan's "images")
         cap = self.style["captions"]
+        for i, s in enumerate(self.scenes):
+            nxt = next((n for n in self.scenes[i + 1:] if n["source"] == s["source"]), None)
+            if s["punch"] and s["push"]:
+                self.warn(s, "punch and push together look restless: pick one for this scene")
+            for p in s["punch"]:
+                if nxt is not None and p["at"] >= nxt["at"]:
+                    self.warn(s, f"punch at {p['at']} is after the scene ends ({nxt['at']}); ignored")
         self.lines = {name: caption_lines(sess.transcript or [], cap["max_words"], fixes=cap.get("fix")) for name, sess in sessions.items()}
         self.lines_t = {name: [l[0] for l in ls] for name, ls in self.lines.items()}
 
@@ -653,6 +695,25 @@ class OutputResolver:
         elapsed = self.clock - self.scene_t0.get(scene["index"], self.clock)
         return shrink_rect(view, 1 - (1 - to) * push_amount(elapsed, pu["over"]))
 
+    def punched(self, scene, kind, view, t, bounds):
+        """The view zoomed by the scene's punch-ins. Each starts when the source reaches its
+        `at` minus the lead, then runs on the output clock (a cut inside doesn't jump it); one
+        whose start was cut away still fires if the source is inside it."""
+        if not scene.get("punch"):
+            return view
+        if kind not in self.PUSH_KINDS:
+            self.warn(scene, f"punch: only on camera, window, screen and rect shots (not {kind}); ignored")
+            return view
+        lead = PUNCH_DIP + PUNCH_IN
+        s = 1.0
+        for i, p in enumerate(scene["punch"]):
+            key = (scene["index"], i)
+            if key not in self.punch_t0 and p["at"] - lead <= t < p["at"] + p["hold"]:
+                self.punch_t0[key] = self.clock
+            if key in self.punch_t0:
+                s *= 1 - p["zoom"] * punch_amount(self.clock - self.punch_t0[key], p["hold"], p["dip"] / p["zoom"])
+        return grow_rect(view, s, *bounds) if s != 1.0 else view
+
     def pane_opts(self, scene, shot):
         """(fit, background, inset) for one pane: the pane's own (in a split) or the scene's."""
         return (shot.get("fit") or scene["fit"], shot.get("background") or scene["background"],
@@ -741,6 +802,7 @@ class OutputResolver:
                     view = clamp_rect(target, bw, bh) if target[2] <= bw and target[3] <= bh else target
                     _, _, cw, ch = fit_inside(view[2] / view[3], room)   # the card hugs the target
                 view = self.pushed(scene, ev.kind, view)       # the card stays, the picture tightens
+                view = self.punched(scene, ev.kind, view, t, (bw, bh))
                 card = place_in(cw, ch, room, ins["position"])
                 layers += self.background_layers(bg or "backdrop", stream, t, cover, dst, shape, radius)
                 card_r = ins["radius"] * self.unit
@@ -753,7 +815,7 @@ class OutputResolver:
                 if views_out is not None:
                     views_out.append((stream, view, card))
             elif mode == "cover":
-                view = self.pushed(scene, ev.kind, cover)
+                view = self.punched(scene, ev.kind, self.pushed(scene, ev.kind, cover), t, (bw, bh))
                 if move_from is not None:
                     view = lerp_rect(move_from, view, move_u)
                 layers.append({"type": "video", "src": stream, "t": round(t, 4), "rect": rr(view), "dst": rr(dst),
@@ -763,7 +825,7 @@ class OutputResolver:
             else:
                 tgt = clamp_rect(target, bw, bh) if target[2] <= bw and target[3] <= bh else target
                 inner = fit_inside(tgt[2] / tgt[3], dst)
-                tgt = self.pushed(scene, ev.kind, tgt)
+                tgt = self.punched(scene, ev.kind, self.pushed(scene, ev.kind, tgt), t, (bw, bh))
                 layers += self.background_layers(bg or "blur", stream, t, cover, dst, shape, radius)
                 layers.append({"type": "video", "src": stream, "t": round(t, 4), "rect": rr(tgt), "dst": rr(inner),
                                "shape": "round", "radius": r1(self.style["radius"] * self.unit)})
@@ -931,6 +993,8 @@ class OutputResolver:
                 self.prev = None
             self.evals.pop(scene["index"], None)  # fresh state when a scene (re)starts
             self.scene_t0[scene["index"]] = self.clock
+            for k in [k for k in self.punch_t0 if k[0] == scene["index"]]:
+                del self.punch_t0[k]   # a scene shown again punches again
         views = []
         layers = []
         # A transition lasts the frames that start before its end: round() keeps float noise from

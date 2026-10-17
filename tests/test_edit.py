@@ -528,6 +528,110 @@ class Push(unittest.TestCase):
             self.assertIn(msg, str(cm.exception))
 
 
+class Punch(unittest.TestCase):
+    """punch: a quick zoom in on an important point, with a small dip out first."""
+
+    RECT = {"rect": [0, 0, 2560, 1080]}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = make_session(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def widths(self, p, src="/screen"):
+        return {f["t"]: videos(f, src)[-1]["rect"][2] for f in p["frames"]}
+
+    def scene(self, **kw):
+        return {"scenes": [dict({"at": 0, "shot": {"rect": [200, 100, 1920, 810]}, "fit": "cover",
+                                 "bubble": False}, **kw)]}
+
+    def test_curve_dips_lands_holds_releases(self):
+        lead = R.PUNCH_DIP + R.PUNCH_IN
+        self.assertEqual(R.punch_amount(0, 1.5, 0.1), 0.0)
+        self.assertAlmostEqual(R.punch_amount(R.PUNCH_DIP, 1.5, 0.1), -0.1)    # the anticipation
+        self.assertGreater(max(R.punch_amount(lead - k / 100, 1.5, 0.1) for k in range(1, 10)), 1.0)  # overshoot
+        self.assertAlmostEqual(R.punch_amount(lead, 1.5, 0.1), 1.0)
+        self.assertEqual(R.punch_amount(lead + 1.0, 1.5, 0.1), 1.0)            # held
+        self.assertEqual(R.punch_amount(lead + 1.5 + R.PUNCH_OUT, 1.5, 0.1), 0.0)
+
+    def test_lands_on_at_and_releases(self):
+        p = plan(self.scene(punch=3.0), self.d, fps=50)
+        w = self.widths(p)
+        base = w[0.0]
+        self.assertAlmostEqual(w[3.0] / base, 0.94, delta=0.002)              # 6% in, on the word
+        self.assertAlmostEqual(w[4.4] / base, 0.94, delta=0.002)              # held 1.5 s
+        self.assertLess(min(w.values()), 0.94 * base)                         # a slight overshoot
+        self.assertAlmostEqual(max(w.values()) / base, 1.006, delta=0.001)      # dip out first
+        self.assertEqual(w[6.0], base)
+        dip_t = max(w, key=w.get)
+        self.assertAlmostEqual(dip_t, 3.0 - R.PUNCH_IN, delta=0.03)
+
+    def test_list_and_per_punch_settings(self):
+        p = plan(self.scene(punch=[2.0, {"at": 5.0, "zoom": 0.2, "hold": 0.5, "dip": 0}]), self.d, fps=50)
+        w = self.widths(p)
+        self.assertAlmostEqual(w[2.0] / w[0.0], 0.94, delta=0.002)
+        self.assertAlmostEqual(w[5.2] / w[0.0], 0.8, delta=0.002)
+        self.assertLessEqual(max(w[t] for t in w if t > 4), w[0.0])           # dip: 0 = none
+
+    def test_dip_stays_inside_the_source(self):
+        p = plan({"scenes": [{"at": 0, "shot": "screen", "fit": "cover", "punch": 3.0, "bubble": False}]},
+                 self.d, fps=50)
+        for f in p["frames"]:
+            x, y, w, h = videos(f, "/screen")[-1]["rect"]
+            self.assertTrue(x >= -0.5 and y >= -0.5 and x + w <= 5120.5 and y + h <= 2160.5)
+
+    def test_camera_inset_card(self):
+        p = plan({"scenes": [{"at": 0, "shot": "camera", "fit": "inset", "punch": 3.0, "bubble": False}]}, self.d)
+        a, b = videos(frame_at(p, 0.0), "/camera")[0], videos(frame_at(p, 3.0), "/camera")[0]
+        self.assertEqual(a["dst"], b["dst"])
+        self.assertAlmostEqual(b["rect"][2] / a["rect"][2], 0.94, delta=0.01)
+
+    def test_runs_on_the_output_clock_across_a_cut(self):
+        cut = self.widths(plan(dict(self.scene(punch={"at": 3.0, "hold": 1.0}), cuts={"ranges": [[3.5, 6.0]]}),
+                               self.d, fps=50))
+        whole = self.widths(plan(self.scene(punch={"at": 3.0, "hold": 1.0}), self.d, fps=50))
+        for t in sorted(cut):   # the same move frame by frame: the cut doesn't jump or end it
+            if t < 5.0:
+                self.assertAlmostEqual(cut[t], whole[t], delta=0.5)
+
+    def test_off_by_default_and_style_defaults(self):
+        w = self.widths(plan(self.scene(), self.d))
+        self.assertEqual(len(set(w.values())), 1)
+        data = self.scene(punch=3.0)
+        data["style"] = {"punch": {"zoom": 0.15}}
+        w = self.widths(plan(data, self.d, fps=50))
+        self.assertAlmostEqual(w[3.0] / w[0.0], 0.85, delta=0.002)
+
+    def test_per_output(self):
+        data = dict(self.scene(punch=3.0), outputs=[{"name": "main", "size": "1920x1080"},
+                                                     {"name": "vertical", "size": "1080x1920"}])
+        data["scenes"][0]["vertical"] = {"punch": False}
+        w = self.widths(plan(data, self.d, "vertical"))
+        self.assertEqual(len(set(w.values())), 1)
+
+    def test_warnings(self):
+        p = plan({"scenes": [{"at": 0, "shot": {"cursor": {"zoom": 2}}, "punch": 2, "bubble": False}]}, self.d)
+        self.assertTrue([w for w in p["warnings"] if "punch: only on" in w])
+        p = plan({"scenes": [{"at": 0, "shot": "screen", "punch": 6, "bubble": False},
+                             {"at": 5, "shot": "camera"}]}, self.d)
+        self.assertTrue([w for w in p["warnings"] if "after the scene ends" in w])
+        p = plan({"scenes": [{"at": 0, "shot": "camera", "punch": 2, "push": True, "bubble": False}]}, self.d)
+        self.assertTrue([w for w in p["warnings"] if "punch and push" in w])
+
+    def test_validation(self):
+        for v, msg in ((-1, "out of range"), ({"at": 2, "zoom": 0.9}, "out of range"),
+                       ({"at": 2, "zom": 0.1}, "did you mean 'zoom'"), ({"zoom": 0.1}, "missing 'at'"),
+                       ("x", "expected a number")):
+            with self.assertRaises(S.ScriptError) as cm:
+                S.parse({"scenes": [{"at": 0, "shot": "screen", "punch": v}]}, self.d)
+            self.assertIn(msg, str(cm.exception))
+        with self.assertRaises(S.ScriptError) as cm:
+            S.parse({"scenes": [{"at": 4, "shot": "screen", "punch": 2}]}, self.d)
+        self.assertIn("before the scene starts", str(cm.exception))
+
+
 class Captions(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
