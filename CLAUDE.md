@@ -142,5 +142,19 @@ James's rule (2026-10-13): **commit little and often.**
   downscale (the 16% gain is the downscale itself, CPU does the same), more jobs (slower),
   GPU H.264 encode (bigger files for little), headless Chrome as compositor (no HW AV1 decode,
   20-45 ms readback per frame).
+- **Pinned (James, 2026-10-17): camera motion is too extreme - make it gentler, with options.**
+  From cutting a real demo, where every one of these looked wrong:
+  - **push / punch in a split should move the camera pane only.** Today they zoom the whole
+    scene, so the app pane lurches too ("jarring"); the workaround was a full-frame camera shot.
+    Likely shape: by default a split's push/punch applies to its camera pane, plus pane-level
+    `push:` / `punch:` to choose explicitly.
+  - **A fixed framing from the average face position** (faces.jsonl over the shot's span),
+    not following. `follow: false` today freezes on wherever the face is at the scene's first
+    frame, which is arbitrary if the speaker shifts. An option such as `follow: average`.
+  - **Gentler follow**: smoother and slower to react when it does follow (smoothing time /
+    dead zone as options), instead of visibly tracking every movement.
+  - **Options with milder defaults** for all of the above: James found today's punch overdone even
+    at the default 6%. Changing a default changes existing edits' plans, against the "new looks
+    are options" rule above - agree which defaults move before changing them.
 - Next ideas: move transitions between contain views; overlays / other sources; key-shortcut
   captions from `key` events; title cards; VAAPI decode in builds; a keybind in the dotfiles.
