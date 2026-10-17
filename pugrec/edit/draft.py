@@ -133,7 +133,13 @@ def draft(session_dir):
     for addr, st in wins.items():
         lines.append(f"#   {addr}  {st['class']:<28.28}  {st['title'][:60]}")
     lines += ["", "version: 1", "outputs:", "  - {name: main, size: 1920x1080}", "  - {name: vertical, size: 1080x1920}"]
-    if spans:  # the window with the most focus time stays sharp; the rest of the screen is blurred
+    start = next((r for r in sess.records if r["type"] == "session_start"), {})
+    if spans and start.get("os") == "macos":
+        # macOS windows overlap: a fixed window's rectangle would keep whatever is stacked on
+        # top of it sharp. The focused window is the frontmost one, so nothing covers it.
+        lines += ["style:", "  spotlight: {window: focused}   # whatever has focus is sharp, the rest blurred "
+                            "(false = off)"]
+    elif spans:  # the window with the most focus time stays sharp; the rest of the screen is blurred
         main = max({a for _, _, a in spans}, key=lambda a: sum(t1 - t0 for t0, t1, b in spans if b == a))
         lines += ["style:", f"  spotlight: {{window: {{address: {_q(main)}}}}}   # {wins[main]['title'][:50]} "
                             "- sharp, the rest blurred (false = off)"]
