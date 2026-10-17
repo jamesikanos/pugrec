@@ -207,6 +207,10 @@ Rules that matter:
   (a talking-head intro/outro, a long camera or window shot, an inset card) makes it feel alive.
   Skip it on short scenes (< ~3 s) and on cursor/auto shots. Use it when James asks for motion /
   "Ken Burns" / "zoom in slowly", or with the presenter look above.
+- *Punch-in* - an option for emphasis: `punch: <s>` on a camera scene, `at` on the stressed
+  word of the point being made (from transcript.jsonl). Use few (one per ~30 s at most, or they
+  stop meaning anything), on talking-head shots - not on the app. Use it when James asks for
+  emphasis / "punch in" / "zoom on that line".
 - *Vertical output:* give it tighter shots via `vertical:` overrides (cursor zoom 1.2-1.4).
 - *For a customer / brand:* `style: {theme: <name>}` (`pugrec themes` lists them; an unknown name
   is an error listing the installed ones), plus `intro: {title, subtitle}` / `outro:` title cards
@@ -356,6 +360,7 @@ Each scene lasts until the next scene's `at`.
 | `background` | behind a `contain` view or an `inset` card: `blur` (contain's default), `backdrop` (inset's default: the style's backdrop) or a colour `"#16171a"` |
 | `inset` | for `fit: inset`: `{padding, radius, aspect, position, shadow}` over `style.inset` (below) |
 | `push` | a slow push-in while the shot holds: `true`, a number (`to`), `{to, over}`, or `false` (default: the style's, off) - below |
+| `punch` | a quick punch-in on an important point: a source time (when the zoom lands), a list of them, or `{at, zoom, dip, hold}` items (default: none) - below |
 | `transition` | into this scene: `cut`, `{move: s}`, `{fade: s}` (default `{move: 0.6}`) |
 | `bubble` | camera bubble: `{corner, size, margin, shape, show}`, `false` to hide, `true` to show. **Sticky**: applies until a later scene changes it |
 | `spotlight` | `false` / `true` / `{window, blur, dim}` for this scene only (default: the style's) |
@@ -443,6 +448,26 @@ cards (the card stays, the picture tightens). Not on `cursor`/`auto` shots (they
 `check` warns). `push: true` is 0.8 on wide outputs and 0.9 on tall ones: the camera is 1080p and
 a 9:16 frame already enlarges it ~1.8x, so a full push there gets soft (an explicit `to` is used as is).
 
+#### Punch: a quick zoom in on an important point
+
+```yaml
+  - at: 4.6
+    shot: camera
+    punch: 12.4                                # the zoom lands at 12.4 s (source): put it on the word
+  - at: 30
+    shot: camera
+    punch: [33.1, {at: 41.0, zoom: 0.15, hold: 3}]
+```
+The YouTuber's emphasis zoom: the view pulls back 1% (`dip`, the anticipation), snaps in 10%
+(`zoom`) in 0.2 s with a slight overshoot, lands on `at`, holds `hold` s (1.5) and eases back out
+over 0.45 s. The move starts 0.32 s before `at`, so `at` is the stressed word in the transcript.
+Defaults come from `style.punch: {zoom: 0.1, dip: 0.01, hold: 1.5}`; `dip: 0` = straight in. It
+runs on the video as watched (a cut inside it doesn't jump or end it); one whose start was cut
+away still fires when the source is inside it. It works where `push` does (camera, window,
+screen, rect; full frame, panes, `contain`, inset cards - the card stays) and stacks on a push.
+A view already showing the whole source has no room for the dip, so it's skipped there. Not on
+`cursor`/`auto` shots; `check` warns about those and about a punch after its scene ends.
+
 #### Spotlight: one window sharp, the rest of the screen blurred
 
 ```yaml
@@ -514,6 +539,7 @@ style:
      image: null}            # or an image (PNG/JPEG/WebP, cover-cropped); setting one replaces the other
   inset: {padding: 0.06, radius: 18, aspect: auto, position: [0.5, 0.5], shadow: 0}   # fit: inset defaults
   push: null                 # e.g. {to: 0.8, over: 10}: every scene pushes in unless it says push: false
+  punch: {zoom: 0.1, dip: 0.01, hold: 1.5}   # defaults for scenes' punch-ins
   transition: {move: 0.6}    # default transition
 ```
 The bubble hides automatically when the shot itself shows the camera. Captions appear when the
