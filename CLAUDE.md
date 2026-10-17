@@ -145,6 +145,13 @@ James's rule (2026-10-13): **commit little and often.**
   downscale (the 16% gain is the downscale itself, CPU does the same), more jobs (slower),
   GPU H.264 encode (bigger files for little), headless Chrome as compositor (no HW AV1 decode,
   20-45 ms readback per frame).
+- Done 2026-10-17: callouts (`callouts:`) - info boxes in four looks (draw, bar, pill, section),
+  styled by `style.callout` (a theme's), with direction of travel in and out; a section can lead
+  its wipe with the theme's sparkle sweep. New layer: `stroke` (a part-drawn polyline); text
+  layers may be `align: left`. Every existing edit resolved to the same plan before and after.
+  `pause` holds the recording (frames with `hold: true`: one source moment, silence) while a
+  callout comes in. The preview's player.js is not reloaded by the SSE plan reload: after a
+  player change, hard-refresh the page (an old player looped the audio through a hold).
 - **Pinned (James, 2026-10-17): camera motion is too extreme - make it gentler, with options.**
   From cutting a real demo, where every one of these looked wrong:
   - **push / punch in a split should move the camera pane only.** Today they zoom the whole

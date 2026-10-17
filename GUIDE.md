@@ -212,6 +212,11 @@ Rules that matter:
   stop meaning anything), on talking-head shots - not on the app, and never in a scene with
   `push` (drop the push). Use it when the author asks for
   emphasis / "punch in" / "zoom on that line".
+- *Callouts* - an option: small animated info boxes (`callouts:`, appendix) for what the screen
+  can't say - a role, what a feature is, what's next - and `look: section` headers over a tab
+  switch or a load. Write them from the transcript and the work's history (commits, tickets),
+  check every claim against the code, and keep them few (one per 30-45 s). A section over a
+  scene change starts `in` before it; `pause` only where the speaker left a real break.
 - *Vertical output:* give it tighter shots via `vertical:` overrides (cursor zoom 1.2-1.4).
 - *For a customer / brand:* `style: {theme: <name>}` (`pugrec themes` lists them; an unknown name
   is an error listing the installed ones), plus `intro: {title, subtitle}` / `outro:` title cards
@@ -347,6 +352,7 @@ scenes:
 | `style` | defaults, below |
 | `scenes` | the list of scenes, by `at` |
 | `intro` / `outro` | title cards before/after the video: `"Title"` or `{title, subtitle, duration}` |
+| `callouts` | animated info boxes and section headers over the video: `[{at, title, text, look, ...}]` (Callouts, below) |
 | `overlays` | reserved (picture-in-picture of other sources, later) |
 
 ### Scenes
@@ -543,6 +549,11 @@ style:
   inset: {padding: 0.06, radius: 18, aspect: auto, position: [0.5, 0.5], shadow: 0}   # fit: inset defaults
   push: null                 # e.g. {to: 0.8, over: 10}: every scene pushes in unless it says push: false
   punch: {zoom: 0.06, dip: 0.006, hold: 1.5}  # defaults for scenes' punch-ins
+  callout: {look: bar, corner: top-left, margin: 0.045, size: 0.034, text_size: 0.024,   # callouts (below)
+            padding: 0.02, font: null, weight: 700, text_weight: 500, color: "#f1e4d9",
+            background: "#16171a", opacity: 0.86, border: null, border_width: 2, radius: 12,
+            duration: 4.5, in: 0.7, out: 0.35, from: auto, to: none, distance: 0.025, sparkle: false,
+            pause: 0}
   transition: {move: 0.6}    # default transition
 ```
 The bubble hides automatically when the shot itself shows the camera. Captions appear when the
@@ -593,3 +604,47 @@ only all-lowercase words change, so names and codes (FieldPal, COUPA, KAL-132) s
 small words (and, of, the, ...) stay lowercase except first and last.
 A **theme** may carry `intro:` / `outro:` too (a brand's standard closing card): an edit gets them
 unless it sets its own, and `outro: false` / `intro: false` in edit.yaml turns them off.
+
+#### Callouts: info boxes and section headers
+
+```yaml
+style:
+  callout: {look: draw}                     # the default look for this edit (or a theme's)
+callouts:                                   # source seconds, like scenes; each up for `duration`
+  - {at: 12.8, title: "KAL-134 · Summaries", text: "What's going on, by role:\non home and in each project"}
+  - {at: 32.6, look: pill, title: Viewer}
+  - {at: 102.9, look: bar, title: For you, text: "Your tickets", to: up}
+  - {at: 236.6, look: section, sparkle: true, in: 1.2, duration: 3.8, title: The real app}
+```
+Small animated boxes over the running video and audio, not full-frame cards: what the screen
+can't say (a role, what a feature is, what's next). Few of them - one every 30-45 s at most.
+- **Looks**: `draw` - the border traces itself round the box (clockwise from the top-left), then
+  the fill fades in and the text fades in with a small rise; `bar` - an accent bar grows down the
+  left edge and the text slides out from behind it; `pill` - one short label, faded in;
+  `section` - a section header: a full-frame panel in the card colours wipes across, a big title
+  and an accent bar appear on it, then it fades back to the video, which kept running (unlike
+  `intro`/`outro`, which stop it). Good over a tab switch or a load. Its title follows
+  `card.title_case`, like the cards.
+- **Travel**: `from` (`auto` = from the box's own side, `left|right|up|down|none`), `to` (out,
+  `none` = just fade), `distance` (fraction of the shorter side). A section wipes in from `from`.
+- **Text**: `title`, plus `text` with up to 3 lines (`\n`); a pill is a title only.
+- **Timing**: `duration` (total, in and out included, default 4.5 s), `in` (0.7), `out` (0.35).
+  It appears when the source reaches `at` and then runs on the output clock: a cut inside it
+  doesn't end it early. One whose start was cut away still shows if the source is inside it.
+- **Style** (`style.callout`, a theme's or the edit's, and any key per callout): `look`,
+  `corner` (`top-left` .. `bottom-right`, `top`, `bottom`; bottom ones sit above the captions),
+  `margin`, `size` / `text_size` / `padding` (fractions of the shorter side), `font` (null =
+  the captions'), `weight` / `text_weight`, `color`, `background`, `opacity`, `border` (null =
+  the accent), `border_width`, `radius` (px at 1080p), `sparkle`.
+- **`pause: <s>`** (off by default): the recording stands still for that long at `at` - one
+  held picture, silence under it - while the callout comes in, then carries on from the same
+  moment. **Only where the speaker already left a long enough break** (a beat between topics,
+  roughly as long as the pause): there the section gets its full wipe and nobody notices.
+  Spliced into flowing speech it sounds like a glitch even in a gap between sentences - tried
+  on a real demo and rejected. Find the break on the audio level, not the transcript (its word
+  times can be ~0.3 s out); never mid-word. Without a break, start the section `in` before its
+  scene change instead, so the wipe covers the change while the video runs.
+- **`sparkle: true`** (sections only): the theme's sweep sprite gallops across leading the wipe,
+  shedding its sparkle trail. Like the sparkle/sweep transitions, only with a theme that has a
+  `sparkle:` section - anywhere else `check` refuses it.
+- Two boxes up at once in the same corner (or two sections): `check` warns.

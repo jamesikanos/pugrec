@@ -72,3 +72,53 @@ class Image(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Stroke(unittest.TestCase):
+    """A callout's border: a polyline, part drawn or closed."""
+
+    def test_draws_only_along_the_path(self):
+        c = canvas()
+        C.draw_stroke(c, {"points": [[20, 50], [120, 50]], "closed": False, "width": 3, "color": "#41b6e6"})
+        self.assertGreater(int(c[50, 70, 0]), 150)                  # on the line (BGR: blue is high)
+        self.assertEqual(int(c[20, 70].sum()), 0)                   # nothing off it
+        self.assertEqual(int(c[50, 160].sum()), 0)                  # nor past its end
+
+    def test_closed_joins_the_ends_and_opacity_blends(self):
+        c = canvas()
+        C.draw_stroke(c, {"points": [[20, 20], [180, 20], [180, 80], [20, 80]], "closed": True, "width": 2,
+                          "color": "#ffffff", "opacity": 0.5})
+        self.assertGreater(int(c[50, 20, 0]), 90)                   # the closing side is drawn
+        self.assertLess(int(c[20, 100, 0]), 160)                    # at half strength
+
+    def test_left_aligned_text_starts_at_x(self):
+        c = canvas(300, 60)
+        C.draw_text(c, {"x": 40, "y": 30, "size": 20, "words": [{"w": "Owner", "hi": False}], "color": "#ffffff",
+                        "hi": "#ffffff", "bg": "#000000", "bg_opacity": 0.0, "pad": 0.0, "radius": 0.0,
+                        "align": "left"})
+        cols = np.where(c.sum(axis=(0, 2)) > 0)[0]
+        self.assertGreaterEqual(cols.min(), 38)
+        self.assertLess(cols.min(), 50)
+
+
+class Hold(unittest.TestCase):
+    """A callout's pause: one still picture, silence under it, then the recording carries on."""
+
+    def frames(self):
+        f = [{"src": "main", "st": 1.0 + i / 10, "layers": []} for i in range(5)]
+        f += [{"src": "main", "st": 1.5, "hold": True, "layers": []} for _ in range(10)]
+        f += [{"src": "main", "st": 1.5 + i / 10, "layers": []} for i in range(5)]
+        return f
+
+    def test_a_hold_is_a_run_of_its_own(self):
+        r = C.runs(self.frames(), 10)
+        self.assertEqual([(a, b) for a, b, _s, _t in r], [(0, 5), (5, 15), (15, 20)])
+        self.assertEqual(r[2][3], 1.5)
+
+    def test_silence_under_the_hold_and_audio_either_side(self):
+        plan = {"audio": [{"source": "main", "file": "mic.flac"}], "output": {"fps": 10}}
+        inputs, graph = C.audio_args(plan, self.frames(), 1)
+        self.assertEqual(inputs, ["-i", "mic.flac"])
+        self.assertIn("anullsrc=r=48000:cl=mono,atrim=duration=1.0000", graph)
+        self.assertIn("atrim=start=1.0000:end=1.5000", graph)
+        self.assertIn("atrim=start=1.5000:end=2.0000", graph)

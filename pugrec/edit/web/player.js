@@ -81,12 +81,12 @@ function sync(frame) {
     const st = p.streams[l.src];
     if (!want.has(st.url)) want.set(st.url, Math.max(0, l.t - st.offset));
   }
-  for (const a of p.audio) if (a.source === frame.src) want.set(a.url, frame.st);
+  if (!frame.hold) for (const a of p.audio) if (a.source === frame.src) want.set(a.url, frame.st);  // a hold is silent
   for (const [url, m] of Object.entries(media)) {
     if (!want.has(url)) { if (!m.paused) m.pause(); continue; }
     const t = want.get(url);
     const drift = Math.abs(m.currentTime - t);
-    if (state.playing) {
+    if (state.playing && !frame.hold) {   // a hold: the picture stands still, as when paused
       if (m._jumping) continue;              // a click-free jump is under way
       if (drift > 0.25) jumpAudio(m, t);     // cut, splice or drift: jump (audio: faded)
       if (m.paused) m.play().catch(() => {});
@@ -188,7 +188,7 @@ function drawText(l) {
   const widths = l.words.map((w) => ctx.measureText(w.w).width);
   const tw = widths.reduce((a, b) => a + b, 0) + space * (widths.length - 1);
   const W = tw + 2 * l.pad, H = l.size * 1.5;
-  const x0 = l.x - W / 2, y0 = l.y - H / 2;
+  const x0 = l.align === "left" ? l.x : l.x - W / 2, y0 = l.y - H / 2;
   ctx.globalAlpha = (l.opacity ?? 1) * l.bg_opacity;
   ctx.beginPath(); ctx.roundRect(x0, y0, W, H, l.radius); ctx.fillStyle = l.bg; ctx.fill();
   ctx.globalAlpha = l.opacity ?? 1;
@@ -235,6 +235,19 @@ function drawStar(l) {
   ctx.restore();
 }
 
+function drawStroke(l) {
+  // A callout's border, part drawn: the same polyline as compose.draw_stroke.
+  if (l.points.length < 2) return;
+  ctx.save();
+  ctx.globalAlpha = l.opacity ?? 1;
+  ctx.beginPath();
+  l.points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+  if (l.closed) ctx.closePath();
+  ctx.lineWidth = l.width; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.strokeStyle = l.color; ctx.stroke();
+  ctx.restore();
+}
+
 function draw(frame) {
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
   for (const l of frame.layers) {
@@ -250,6 +263,7 @@ function draw(frame) {
     else if (l.type === "text") drawText(l);
     else if (l.type === "image") drawImage(l);
     else if (l.type === "star") drawStar(l);
+    else if (l.type === "stroke") drawStroke(l);
     if (l.clip) ctx.restore();
   }
 }

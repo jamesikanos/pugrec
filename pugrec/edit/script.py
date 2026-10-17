@@ -56,12 +56,32 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
     "spotlight": None,
     "transition": {"move": 0.6},       # default between scenes
     # From transcript.jsonl (pugrec transcript); shown only if the source has one.
+    # Callouts: small animated info boxes (edit.yaml `callouts:`), not full-frame title cards.
+    # look: draw = the border traces itself round the box, then the fill and the text fade in;
+    # bar = an accent bar grows down the left edge and the text slides out from behind it;
+    # pill = one short label (a role, a name) that fades in; section = a full-frame panel in the
+    # card colours wipes across with a big title (a section header, over the running video and
+    # audio - unlike intro/outro cards). sparkle: true = the theme's unicorn sweep leads the wipe
+    # (only themes with a `sparkle:` section, like the transitions). Sizes are fractions of the output's
+    # shorter side; px values are at 1080p. from/to: the direction of travel in and out.
+    "callout": {"look": "bar", "corner": "top-left", "margin": 0.045,
+                "size": 0.034, "text_size": 0.024, "padding": 0.02,
+                "font": None, "weight": 700, "text_weight": 500,   # font null = captions'
+                "color": "#f1e4d9", "background": "#16171a", "opacity": 0.86,
+                "border": None, "border_width": 2, "radius": 12,    # border null = the accent
+                "duration": 4.5, "in": 0.7, "out": 0.35,            # seconds, in and out included
+                "from": "auto", "to": "none", "distance": 0.025,    # auto = from its corner's side
+                "sparkle": False,
+                "pause": 0},   # s: freeze the recording (picture and sound) at `at` while it comes in
     "captions": {"show": True, "size": 0.045, "position": "auto", "max_words": 6, "highlight": True,
                  "fix": {},  # word -> correction, for names the transcript gets wrong (Akme -> Acme)
                  "font": "IBM Plex Sans", "weight": 600, "color": "#f1e4d9",
                  "background": "#16171a", "background_opacity": 0.78},
 }
 THEMES_HELP = "~/.config/pugrec/themes/<name>.yaml"
+CALLOUT_LOOKS = ("draw", "bar", "pill", "section")
+CALLOUT_CORNERS = ("top-left", "top-right", "bottom-left", "bottom-right", "top", "bottom")
+DIRECTIONS = ("left", "right", "up", "down", "none")
 
 
 class ScriptError(ValueError):
@@ -376,7 +396,7 @@ def parse(data, base_dir="."):
     if not isinstance(data, dict):
         raise ScriptError("edit.yaml: expected a mapping at the top level")
     _keys(data, "edit.yaml", ["version", "outputs", "sources", "timeline", "cuts", "audio", "style",
-                              "intro", "outro", "scenes", "overlays"], ["scenes"])
+                              "intro", "outro", "scenes", "callouts", "overlays"], ["scenes"])
     if data.get("version", 1) != 1:
         _err("version", f"this pugrec understands version 1, not {data['version']!r}")
 
@@ -441,10 +461,19 @@ def parse(data, base_dir="."):
     for i, s in enumerate(scenes):
         s["index"] = i
     check_sparkle_allowed(style, scenes)
+    raw_callouts = data.get("callouts") or []
+    if not isinstance(raw_callouts, list):
+        _err("callouts", "expected a list of {at, title, text}")
+    callouts = [callout(c, f"callouts[{i}]", style, sources) for i, c in enumerate(raw_callouts)]
+    for i, c in enumerate(callouts):
+        if c["sparkle"] and style["sparkle"] == DEFAULT_STYLE["sparkle"]:
+            _err(f"callouts[{i}].sparkle", "sparkles only work with a theme that has a `sparkle:` section")
+        if c["sparkle"] and c["look"] != "section":
+            _err(f"callouts[{i}].sparkle", "only a section's wipe can sparkle")
 
     return {"version": 1, "outputs": outs, "sources": sources, "style": style,
             "audio": {"source": audio.get("source", "mic-clean")}, "cuts": cuts, "auto_cuts": auto_cuts,
-            "timeline": timeline, "scenes": scenes, "intro": intro, "outro": outro}
+            "timeline": timeline, "scenes": scenes, "intro": intro, "outro": outro, "callouts": callouts}
 
 
 def _ranges(v, path):
@@ -736,6 +765,79 @@ def _image_file(v, path, base_dir):
     return f
 
 
+def _choice(v, path, options):
+    if v not in options:
+        _err(path, f"expected one of {', '.join(options)}, got {v!r}")
+    return v
+
+
+def callout_style(v, path, base):
+    _keys(v, path, list(base))
+    out = dict(base)
+    for k, val in v.items():
+        p = f"{path}.{k}"
+        if k == "look":
+            out[k] = _choice(val, p, CALLOUT_LOOKS)
+        elif k == "corner":
+            out[k] = _choice(val, p, CALLOUT_CORNERS)
+        elif k == "from":
+            out[k] = _choice(val, p, ("auto",) + DIRECTIONS)
+        elif k == "to":
+            out[k] = _choice(val, p, DIRECTIONS)
+        elif k in ("color", "background"):
+            out[k] = _color(val, p)
+        elif k == "border":
+            out[k] = None if val is None else _color(val, p)
+        elif k == "font":
+            out[k] = None if val is None else str(val)
+        elif k == "sparkle":
+            if not isinstance(val, bool):
+                _err(p, f"true or false, got {val!r}")
+            out[k] = val
+        elif k in ("weight", "text_weight"):
+            out[k] = int(_num(val, p, 100, 900))
+        elif k in ("size", "text_size"):
+            out[k] = _num(val, p, 0.005, 0.2)
+        elif k in ("margin", "padding", "distance"):
+            out[k] = _num(val, p, 0, 0.5)
+        elif k == "opacity":
+            out[k] = _num(val, p, 0, 1)
+        elif k == "duration":
+            out[k] = _num(val, p, 0.5, 60)
+        elif k == "pause":
+            out[k] = _num(val, p, 0, 10)
+        elif k in ("in", "out"):
+            out[k] = _num(val, p, 0, 5)
+        else:  # border_width, radius: px at 1080p
+            out[k] = _num(val, p, 0, 200)
+    return out
+
+
+def callout(v, path, style, sources):
+    """One callout: {at, title, text, duration, source} plus any style.callout key for this one."""
+    if not isinstance(v, dict):
+        _err(path, "expected {at, title, text}")
+    own = {k: val for k, val in v.items() if k not in ("at", "title", "text", "source")}
+    _keys(v, path, ["at", "title", "text", "source"] + list(style["callout"]), ["at", "title"])
+    c = callout_style(own, path, style["callout"])
+    c["at"] = _num(v["at"], f"{path}.at", 0)
+    c["source"] = v.get("source", next(iter(sources)))
+    if c["source"] not in sources:
+        _err(f"{path}.source", f"unknown source {c['source']!r} (have: {', '.join(sources)})")
+    c["title"] = str(v["title"])
+    if c["look"] == "section" and style["card"]["title_case"]:   # a section is a card: the same house style
+        c["title"] = title_case(c["title"])
+    lines = [] if v.get("text") in (None, "") else str(v["text"]).split("\n")
+    if len(lines) > 3:
+        _err(f"{path}.text", "at most 3 lines: a callout is read in a glance")
+    if lines and c["look"] == "pill":
+        _err(f"{path}.text", "a pill is one short label: use look: draw or bar for a second line")
+    c["lines"] = lines
+    if c["in"] + c["out"] > c["duration"]:
+        _err(f"{path}.duration", f"{c['duration']} is shorter than in + out ({c['in'] + c['out']})")
+    return c
+
+
 def card(v, path, style):
     """intro/outro: a title card. "Title" or {title, subtitle, duration, fade_in, fade_out}."""
     if v is None or v is False:
@@ -850,6 +952,8 @@ def apply_style(style, st, path, base_dir):
             style[k] = logo(v, p, base_dir)
         elif k == "card":
             style[k] = card_style(v, p, style[k], base_dir)
+        elif k == "callout":
+            style[k] = callout_style(v, p, style[k])
         elif k == "sparkle":
             style[k] = sparkle_style(v, p, style[k], base_dir)
         elif k == "backdrop":

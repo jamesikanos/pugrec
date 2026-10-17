@@ -1,6 +1,7 @@
 """Editor: script validation and the resolver (no video).  .venv/bin/python -m unittest discover tests"""
 
 import json
+import math
 import os
 import sys
 import tempfile
@@ -630,6 +631,174 @@ class Punch(unittest.TestCase):
         with self.assertRaises(S.ScriptError) as cm:
             S.parse({"scenes": [{"at": 4, "shot": "screen", "punch": 2}]}, self.d)
         self.assertIn("before the scene starts", str(cm.exception))
+
+
+class Callouts(unittest.TestCase):
+    """callouts: small animated info boxes - draw (border traces itself), bar, pill."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = make_session(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def data(self, *callouts, **style):
+        d = {"scenes": [{"at": 0, "shot": "screen", "bubble": False}], "callouts": list(callouts)}
+        if style:
+            d["style"] = {"callout": style}
+        return d
+
+    def callout_layers(self, f):
+        return [l for l in f["layers"] if l["type"] == "stroke" or l.get("align") == "left"
+                or (l["type"] == "fill" and l.get("shape") == "round")]
+
+    def resolver(self, *callouts, **style):
+        sc = S.parse(self.data(*callouts, **style), self.d)
+        return R.OutputResolver(sc, sc["outputs"][0], R.load_sessions(sc), []), sc["callouts"]
+
+    def check_error(self, data, needle):
+        with self.assertRaises(S.ScriptError) as cm:
+            S.parse(data, self.d)
+        self.assertIn(needle, str(cm.exception))
+
+    def test_validation(self):
+        self.check_error(self.data({"at": 1, "title": "Owner", "look": "pill", "text": "two"}), "a pill is one short label")
+        self.check_error(self.data({"at": 1, "title": "x", "text": "a\nb\nc\nd"}), "at most 3 lines")
+        self.check_error(self.data({"at": 1, "title": "x", "duration": 0.8}), "shorter than in + out")
+        self.check_error(self.data({"at": 1, "title": "x", "look": "drawn"}), "expected one of draw, bar, pill")
+        self.check_error(self.data({"at": 1, "title": "x", "form": "left"}), "did you mean 'from'?")
+        self.check_error(self.data({"at": 1}), "missing 'title'")
+
+    def test_no_callouts_no_layers(self):
+        p = plan({"scenes": [{"at": 0, "shot": "screen", "bubble": False}]}, self.d)
+        self.assertFalse(any(self.callout_layers(f) for f in p["frames"]))
+
+    def test_rounded_path_and_part_of_it(self):
+        pts = R.round_rect_path(10, 20, 200, 100, 10)
+        ring = pts + [pts[0]]
+        length = sum(math.dist(a, b) for a, b in zip(ring, ring[1:]))
+        self.assertAlmostEqual(length, 2 * (200 + 100) - (8 - 2 * math.pi) * 10, delta=0.5)
+        self.assertEqual(pts[0], (20, 20))                                   # starts where the top-left corner ends
+        half, closed = R.path_part(pts, 0.5)
+        self.assertFalse(closed)
+        self.assertAlmostEqual(sum(math.dist(a, b) for a, b in zip(half, half[1:])), length / 2, delta=0.5)
+        self.assertTrue(R.path_part(pts, 1.0)[1])
+
+    def test_appears_at_its_time_and_goes(self):
+        p = plan(self.data({"at": 2.0, "duration": 3.0, "title": "The briefing", "text": "From the facts"}),
+                 self.d, fps=50)
+        self.assertFalse(self.callout_layers(frame_at(p, 1.98)))
+        self.assertTrue(self.callout_layers(frame_at(p, 2.0)))
+        self.assertTrue(self.callout_layers(frame_at(p, 4.98)))
+        self.assertFalse(self.callout_layers(frame_at(p, 5.02)))
+
+    def test_draw_traces_the_border_then_fades_the_text_in(self):
+        res, (c,) = self.resolver({"at": 2.0, "title": "The briefing", "text": "From the facts", "look": "draw"})
+
+        def parts(e):
+            ls = res.callout(c, e)
+            stroke = next(l for l in ls if l["type"] == "stroke")
+            texts = [l for l in ls if l["type"] == "text"]
+            return stroke, texts
+        s0, t0 = parts(0.1)
+        self.assertFalse(s0["closed"])
+        self.assertEqual(t0[0]["opacity"], 0.0)                              # text waits for the border
+        s1, t1 = parts(1.0)
+        self.assertTrue(s1["closed"])
+        self.assertEqual([t["opacity"] for t in t1], [1.0, 0.92])             # the detail line a touch softer
+        self.assertLess(parts(0.4)[1][0]["y"] - t1[0]["y"], 0.3 * t1[0]["size"] + 0.1)  # rises a little, into place
+        self.assertGreater(parts(0.4)[1][0]["y"], t1[0]["y"])
+        _, late = parts(c["duration"] - 0.1)
+        self.assertLess(late[0]["opacity"], 0.5)                              # fading out
+
+    def test_direction_of_travel(self):
+        res, (c,) = self.resolver({"at": 0, "title": "x", "from": "left", "to": "up", "distance": 0.05})
+        rest = next(l for l in res.callout(c, 1.5) if l["type"] == "fill")["dst"]
+        start = next(l for l in res.callout(c, 0.0) if l["type"] == "fill")["dst"]
+        end = next(l for l in res.callout(c, c["duration"] - 0.01) if l["type"] == "fill")["dst"]
+        self.assertAlmostEqual(rest[0] - start[0], 0.05 * 1080, delta=1)      # came in from the left
+        self.assertEqual(start[1], rest[1])
+        self.assertLess(end[1], rest[1] - 0.04 * 1080)                        # leaves upwards
+        res2, (c2,) = self.resolver({"at": 0, "title": "x", "corner": "top-right"})
+        self.assertGreater(next(l for l in res2.callout(c2, 0.0) if l["type"] == "fill")["dst"][0],
+                           next(l for l in res2.callout(c2, 1.5) if l["type"] == "fill")["dst"][0])  # auto: from its side
+
+    def test_bar_grows_and_text_slides_out_from_behind_it(self):
+        res, (c,) = self.resolver({"at": 0, "title": "Owner", "text": "Sees everything", "look": "bar"})
+
+        def bar(e):
+            return next(l for l in res.callout(c, e) if l["type"] == "fill" and l.get("shape") != "round")
+        self.assertLess(bar(0.1)["dst"][3], bar(1.0)["dst"][3])
+        texts = [l for l in res.callout(c, 0.4) if l["type"] == "text"]
+        self.assertTrue(all("clip" in t for t in texts))
+        self.assertLess(texts[0]["x"], [l for l in res.callout(c, 1.0) if l["type"] == "text"][0]["x"])
+
+    def test_pill_is_round_and_one_line(self):
+        res, (c,) = self.resolver({"at": 0, "title": "Collaborator", "look": "pill"})
+        ls = res.callout(c, 1.0)
+        fill = next(l for l in ls if l["type"] == "fill")
+        self.assertAlmostEqual(fill["radius"], fill["dst"][3] / 2, delta=0.1)
+        self.assertEqual(len([l for l in ls if l["type"] == "text"]), 1)
+
+    def test_theme_style_and_per_callout_override(self):
+        res, (a, b) = self.resolver({"at": 0, "title": "x"}, {"at": 9, "title": "y", "look": "pill"},
+                                    look="bar", background="#0d1b24")
+        self.assertEqual((a["look"], b["look"]), ("bar", "pill"))
+        self.assertEqual(b["background"], "#0d1b24")
+
+    def test_section_wipes_across_then_titles(self):
+        res, (c,) = self.resolver({"at": 0, "title": "Project pages", "text": "The new tab", "look": "section",
+                                   "from": "right"})
+        early, done = res.section(c, 0.2, 0)[0], res.section(c, 1.5, 0)[0]
+        self.assertEqual(done["dst"], [0, 0, 1920, 1080])
+        self.assertNotIn("clip", done)
+        self.assertGreater(early["clip"][0], 960)                            # from the right: the right part first
+        self.assertEqual(early["clip"][0] + early["clip"][2], 1920)
+        title = lambda e: next(l for l in res.section(c, e, 0) if l["type"] == "text")
+        self.assertEqual(title(0.1)["opacity"], 0.0)
+        self.assertEqual(title(1.5)["opacity"], 1.0)
+        self.assertLess(res.section(c, c["duration"] - 0.05, 0)[0]["opacity"], 0.2)   # fades back to the video
+
+    def test_section_sparkle_needs_the_theme(self):
+        self.check_error(self.data({"at": 0, "title": "x", "look": "section", "sparkle": True}),
+                         "a theme that has a `sparkle:` section")
+        d = self.data({"at": 0, "title": "x", "sparkle": True})
+        d["style"] = {"sparkle": {"count": 12}}
+        self.check_error(d, "only a section's wipe can sparkle")
+        d = self.data({"at": 0, "title": "x", "look": "section", "sparkle": True})
+        d["style"] = {"sparkle": {"count": 12}}
+        sc = S.parse(d, self.d)
+        res = R.OutputResolver(sc, sc["outputs"][0], R.load_sessions(sc), [])
+        mid = res.section(sc["callouts"][0], 0.35, 0)
+        self.assertTrue(any(l["type"] == "star" for l in mid))                # the trail
+        self.assertLess(mid[0]["clip"][2], 1920)                              # revealed behind the sweep
+
+    def test_pause_holds_the_recording_while_the_callout_comes_in(self):
+        p = plan(self.data({"at": 3.0, "title": "Project pages", "look": "section", "pause": 1.0}), self.d, fps=10)
+        base = plan(self.data({"at": 3.0, "title": "Project pages", "look": "section"}), self.d, fps=10)
+        self.assertAlmostEqual(p["duration"], base["duration"] + 1.0, places=3)   # the pause adds time
+        held = [f for f in p["frames"] if f.get("hold")]
+        self.assertEqual(len(held), 10)
+        self.assertTrue(all(f["st"] == 3.0 and f["src"] == "main" for f in held))   # one moment, still
+        after = p["frames"][p["frames"].index(held[-1]) + 1]
+        self.assertAlmostEqual(after["st"], 3.0, places=3)                     # then it carries on from there
+        self.assertNotIn("hold", after)
+        # the section animates through the hold: its title is further along at the end than the start
+        title = lambda f: next(l for l in f["layers"] if l["type"] == "text" and l["words"][0]["w"] == "Project pages")
+        self.assertLess(title(held[0])["opacity"], title(held[-1])["opacity"])
+
+    def test_section_titles_follow_the_cards_title_case(self):
+        d = self.data({"at": 0, "title": "The real app", "look": "section"}, {"at": 9, "title": "the real app"})
+        d["style"] = {"card": {"title_case": True}}
+        a, b = S.parse(d, self.d)["callouts"]
+        self.assertEqual(a["title"], "The Real App")
+        self.assertEqual(b["title"], "the real app")                          # a box keeps what was written
+
+    def test_overlap_in_one_corner_warns(self):
+        p = plan(self.data({"at": 1, "title": "a"}, {"at": 3, "title": "b"},
+                           {"at": 3, "title": "c", "corner": "top-right"}), self.d)
+        self.assertEqual(len([w for w in p["warnings"] if "overlap" in w]), 1)
 
 
 class Captions(unittest.TestCase):

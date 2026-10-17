@@ -9,7 +9,9 @@ can't disagree. Pure: no video is decoded here. Layers:
   gradient {dst, colors: [2-4], angle (CSS deg: 0 up, 90 right), shape, radius, opacity}   (backdrop)
   shadow {dst, radius, blur (= 2 sigma, canvas shadowBlur), offset (px down), opacity}  (under a card)
   ring   {x, y, r, width, color, opacity}            (click highlight)
-  text   {x, y (centre), size, words: [{w, hi}], color, hi, bg, bg_opacity, font, weight, pad, radius, opacity}
+  text   {x, y (centre), size, words: [{w, hi}], color, hi, bg, bg_opacity, font, weight, pad, radius, opacity,
+          align: center|left (left: x is the left edge)}
+  stroke {points: [[x, y], ...], closed, width, color, opacity}   (a callout's border, part drawn)
   image  {img: <id in plan["images"]>, dst, opacity, pixelated, flip, rect (crop, image px), shape, radius}
          (logo, card icon, sweep sprite, backdrop image)
   star   {x, y, r, rot, color, opacity}               (a 4-point sparkle)
@@ -17,6 +19,8 @@ Any layer may carry `clip: [x, y, w, h]` (output px): drawn only inside it (the 
 and `bg: true`: a background (blur copy, colour, backdrop, shadow) - transitions cross-fade it,
 the spotlight and `move` never treat it as the view. Compositors ignore the flag.
 Title cards are frames with src "card:intro"/"card:outro" (no video, silence underneath).
+A callout's `pause` holds the recording: frames with `hold: true` repeat source time `st` (one
+still picture, silence underneath) while the output clock - and so the callout - runs on.
 
 Times in a plan: output seconds for frames, *source* seconds in layers (`t`), so
 every layer says which source and which moment of it - splicing several
@@ -318,6 +322,49 @@ def ease(u):
     return u * u * (3 - 2 * u)
 
 
+def round_rect_path(x, y, w, h, r, steps=8):
+    """A rounded rectangle's outline as points, clockwise from the top-left corner's end."""
+    r = max(0.0, min(r, w / 2, h / 2))
+    pts = []
+    for cx, cy, a0, (sx, sy) in ((x + w - r, y + r, -90, (x + r, y)), (x + w - r, y + h - r, 0, (x + w, y + r)),
+                                 (x + r, y + h - r, 90, (x + w - r, y + h)), (x + r, y + r, 180, (x, y + h - r))):
+        pts.append((sx, sy))   # the straight side before this corner
+        for i in range(steps + 1):
+            a = math.radians(a0 + 90 * i / steps)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def path_part(pts, u):
+    """The first `u` (0..1) of a closed path, by length: [points], closed."""
+    if u >= 1:
+        return pts, True
+    ring = pts + [pts[0]]
+    segs = [math.dist(a, b) for a, b in zip(ring, ring[1:])]
+    left = u * sum(segs)
+    out = [ring[0]]
+    for (a, b), d in zip(zip(ring, ring[1:]), segs):
+        if left >= d:
+            out.append(b)
+            left -= d
+            continue
+        if d > 0 and left > 0:
+            k = left / d
+            out.append((a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k))
+        break
+    return out, False
+
+
+def clamp01(v):
+    return min(max(v, 0.0), 1.0)
+
+
+def text_width(text, size, family, weight):
+    """Rendered width in px, with the build's fonts (the preview's browser measures within a px or two)."""
+    from .compose import _font
+    return _font(max(6, int(round(size))), family, weight).getlength(text)
+
+
 def lerp_rect(a, b, u):
     """Interpolate rects in centre + log-size space (zooms feel even)."""
     ac = (a[0] + a[2] / 2, a[1] + a[3] / 2, math.log(a[2]), math.log(a[3]))
@@ -498,6 +545,7 @@ class OutputResolver:
         self.frame_i = -1   # output frames counted by frame(); clock = frame_i * dt (no float drift)
         self.scene_t0 = {}  # scene index -> output clock when it (last) started: push-ins run on it
         self.punch_t0 = {}  # (scene index, punch i) -> output clock its anticipation started
+        self.callout_t0 = {}  # callout index -> output clock it appeared (runs on the output clock)
         self.bubble_from = None
         self.bubble_cur = None
         self.bubble_spring = None
@@ -511,6 +559,7 @@ class OutputResolver:
             for p in s["punch"]:
                 if nxt is not None and p["at"] >= nxt["at"]:
                     self.warn(s, f"punch at {p['at']} is after the scene ends ({nxt['at']}); ignored")
+        self.check_callouts()
         self.lines = {name: caption_lines(sess.transcript or [], cap["max_words"], fixes=cap.get("fix")) for name, sess in sessions.items()}
         self.lines_t = {name: [l[0] for l in ls] for name, ls in self.lines.items()}
 
@@ -537,6 +586,174 @@ class OutputResolver:
                  "color": cap["color"], "hi": self.style["accent"], "bg": cap["background"],
                  "bg_opacity": cap["background_opacity"], "font": cap["font"], "weight": cap["weight"],
                  "pad": r1(0.45 * size), "radius": r1(self.style["radius"] * self.unit), "opacity": round(max(0.0, op), 3)}]
+
+    # -- callouts --------------------------------------------------------
+    def check_callouts(self):
+        by_corner = {}
+        for i, c in enumerate(self.sc.get("callouts") or []):
+            corner = "full frame" if c["look"] == "section" else c["corner"]
+            for j in by_corner.get((c["source"], corner), []):
+                o = self.sc["callouts"][j]
+                if o["at"] <= c["at"] < o["at"] + o["duration"]:
+                    self.warnings.append(f"callouts[{i}] ({c['title']!r}) starts while callouts[{j}] "
+                                         f"({o['title']!r}) is still up in the same corner: they overlap")
+            by_corner.setdefault((c["source"], corner), []).append(i)
+
+    def callout_box(self, c):
+        """(x, y, w, h) of a callout at rest, plus its text geometry."""
+        s = min(self.W, self.H)
+        font = c["font"] or self.style["captions"]["font"]
+        ts, xs, pad = c["size"] * s, c["text_size"] * s, c["padding"] * s
+        tw = text_width(c["title"], ts, font, c["weight"])
+        lw = max([text_width(t, xs, font, c["text_weight"]) for t in c["lines"]] or [0])
+        bar = max(3.0, 5 * self.unit) if c["look"] == "bar" else 0.0
+        if c["look"] == "pill":
+            h = ts * 1.9
+            w = tw + 2 * 0.75 * h / 2
+        else:
+            h = 2 * pad + ts * 1.25 + len(c["lines"]) * xs * 1.5
+            w = max(tw, lw) + 2 * pad + bar
+        m = c["margin"] * s
+        corner = c["corner"]
+        if corner in ("top", "bottom"):
+            x = (self.W - w) / 2
+        else:
+            x = m if "left" in corner else self.W - m - w
+        # Bottom callouts sit above the captions' band.
+        y = m if corner.startswith("top") else self.H - m - h - (0.14 * self.H if self.style["captions"]["show"] else 0)
+        return (x, y, w, h), {"ts": ts, "xs": xs, "pad": pad, "bar": bar, "font": font}
+
+    def callout_layers(self, source, t):
+        out = []
+        for i, c in enumerate(self.sc.get("callouts") or []):
+            if c["source"] != source:
+                continue
+            if i not in self.callout_t0 and c["at"] <= t < c["at"] + c["duration"]:
+                self.callout_t0[i] = self.clock
+            if i in self.callout_t0:
+                e = self.clock - self.callout_t0[i]
+                if e < c["duration"]:
+                    out += self.section(c, e, i) if c["look"] == "section" else self.callout(c, e)
+        return out
+
+    def section(self, c, e, seed):
+        """A section header: a full-frame panel in the card colours wipes in from `from` (or behind
+        the theme's sparkle sprite, left to right), the title and an accent bar appear on it, then
+        it fades away over the video, which has kept running underneath."""
+        cs, s, T, D = self.style["card"], min(self.W, self.H), c["in"], c["duration"]
+        u_in = clamp01(e / T) if T else 1.0
+        op = 1 - (ease(clamp01((e - (D - c["out"])) / c["out"])) if c["out"] else float(e >= D))
+        layers, panel = [], {"type": "fill", "dst": [0, 0, self.W, self.H], "color": cs["background"],
+                             "opacity": round(op, 3)}
+        if u_in < 1 and c["sparkle"]:
+            sprite, edge = self.sweep_sprite(u_in)
+            if edge > 0:
+                layers.append(dict(panel, clip=[0.0, 0.0, r1(min(edge, self.W)), float(self.H)]))
+            front = sprite + self.sparkle_trail(seed + 1000, u_in)
+        elif u_in < 1:
+            frm = "left" if c["from"] in ("auto", "none") else c["from"]
+            k = ease(u_in)
+            W, H = self.W, self.H
+            clip = {"left": [0, 0, W * k, H], "right": [W * (1 - k), 0, W * k, H],
+                    "down": [0, 0, W, H * k], "up": [0, H * (1 - k), W, H * k]}[frm]
+            layers.append(dict(panel, clip=rr(clip)))
+            front = []
+        else:
+            layers.append(panel)
+            front = []
+        k = ease(clamp01((e - 0.55 * T) / (0.45 * T + 0.25)))   # the title's own build-up
+        k_t = k * op
+        font = cs["font"] or self.style["captions"]["font"]
+        base = {"type": "text", "x": r1(self.W / 2), "bg": cs["background"], "bg_opacity": 0.0, "pad": 0.0,
+                "radius": 0.0, "font": font, "hi": self.style["accent"], "color": cs["color"]}
+        rise = (1 - k) * 0.02 * s
+        layers.append(dict(base, y=r1(self.H * 0.46 + rise), size=r1(0.07 * s), weight=700,
+                           words=[{"w": c["title"], "hi": False}], opacity=round(k_t, 3)))
+        bar_w = 0.08 * self.W * k
+        layers.append({"type": "fill", "dst": rr((self.W / 2 - bar_w / 2, self.H * 0.46 + 0.06 * s, bar_w, 6 * self.unit)),
+                       "color": self.style["accent"], "opacity": round(k_t, 3)})
+        for n, line in enumerate(c["lines"]):
+            layers.append(dict(base, y=r1(self.H * 0.46 + 0.12 * s + n * 0.05 * s + rise), size=r1(0.034 * s),
+                               weight=c["text_weight"], words=[{"w": line, "hi": False}], opacity=round(k_t * 0.9, 3)))
+        return layers + front
+
+    def callout(self, c, e):
+        """One callout `e` output seconds after it appeared: travel in, the look's own build-up,
+        hold, then fade (and travel) out. Every number is decided here; compositors only draw."""
+        (x, y, w, h), g = self.callout_box(c)
+        s, T, D = min(self.W, self.H), c["in"], c["duration"]
+        gone = ease(clamp01((e - (D - c["out"])) / c["out"])) if c["out"] else float(e >= D)
+        op_all = 1 - gone
+        dist = c["distance"] * s
+        frm = c["from"]
+        if frm == "auto":
+            frm = "left" if "left" in c["corner"] else "right" if "right" in c["corner"] else \
+                "down" if c["corner"] == "top" else "up"
+        dirs = {"left": (-1, 0), "right": (1, 0), "up": (0, -1), "down": (0, 1), "none": (0, 0)}
+        k_in = 1 - ease(clamp01(e / T)) if T else 0.0
+        fx, fy = dirs[frm]
+        tx, ty = dirs[c["to"]]
+        x += fx * dist * k_in + tx * dist * gone   # from: left starts `dist` further left
+        y += fy * dist * k_in + ty * dist * gone
+        border = c["border"] or self.style["accent"]
+        bw = c["border_width"] * self.unit
+        radius = c["radius"] * self.unit
+        ts, xs, pad = g["ts"], g["xs"], g["pad"]
+        base_text = {"type": "text", "align": "left", "bg": c["background"], "bg_opacity": 0.0, "pad": 0.0,
+                     "radius": 0.0, "font": g["font"], "hi": self.style["accent"], "color": c["color"]}
+
+        def u(a, b):   # progress through [a, b] of the in-phase (fractions of T)
+            return clamp01((e - a * T) / ((b - a) * T)) if T else 1.0
+
+        layers = []
+        look = c["look"]
+        if look == "pill":
+            k = ease(u(0, 1))
+            layers.append({"type": "fill", "dst": rr((x, y, w, h)), "color": c["background"], "shape": "round",
+                           "radius": r1(h / 2), "opacity": round(c["opacity"] * k * op_all, 3)})
+            if bw > 0:
+                layers.append({"type": "stroke", "points": [[r1(px), r1(py)] for px, py in round_rect_path(x, y, w, h, h / 2)],
+                               "closed": True, "width": r1(bw), "color": border, "opacity": round(k * op_all, 3)})
+            layers.append(dict(base_text, x=r1(x + 0.75 * h / 2), y=r1(y + h / 2), size=r1(ts), weight=c["weight"],
+                               words=[{"w": c["title"], "hi": False}], opacity=round(k * op_all, 3)))
+            return layers
+
+        text_x = x + pad + g["bar"]
+        title_y = y + pad + ts * 0.62
+        clip = None
+        if look == "draw":
+            fill_k = u(0.3, 0.8)
+            layers.append({"type": "fill", "dst": rr((x, y, w, h)), "color": c["background"], "shape": "round",
+                           "radius": r1(radius), "opacity": round(c["opacity"] * fill_k * op_all, 3)})
+            if bw > 0:
+                pts, closed = path_part(round_rect_path(x, y, w, h, radius), ease(u(0, 0.7)))
+                if len(pts) > 1:
+                    layers.append({"type": "stroke", "points": [[r1(px), r1(py)] for px, py in pts], "closed": closed,
+                                   "width": r1(bw), "color": border, "opacity": round(op_all, 3)})
+            t_k, x_k = u(0.4, 0.85), u(0.52, 1.0)
+            shift_t, shift_x = (1 - ease(t_k)) * 0.3 * ts, (1 - ease(x_k)) * 0.3 * xs   # a small rise
+            dx_t = dx_x = 0.0
+        else:  # bar
+            bar_k = ease(u(0, 0.45))
+            layers.append({"type": "fill", "dst": rr((x + g["bar"], y, w - g["bar"], h)), "color": c["background"],
+                           "shape": "round", "radius": r1(radius), "opacity": round(c["opacity"] * u(0.2, 0.6) * op_all, 3)})
+            layers.append({"type": "fill", "dst": rr((x, y, g["bar"], h * bar_k)), "color": border,
+                           "opacity": round(op_all, 3)})
+            t_k, x_k = u(0.3, 0.9), u(0.4, 1.0)
+            # The text slides out from behind the bar: drawn only right of it.
+            dx_t, dx_x = -(1 - ease(t_k)) * 0.35 * w, -(1 - ease(x_k)) * 0.35 * w
+            shift_t = shift_x = 0.0
+            clip = rr((x + g["bar"], y, w - g["bar"], h))
+        title = dict(base_text, x=r1(text_x + dx_t), y=r1(title_y + shift_t), size=r1(ts), weight=c["weight"],
+                     words=[{"w": c["title"], "hi": False}], opacity=round(t_k * op_all, 3))
+        lines = [dict(base_text, x=r1(text_x + dx_x), y=r1(y + pad + ts * 1.25 + xs * (0.75 + 1.5 * n) + shift_x),
+                      size=r1(xs), weight=c["text_weight"], words=[{"w": line, "hi": False}],
+                      opacity=round(x_k * op_all * 0.92, 3)) for n, line in enumerate(c["lines"])]
+        for l in [title] + lines:
+            if clip:
+                l["clip"] = clip
+            layers.append(l)
+        return layers
 
     # -- sparkle / sweep transitions ------------------------------------
     def _sparkle_colors(self):
@@ -969,7 +1186,7 @@ class OutputResolver:
         return out
 
     # -- frames ----------------------------------------------------------
-    def frame(self, source, t, dt, jumped):
+    def frame(self, source, t, dt, jumped, hold=False):
         self.frame_i += 1
         self.clock = self.frame_i * dt
         scene = self.scene_at(source, t)
@@ -1046,7 +1263,9 @@ class OutputResolver:
         if self.sessions[source].camera is not None:
             layers += self.bubble_layer(scene, t, dt, changed, trans["duration"] if not jumped else 0)
         layers += self.logo_layers()
-        layers += self.caption_layers(source, t)
+        layers += self.callout_layers(source, t)
+        if not hold:   # nothing is being said during a hold
+            layers += self.caption_layers(source, t)
         return scene, layers
 
     prev_view = None
@@ -1081,6 +1300,13 @@ def segments(sc, sessions):
         if pos < dur:
             segs.append((main, pos, dur))
     # Title cards are segments without a source ("card:intro"/"card:outro", times = card time).
+    # A callout's pause holds its source at `at`: a "hold:<source>" segment (times = the frozen
+    # moment .. + the pause) spliced in where the source reaches `at`.
+    for c in sorted((c for c in sc.get("callouts") or [] if c["pause"] > 0), key=lambda c: c["at"]):
+        for i, (src, a, b) in enumerate(segs):
+            if src == c["source"] and a <= c["at"] < b:
+                segs[i:i + 1] = [(src, a, c["at"]), ("hold:" + src, c["at"], c["at"] + c["pause"]), (src, c["at"], b)]
+                break
     if sc.get("intro"):
         segs.insert(0, ("card:intro", 0.0, sc["intro"]["duration"]))
     if sc.get("outro"):
@@ -1141,15 +1367,24 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
             seg_i += 1
         src, a, b, o = segs[seg_i]
         t_src = a + (t_out - o)
+        hold = src.startswith("hold:")
+        if hold:   # the recording stands still: the same source moment, frame after frame
+            src, t_src = src[5:], a
         jumped = last_src is not None and (src != last_src[0] or abs(t_src - last_src[1] - dt) > 1e-6)
-        last_src = (src, t_src)
+        last_src = (src, t_src - dt if hold else t_src)   # resuming after a hold isn't a jump
+        if hold:
+            jumped = False
         if src.startswith("card:"):
             spec = sc[src[5:]]
             frames.append({"t": round(t_out, 4), "src": src, "st": round(t_src, 4), "scene": -1,
                            "layers": res.card_layers(spec, t_src) + res.logo_layers()})
             continue
-        scene, layers = res.frame(src, t_src, dt, jumped)
+        scene, layers = res.frame(src, t_src, dt, jumped, hold)
         scene_first.setdefault(scene["index"], round(t_out, 3))
+        if hold:
+            frames.append({"t": round(t_out, 4), "src": src, "st": round(t_src, 4), "scene": scene["index"],
+                           "hold": True, "layers": layers})
+            continue
         frames.append({"t": round(t_out, 4), "src": src, "st": round(t_src, 4), "scene": scene["index"],
                        "layers": layers})
 
