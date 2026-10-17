@@ -1,12 +1,12 @@
 """Speech to text: `pugrec transcript SESSION` -> SESSION/transcript.jsonl (derived).
 
 whisper.cpp (whisper-cli) with the Vulkan backend: GPU transcription on AMD (RADV),
-built by scripts/build-whisper.sh into ~/.cache/pugrec/bin. CPU fallback (-ng) if
-the GPU path fails. Input: mic-clean.flac if present (pugrec audio), else the raw
+built by scripts/build-whisper.sh into ~/.cache/pugrec/bin. macOS: Homebrew's whisper-cpp
+(`brew install whisper-cpp`), Metal on Apple Silicon. CPU fallback (-ng) if the GPU path fails. Input: mic-clean.flac if present (pugrec audio), else the raw
 mic track - both start at the session's time 0.
 
 Lines (session clock, ns, like every pugrec file):
-  {"type": "meta", "t": 0, "model": .., "backend": "vulkan"|"cpu", "seconds": .., "rtf": ..}
+  {"type": "meta", "t": 0, "model": .., "backend": "vulkan"|"metal"|"cpu", "seconds": .., "rtf": ..}
   {"type": "segment", "t": .., "end": .., "text": "..", "words": [{"t", "end", "w", "p"}]}
 Word times come from whisper's DTW token alignment (-dtw), falling back to the
 token offsets.
@@ -21,6 +21,7 @@ import tempfile
 import time
 
 from . import jsonl
+from .audio import PAD_TO_ZERO
 
 WHISPER_VERSION = "v1.9.4"
 MODEL = "ggml-large-v3-turbo-q8_0.bin"
@@ -44,7 +45,8 @@ def whisper_cli():
     found = shutil.which("whisper-cli")
     if found:
         return found
-    raise SystemExit(f"transcript: no whisper-cli ({p} or on PATH) - run scripts/build-whisper.sh")
+    how = "brew install whisper-cpp" if sys.platform == "darwin" else "run scripts/build-whisper.sh"
+    raise SystemExit(f"transcript: no whisper-cli ({p} or on PATH) - {how}")
 
 
 def model_path():
@@ -122,7 +124,8 @@ def transcribe(session_dir, language="auto", prompt=None, theme=None):
     vocab = vocabulary(prompt, theme)
     with tempfile.TemporaryDirectory(prefix="pugrec-transcript-") as tmp:
         wav = os.path.join(tmp, "in.wav")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-map", "0:a:0", "-ac", "1", "-ar", "16000",
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-map", "0:a:0", "-af", PAD_TO_ZERO,
+                        "-ac", "1", "-ar", "16000",
                         "-c:a", "pcm_s16le", wav], check=True)
         dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
                                     wav], capture_output=True, text=True).stdout.strip() or 0)
@@ -130,7 +133,7 @@ def transcribe(session_dir, language="auto", prompt=None, theme=None):
                 "-dtw", DTW_PRESET, "-np"]
         if vocab:  # whisper's initial prompt biases spelling; carried into every 30 s window
             base += ["--prompt", ", ".join(vocab) + ".", "--carry-initial-prompt"]
-        backend = "vulkan"
+        backend = "metal" if sys.platform == "darwin" else "vulkan"
         t0 = time.monotonic()
         r = subprocess.run(base, capture_output=True, text=True)
         if r.returncode != 0:

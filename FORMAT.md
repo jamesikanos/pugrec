@@ -7,6 +7,8 @@ A session is a folder, by default `~/Videos/PugRec/<YYYY-MM-DD_HH-MM-SS>/`:
 | `session.jsonl` | the timeline: metadata and every event, append-only |
 | `screen.mkv` | screen video, AV1 (VAAPI), native resolution, variable frame rate (frames only when the screen changes), plus the mic as an Opus track |
 | `camera.mkv` | webcam, AV1, 1920x1080 @ up to 30 fps (the BRIO lowers it in low light), PTS from 0 = its first frame; no audio |
+| `screen.mov`, `camera.mov` | **macOS** instead of the two above: HEVC (no AV1 encoder on Apple Silicon), the mic as ALAC (lossless). The mic track may start ~0.15 s after the video: extracts pad it back to 0. Readers take the names from `stream_start.file` |
+| `capture.log` | **macOS**: pugrec-capture's log, instead of `wf-recorder.log` / `camera.log` |
 | `wf-recorder.log`, `camera.log` | the capture tools' logs, for debugging |
 | `faces.jsonl` | **derived** (`pugrec faces`, recomputable): the webcam face track, see below |
 | `transcript.jsonl` | **derived** (`pugrec transcript`): a `meta` line (model, backend, speed, `vocabulary` it was given), then `segment` lines `{t, end, text, words: [{t, end, w, p}]}`, ns on the session clock |

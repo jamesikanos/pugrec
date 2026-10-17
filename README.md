@@ -30,6 +30,40 @@ Other commands: `record --no-input` (no keys, no clicks), `toggle` (for a keybin
 `info SESSION`, `check SESSION` (validate an edit, list scenes), `faces SESSION`,
 `proxy SESSION`, `transcript --cuts` (print suggested cuts). `render` is an old auto-zoom test harness.
 
+## macOS (Apple Silicon)
+
+The same commands work on a Mac. `pugrec record` runs a small Swift helper (`macos/`,
+built by `pugrec setup`): ScreenCaptureKit for the screen, AVFoundation for the camera, a
+listen-only event tap for clicks and keys, the window list for windows and focus. Sessions go
+to `~/Movies/PugRec`, as `screen.mov` (HEVC + the mic as ALAC) and `camera.mov` (HEVC):
+Apple Silicon has no AV1 encoder. The session format is otherwise the same.
+
+With [Homebrew](https://brew.sh) installed:
+
+```bash
+git clone https://github.com/jamesikanos/pugrec.git && cd pugrec && bin/pugrec setup
+bin/pugrec panel
+```
+
+`setup` installs what's missing (the Xcode Command Line Tools; from Homebrew Python 3, ffmpeg,
+whisper-cpp, node and the IBM Plex fonts), then builds macos/pugrec-capture, .venv, the whisper
+model and the panel. Run it again after a pull: it only redoes what changed.
+
+**Control panel** (`control/`, `pugrec panel`): a Stream Deck-style window of big keys for
+record/stop, screen, mic, camera and keys, and the pipeline on the latest session (clean audio,
+transcript, draft, preview, builds, WhatsApp copy, folder, edit script). It keeps itself out of
+the recording.
+
+Right-click (or long-press) Screen, Mic, Camera or Session to choose; the gear holds the countdown,
+the transcript vocabulary and "keep on top". Started from the panel, macOS asks for permissions in
+*Electron's* name, separately from the terminal's.
+
+Permissions, once, for the app you record from (your terminal): **Screen Recording**, **Camera**,
+**Microphone**, and **Input Monitoring** for `--keys`. macOS also asks now and then to let it
+"bypass the system private window picker": allow it (it can appear over the countdown).
+No Spaces API: a window is on screen (workspace 1) or not (-1). Window classes are bundle IDs
+(`com.google.Chrome`), and focus is the frontmost app's frontmost window.
+
 ## Setup
 
 Recording needs nothing beyond the system. Post-processing needs a venv, and transcription a
