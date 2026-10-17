@@ -215,7 +215,8 @@ Rules that matter:
 - *Callouts* - an option: small animated info boxes (`callouts:`, appendix) for what the screen
   can't say - a role, what a feature is, what's next - and `look: section` headers over a tab
   switch or a load. Write them from the transcript and the work's history (commits, tickets),
-  check every claim against the code, and keep them few (one per 30-45 s).
+  check every claim against the code, and keep them few (one per 30-45 s). A section over a
+  scene change starts `in` before it; `pause` only where the speaker left a real break.
 - *Vertical output:* give it tighter shots via `vertical:` overrides (cursor zoom 1.2-1.4).
 - *For a customer / brand:* `style: {theme: <name>}` (`pugrec themes` lists them; an unknown name
   is an error listing the installed ones), plus `intro: {title, subtitle}` / `outro:` title cards
@@ -635,11 +636,14 @@ can't say (a role, what a feature is, what's next). Few of them - one every 30-4
   `margin`, `size` / `text_size` / `padding` (fractions of the shorter side), `font` (null =
   the captions'), `weight` / `text_weight`, `color`, `background`, `opacity`, `border` (null =
   the accent), `border_width`, `radius` (px at 1080p), `sparkle`.
-- **`pause: <s>`**: the recording stands still for that long at `at` - one held picture,
-  silence under it - while the callout comes in, then carries on from the same moment. For a
-  section, `pause` = `in` and `at` just before its scene change: the wipe gets its full time and
-  the change happens under the finished panel. Put it in a real silence between sentences (look
-  at the audio level; the transcript's word times can be ~0.3 s out), never mid-word.
+- **`pause: <s>`** (off by default): the recording stands still for that long at `at` - one
+  held picture, silence under it - while the callout comes in, then carries on from the same
+  moment. **Only where the speaker already left a long enough break** (a beat between topics,
+  roughly as long as the pause): there the section gets its full wipe and nobody notices.
+  Spliced into flowing speech it sounds like a glitch even in a gap between sentences - tried
+  on a real demo and rejected. Find the break on the audio level, not the transcript (its word
+  times can be ~0.3 s out); never mid-word. Without a break, start the section `in` before its
+  scene change instead, so the wipe covers the change while the video runs.
 - **`sparkle: true`** (sections only): the theme's sweep sprite gallops across leading the wipe,
   shedding its sparkle trail. Like the sparkle/sweep transitions, only with a theme that has a
   `sparkle:` section - anywhere else `check` refuses it.
