@@ -788,12 +788,18 @@ class Callouts(unittest.TestCase):
         title = lambda f: next(l for l in f["layers"] if l["type"] == "text" and l["words"][0]["w"] == "Project pages")
         self.assertLess(title(held[0])["opacity"], title(held[-1])["opacity"])
 
-    def test_section_titles_follow_the_cards_title_case(self):
-        d = self.data({"at": 0, "title": "The real app", "look": "section"}, {"at": 9, "title": "the real app"})
+    def test_titles_follow_the_cards_title_case(self):
+        d = self.data({"at": 0, "title": "The real app", "look": "section"},
+                      {"at": 9, "title": "Home vs project", "text": "Home: all your projects."},
+                      {"at": 20, "title": "KAL-134 · summaries"})
         d["style"] = {"card": {"title_case": True}}
-        a, b = S.parse(d, self.d)["callouts"]
+        a, b, c = S.parse(d, self.d)["callouts"]
         self.assertEqual(a["title"], "The Real App")
-        self.assertEqual(b["title"], "the real app")                          # a box keeps what was written
+        self.assertEqual(b["title"], "Home vs Project")                       # a box's title too
+        self.assertEqual(b["lines"], ["Home: all your projects."])            # its text stays as written
+        self.assertEqual(c["title"], "KAL-134 · Summaries")                   # codes stay as written
+        d["style"] = {}
+        self.assertEqual(S.parse(d, self.d)["callouts"][1]["title"], "Home vs project")   # off: as written
 
     def test_overlap_in_one_corner_warns(self):
         p = plan(self.data({"at": 1, "title": "a"}, {"at": 3, "title": "b"},
