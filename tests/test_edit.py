@@ -793,7 +793,13 @@ class Callouts(unittest.TestCase):
         d["style"] = {"card": {"title_case": True}}
         a, b = S.parse(d, self.d)["callouts"]
         self.assertEqual(a["title"], "The Live Site")
-        self.assertEqual(b["title"], "the live site")                          # a box keeps what was written
+        self.assertEqual(b["title"], "The Live Site")                          # a box's title too
+        d = self.data({"at": 0, "title": "Settings vs profile", "text": "both in one place."},
+                      {"at": 9, "title": "AC-42 · reports"})
+        d["style"] = {"card": {"title_case": True}}
+        e, f = S.parse(d, self.d)["callouts"]
+        self.assertEqual((e["title"], e["lines"]), ("Settings vs Profile", ["both in one place."]))  # text as written
+        self.assertEqual(f["title"], "AC-42 · Reports")                        # codes stay as written
 
     def test_overlap_in_one_corner_warns(self):
         p = plan(self.data({"at": 1, "title": "a"}, {"at": 3, "title": "b"},
