@@ -179,13 +179,15 @@ a 9:16 frame already enlarges it ~1.8x, so a full push there gets soft (an expli
     shot: camera
     punch: [33.1, {at: 41.0, zoom: 0.15, hold: 3}]
 ```
-The YouTuber's emphasis zoom: the view pulls back 1% (`dip`, the anticipation), snaps in 10%
-(`zoom`) in 0.2 s with a slight overshoot, lands on `at`, holds `hold` s (1.5) and eases back out
-over 0.45 s. The move starts 0.32 s before `at`, so `at` is the stressed word in the transcript.
-Defaults come from `style.punch: {zoom: 0.1, dip: 0.01, hold: 1.5}`; `dip: 0` = straight in. It
+The YouTuber's emphasis zoom: the view pulls back 0.6% (`dip`, the anticipation), snaps in 6%
+(`zoom`) in 0.3 s with a slight overshoot, lands on `at`, holds `hold` s (1.5) and snaps back out
+over 0.3 s. The move starts 0.45 s before `at`, so `at` is the stressed word in the transcript.
+Defaults come from `style.punch: {zoom: 0.06, dip: 0.006, hold: 1.5}`; `dip: 0` = straight in.
+Keep it subtle: 10% looked overdone on a talking head. It
 runs on the video as watched (a cut inside it doesn't jump or end it); one whose start was cut
 away still fires when the source is inside it. It works where `push` does (camera, window,
-screen, rect; full frame, panes, `contain`, inset cards - the card stays) and stacks on a push.
+screen, rect; full frame, panes, `contain`, inset cards - the card stays). Not together with
+`push` in one scene: the two moves fight (`check` warns).
 A view already showing the whole source has no room for the dip, so it's skipped there. Not on
 `cursor`/`auto` shots; `check` warns about those and about a punch after its scene ends.
 
@@ -260,7 +262,7 @@ style:
      image: null}            # or an image (PNG/JPEG/WebP, cover-cropped); setting one replaces the other
   inset: {padding: 0.06, radius: 18, aspect: auto, position: [0.5, 0.5], shadow: 0}   # fit: inset defaults
   push: null                 # e.g. {to: 0.8, over: 10}: every scene pushes in unless it says push: false
-  punch: {zoom: 0.1, dip: 0.01, hold: 1.5}   # defaults for scenes' punch-ins
+  punch: {zoom: 0.06, dip: 0.006, hold: 1.5}  # defaults for scenes' punch-ins
   transition: {move: 0.6}    # default transition
 ```
 The bubble hides automatically when the shot itself shows the camera. Captions appear when the

@@ -560,10 +560,10 @@ class Punch(unittest.TestCase):
         p = plan(self.scene(punch=3.0), self.d, fps=50)
         w = self.widths(p)
         base = w[0.0]
-        self.assertAlmostEqual(w[3.0] / base, 0.9, delta=0.002)               # 10% in, on the word
-        self.assertAlmostEqual(w[4.4] / base, 0.9, delta=0.002)               # held 1.5 s
-        self.assertAlmostEqual(min(w.values()), 0.9 * base * 0.99, delta=0.004 * base)  # overshoot ~1%
-        self.assertAlmostEqual(max(w.values()) / base, 1.01, delta=0.001)       # dip out 1% first
+        self.assertAlmostEqual(w[3.0] / base, 0.94, delta=0.002)              # 6% in, on the word
+        self.assertAlmostEqual(w[4.4] / base, 0.94, delta=0.002)              # held 1.5 s
+        self.assertLess(min(w.values()), 0.94 * base)                         # a slight overshoot
+        self.assertAlmostEqual(max(w.values()) / base, 1.006, delta=0.001)      # dip out first
         self.assertEqual(w[6.0], base)
         dip_t = max(w, key=w.get)
         self.assertAlmostEqual(dip_t, 3.0 - R.PUNCH_IN, delta=0.03)
@@ -571,7 +571,7 @@ class Punch(unittest.TestCase):
     def test_list_and_per_punch_settings(self):
         p = plan(self.scene(punch=[2.0, {"at": 5.0, "zoom": 0.2, "hold": 0.5, "dip": 0}]), self.d, fps=50)
         w = self.widths(p)
-        self.assertAlmostEqual(w[2.0] / w[0.0], 0.9, delta=0.002)
+        self.assertAlmostEqual(w[2.0] / w[0.0], 0.94, delta=0.002)
         self.assertAlmostEqual(w[5.2] / w[0.0], 0.8, delta=0.002)
         self.assertLessEqual(max(w[t] for t in w if t > 4), w[0.0])           # dip: 0 = none
 
@@ -586,7 +586,7 @@ class Punch(unittest.TestCase):
         p = plan({"scenes": [{"at": 0, "shot": "camera", "fit": "inset", "punch": 3.0, "bubble": False}]}, self.d)
         a, b = videos(frame_at(p, 0.0), "/camera")[0], videos(frame_at(p, 3.0), "/camera")[0]
         self.assertEqual(a["dst"], b["dst"])
-        self.assertAlmostEqual(b["rect"][2] / a["rect"][2], 0.9, delta=0.01)
+        self.assertAlmostEqual(b["rect"][2] / a["rect"][2], 0.94, delta=0.01)
 
     def test_runs_on_the_output_clock_across_a_cut(self):
         cut = self.widths(plan(dict(self.scene(punch={"at": 3.0, "hold": 1.0}), cuts={"ranges": [[3.5, 6.0]]}),
@@ -617,6 +617,8 @@ class Punch(unittest.TestCase):
         p = plan({"scenes": [{"at": 0, "shot": "screen", "punch": 6, "bubble": False},
                              {"at": 5, "shot": "camera"}]}, self.d)
         self.assertTrue([w for w in p["warnings"] if "after the scene ends" in w])
+        p = plan({"scenes": [{"at": 0, "shot": "camera", "punch": 2, "push": True, "bubble": False}]}, self.d)
+        self.assertTrue([w for w in p["warnings"] if "punch and push" in w])
 
     def test_validation(self):
         for v, msg in ((-1, "out of range"), ({"at": 2, "zoom": 0.9}, "out of range"),

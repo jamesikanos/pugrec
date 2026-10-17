@@ -267,7 +267,7 @@ def push_amount(elapsed, over, ramp=1.0):
     return 1 - 0.5 * v * (over - elapsed) ** 2 / r
 
 
-PUNCH_DIP, PUNCH_IN, PUNCH_OUT = 0.12, 0.2, 0.45   # s: anticipation, the punch, the release
+PUNCH_DIP, PUNCH_IN, PUNCH_OUT = 0.15, 0.3, 0.3   # s: anticipation, the punch, the release
 
 
 def punch_amount(e, hold, dip):
@@ -280,7 +280,7 @@ def punch_amount(e, hold, dip):
         return -dip * ease(e / PUNCH_DIP)
     e -= PUNCH_DIP
     if e < PUNCH_IN:
-        u, c = e / PUNCH_IN - 1, 1.70158          # easeOutBack: lands ~10% past, settles back
+        u, c = e / PUNCH_IN - 1, 0.8              # easeOutBack, gentle: lands ~3% past, settles back
         return -dip + (1 + dip) * (1 + (c + 1) * u ** 3 + c * u ** 2)
     e -= PUNCH_IN + hold
     if e < 0:
@@ -506,6 +506,8 @@ class OutputResolver:
         cap = self.style["captions"]
         for i, s in enumerate(self.scenes):
             nxt = next((n for n in self.scenes[i + 1:] if n["source"] == s["source"]), None)
+            if s["punch"] and s["push"]:
+                self.warn(s, "punch and push together look restless: pick one for this scene")
             for p in s["punch"]:
                 if nxt is not None and p["at"] >= nxt["at"]:
                     self.warn(s, f"punch at {p['at']} is after the scene ends ({nxt['at']}); ignored")

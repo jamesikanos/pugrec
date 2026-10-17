@@ -49,9 +49,9 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
     # Slow push-in while a shot holds (Ken Burns): {to: 0.8, over: 10} = the view shrinks to 80%
     # over 10 s. null = off; scenes say `push: true` (or a theme sets it here).
     "push": None,
-    # Punch-in on an important point: a quick ~10% zoom in (with a 1% dip out first - the
+    # Punch-in on an important point: a quick ~6% zoom in (with a slight dip out first - the
     # anticipation), held, then eased back out. Only where a scene says `punch: <source s>`.
-    "punch": {"zoom": 0.1, "dip": 0.01, "hold": 1.5},
+    "punch": {"zoom": 0.06, "dip": 0.006, "hold": 1.5},
     # One window sharp, the rest of the screen blurred + dimmed: {window: SEL, blur, dim}. Off by default.
     "spotlight": None,
     "transition": {"move": 0.6},       # default between scenes
