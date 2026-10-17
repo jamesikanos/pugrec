@@ -4,7 +4,8 @@
                 [--output DP-3] [--fps 60] [--dir DIR]
   pugrec stop
   pugrec toggle                      start, or stop if already recording (for a keybind)
-  pugrec setup [--no-model]          make a checkout ready (.venv, whisper model; macOS: tools, helper); idempotent
+  pugrec setup [--no-model]          make a checkout ready (.venv, whisper model; macOS: tools, helper, panel); idempotent
+  pugrec panel                       macOS: the control panel (control/, Electron)
   pugrec info SESSION
   pugrec faces SESSION               webcam face track -> faces.jsonl (derived)
   pugrec audio SESSION               cleaned mic -> mic-clean.flac (derived)
@@ -216,6 +217,18 @@ def cmd_themes(a):
     return 0
 
 
+def cmd_panel(a):
+    if sys.platform != "darwin":
+        print("pugrec: the control panel is macOS only", file=sys.stderr)
+        return 1
+    control = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "control")
+    electron = os.path.join(control, "node_modules", ".bin", "electron")
+    if not os.access(electron, os.X_OK):
+        print("pugrec: run 'pugrec setup' first (installs the panel)", file=sys.stderr)
+        return 1
+    os.execv(electron, [electron, control])
+
+
 def cmd_render(a):
     from . import render
     w, h = (int(v) for v in a.size.lower().split("x"))
@@ -320,9 +333,12 @@ def main(argv=None):
     th.set_defaults(fn=cmd_themes)
 
     su = sub.add_parser("setup", help="make this checkout ready: .venv (when requirements changed) + whisper model; "
-                                      "macOS: also Homebrew tools and the capture helper")
+                                      "macOS: also Homebrew tools, the capture helper and the panel")
     su.add_argument("--no-model", action="store_true", help="skip the whisper model download (874 MB)")
     su.set_defaults(fn=lambda a: __import__("pugrec.setup").setup.run(a.no_model))
+
+    pa = sub.add_parser("panel", help="macOS: the control panel - big keys for record and the pipeline")
+    pa.set_defaults(fn=cmd_panel)
 
     d = sub.add_parser("render", help="render with automatic zoom to a normal-sized MP4")
     d.add_argument("session")

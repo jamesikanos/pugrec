@@ -42,11 +42,21 @@ With [Homebrew](https://brew.sh) installed:
 
 ```bash
 git clone https://github.com/jamesikanos/pugrec.git && cd pugrec && bin/pugrec setup
+bin/pugrec panel
 ```
 
 `setup` installs what's missing (the Xcode Command Line Tools; from Homebrew Python 3, ffmpeg,
-whisper-cpp and the IBM Plex fonts), then builds macos/pugrec-capture, .venv and the whisper
-model. Run it again after a pull: it only redoes what changed.
+whisper-cpp, node and the IBM Plex fonts), then builds macos/pugrec-capture, .venv, the whisper
+model and the panel. Run it again after a pull: it only redoes what changed.
+
+**Control panel** (`control/`, `pugrec panel`): a Stream Deck-style window of big keys for
+record/stop, screen, mic, camera and keys, and the pipeline on the latest session (clean audio,
+transcript, draft, preview, builds, WhatsApp copy, folder, edit script). It keeps itself out of
+the recording.
+
+Right-click (or long-press) Screen, Mic, Camera or Session to choose; the gear holds the countdown,
+the transcript vocabulary and "keep on top". Started from the panel, macOS asks for permissions in
+*Electron's* name, separately from the terminal's.
 
 Permissions, once, for the app you record from (your terminal): **Screen Recording**, **Camera**,
 **Microphone**, and **Input Monitoring** for `--keys`. macOS also asks now and then to let it

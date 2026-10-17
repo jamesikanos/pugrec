@@ -7,7 +7,8 @@ system Python, before any venv exists) - the PugPal dotfiles' install.sh calls i
      downloaded to .part, verified, renamed; skipped if present and valid
   3. macOS: the capture helper (macos/, Swift) built when missing or older than its sources
   4. macOS, first: the Xcode Command Line Tools (swift) and, from Homebrew, whichever of ffmpeg,
-     whisper-cpp and the IBM Plex fonts are missing
+     whisper-cpp, node and the IBM Plex fonts are missing; last: control/node_modules (Electron)
+     from package-lock.json, when it changed (hash marker, like .venv)
 Exit 0 when done; non-zero with one line "setup: <reason>" otherwise.
 """
 
@@ -24,8 +25,10 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENV = os.path.join(REPO, ".venv")
 REQS = os.path.join(REPO, "requirements.txt")
 MARKER = os.path.join(VENV, ".pugrec-requirements.sha256")
+CONTROL = os.path.join(REPO, "control")
+PANEL_MARKER = os.path.join(CONTROL, "node_modules", ".pugrec-lock.sha256")
 # macOS: command on PATH -> the Homebrew formula that provides it; the fonts are casks.
-BREW_FORMULAE = {"ffmpeg": "ffmpeg", "whisper-cli": "whisper-cpp"}
+BREW_FORMULAE = {"ffmpeg": "ffmpeg", "whisper-cli": "whisper-cpp", "npm": "node"}
 BREW_CASKS = ["font-ibm-plex-sans", "font-ibm-plex-mono"]  # captions + preview
 
 
@@ -144,6 +147,28 @@ def mac_tools():
         _say("Homebrew tools present")
 
 
+def panel():
+    """macOS: npm ci in control/ when package-lock.json changed or Electron is missing."""
+    want = _sha256(os.path.join(CONTROL, "package-lock.json"))
+    try:
+        have = open(PANEL_MARKER).read().strip()
+    except OSError:
+        have = None
+    if have == want and os.path.isdir(os.path.join(CONTROL, "node_modules", "electron", "dist")):
+        _say("control panel up to date")
+        return
+    npm = shutil.which("npm")
+    if not npm:
+        raise SetupError("no npm on PATH (brew install node)")
+    _say("installing the control panel (npm ci: Electron, ~300 MB)")
+    r = subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=CONTROL, capture_output=True, text=True)
+    if r.returncode:
+        last = (r.stderr or r.stdout).strip().splitlines()
+        raise SetupError(f"npm ci failed: {last[-1] if last else 'exit ' + str(r.returncode)}")
+    with open(PANEL_MARKER, "w") as f:
+        f.write(want + "\n")
+
+
 def run(no_model=False):
     try:
         if sys.platform == "darwin":
@@ -152,6 +177,8 @@ def run(no_model=False):
         venv()
         if not no_model:
             model()
+        if sys.platform == "darwin":
+            panel()
     except SetupError as e:
         print(f"setup: {e}", file=sys.stderr)
         return 1
