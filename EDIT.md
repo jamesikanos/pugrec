@@ -315,7 +315,7 @@ The intro is **fully drawn on frame 0** by default (WhatsApp, LinkedIn and YouTu
 frame as the thumbnail; a fade-in made it a blank square); the outro fades in over 0.4 s.
 `card.fade_in` / `card.fade_out` (seconds, 0 = none) change both cards; a card's own keys win.
 `card.title_case: true` (a brand's house style, set in its theme) writes card titles in Title Case:
-only all-lowercase words change, so names and codes (FieldPal, COUPA, KAL-132) stay as written, and
+only all-lowercase words change, so names and codes (FieldPal, ACME, AC-42) stay as written, and
 small words (and, of, the, ...) stay lowercase except first and last.
 A **theme** may carry `intro:` / `outro:` too (a brand's standard closing card): an edit gets them
 unless it sets its own, and `outro: false` / `intro: false` in edit.yaml turns them off.
@@ -326,10 +326,10 @@ unless it sets its own, and `outro: false` / `intro: false` in edit.yaml turns t
 style:
   callout: {look: draw}                     # the default look for this edit (or a theme's)
 callouts:                                   # source seconds, like scenes; each up for `duration`
-  - {at: 12.8, title: "KAL-134 · Summaries", text: "What's going on, by role:\non home and in each project"}
-  - {at: 32.6, look: pill, title: Viewer}
-  - {at: 102.9, look: bar, title: For you, text: "Your tickets", to: up}
-  - {at: 236.6, look: section, sparkle: true, in: 1.2, duration: 3.8, title: The real app}
+  - {at: 12.8, title: "Acme Cloud · Reports", text: "What's new in this release:\nexports and scheduled reports"}
+  - {at: 32.6, look: pill, title: Admin}
+  - {at: 102.9, look: bar, title: Settings, text: "Everything in one place", to: up}
+  - {at: 236.6, look: section, sparkle: true, in: 1.2, duration: 3.8, title: The live site}
 ```
 Small animated boxes over the running video and audio, not full-frame cards: what the screen
 can't say (a role, what a feature is, what's next). Few of them - one every 30-45 s at most.

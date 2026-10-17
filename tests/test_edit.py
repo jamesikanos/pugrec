@@ -686,7 +686,7 @@ class Callouts(unittest.TestCase):
         self.assertTrue(R.path_part(pts, 1.0)[1])
 
     def test_appears_at_its_time_and_goes(self):
-        p = plan(self.data({"at": 2.0, "duration": 3.0, "title": "The briefing", "text": "From the facts"}),
+        p = plan(self.data({"at": 2.0, "duration": 3.0, "title": "Reports", "text": "Exports and schedules"}),
                  self.d, fps=50)
         self.assertFalse(self.callout_layers(frame_at(p, 1.98)))
         self.assertTrue(self.callout_layers(frame_at(p, 2.0)))
@@ -694,7 +694,7 @@ class Callouts(unittest.TestCase):
         self.assertFalse(self.callout_layers(frame_at(p, 5.02)))
 
     def test_draw_traces_the_border_then_fades_the_text_in(self):
-        res, (c,) = self.resolver({"at": 2.0, "title": "The briefing", "text": "From the facts", "look": "draw"})
+        res, (c,) = self.resolver({"at": 2.0, "title": "Reports", "text": "Exports and schedules", "look": "draw"})
 
         def parts(e):
             ls = res.callout(c, e)
@@ -725,7 +725,7 @@ class Callouts(unittest.TestCase):
                            next(l for l in res2.callout(c2, 1.5) if l["type"] == "fill")["dst"][0])  # auto: from its side
 
     def test_bar_grows_and_text_slides_out_from_behind_it(self):
-        res, (c,) = self.resolver({"at": 0, "title": "Owner", "text": "Sees everything", "look": "bar"})
+        res, (c,) = self.resolver({"at": 0, "title": "Editor", "text": "Can change anything", "look": "bar"})
 
         def bar(e):
             return next(l for l in res.callout(c, e) if l["type"] == "fill" and l.get("shape") != "round")
@@ -735,7 +735,7 @@ class Callouts(unittest.TestCase):
         self.assertLess(texts[0]["x"], [l for l in res.callout(c, 1.0) if l["type"] == "text"][0]["x"])
 
     def test_pill_is_round_and_one_line(self):
-        res, (c,) = self.resolver({"at": 0, "title": "Collaborator", "look": "pill"})
+        res, (c,) = self.resolver({"at": 0, "title": "Admin", "look": "pill"})
         ls = res.callout(c, 1.0)
         fill = next(l for l in ls if l["type"] == "fill")
         self.assertAlmostEqual(fill["radius"], fill["dst"][3] / 2, delta=0.1)
@@ -748,7 +748,7 @@ class Callouts(unittest.TestCase):
         self.assertEqual(b["background"], "#0d1b24")
 
     def test_section_wipes_across_then_titles(self):
-        res, (c,) = self.resolver({"at": 0, "title": "Project pages", "text": "The new tab", "look": "section",
+        res, (c,) = self.resolver({"at": 0, "title": "Settings", "text": "One new page", "look": "section",
                                    "from": "right"})
         early, done = res.section(c, 0.2, 0)[0], res.section(c, 1.5, 0)[0]
         self.assertEqual(done["dst"], [0, 0, 1920, 1080])
@@ -775,8 +775,8 @@ class Callouts(unittest.TestCase):
         self.assertLess(mid[0]["clip"][2], 1920)                              # revealed behind the sweep
 
     def test_pause_holds_the_recording_while_the_callout_comes_in(self):
-        p = plan(self.data({"at": 3.0, "title": "Project pages", "look": "section", "pause": 1.0}), self.d, fps=10)
-        base = plan(self.data({"at": 3.0, "title": "Project pages", "look": "section"}), self.d, fps=10)
+        p = plan(self.data({"at": 3.0, "title": "Settings", "look": "section", "pause": 1.0}), self.d, fps=10)
+        base = plan(self.data({"at": 3.0, "title": "Settings", "look": "section"}), self.d, fps=10)
         self.assertAlmostEqual(p["duration"], base["duration"] + 1.0, places=3)   # the pause adds time
         held = [f for f in p["frames"] if f.get("hold")]
         self.assertEqual(len(held), 10)
@@ -785,15 +785,15 @@ class Callouts(unittest.TestCase):
         self.assertAlmostEqual(after["st"], 3.0, places=3)                     # then it carries on from there
         self.assertNotIn("hold", after)
         # the section animates through the hold: its title is further along at the end than the start
-        title = lambda f: next(l for l in f["layers"] if l["type"] == "text" and l["words"][0]["w"] == "Project pages")
+        title = lambda f: next(l for l in f["layers"] if l["type"] == "text" and l["words"][0]["w"] == "Settings")
         self.assertLess(title(held[0])["opacity"], title(held[-1])["opacity"])
 
     def test_section_titles_follow_the_cards_title_case(self):
-        d = self.data({"at": 0, "title": "The real app", "look": "section"}, {"at": 9, "title": "the real app"})
+        d = self.data({"at": 0, "title": "The live site", "look": "section"}, {"at": 9, "title": "the live site"})
         d["style"] = {"card": {"title_case": True}}
         a, b = S.parse(d, self.d)["callouts"]
-        self.assertEqual(a["title"], "The Real App")
-        self.assertEqual(b["title"], "the real app")                          # a box keeps what was written
+        self.assertEqual(a["title"], "The Live Site")
+        self.assertEqual(b["title"], "the live site")                          # a box keeps what was written
 
     def test_overlap_in_one_corner_warns(self):
         p = plan(self.data({"at": 1, "title": "a"}, {"at": 3, "title": "b"},
@@ -947,7 +947,7 @@ class Themes(unittest.TestCase):
 
     def test_title_case(self):
         self.assertEqual(S.title_case("decision and gated cards"), "Decision and Gated Cards")
-        self.assertEqual(S.title_case("the FieldPal app for COUPA, KAL-132"), "The FieldPal App for COUPA, KAL-132")
+        self.assertEqual(S.title_case("the FieldPal app for ACME, AC-42"), "The FieldPal App for ACME, AC-42")
         self.assertEqual(S.title_case("workflow: start-and-end tasks in"), "Workflow: Start-And-End Tasks In")
         self.assertEqual(S.title_case("what's new"), "What's New")
 

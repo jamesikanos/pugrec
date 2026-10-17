@@ -61,7 +61,7 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
     # bar = an accent bar grows down the left edge and the text slides out from behind it;
     # pill = one short label (a role, a name) that fades in; section = a full-frame panel in the
     # card colours wipes across with a big title (a section header, over the running video and
-    # audio - unlike intro/outro cards). sparkle: true = the theme's unicorn sweep leads the wipe
+    # audio - unlike intro/outro cards). sparkle: true = the theme's sweep sprite leads the wipe
     # (only themes with a `sparkle:` section, like the transitions). Sizes are fractions of the output's
     # shorter side; px values are at 1080p. from/to: the direction of travel in and out.
     "callout": {"look": "bar", "corner": "top-left", "margin": 0.045,
@@ -592,7 +592,7 @@ SMALL_WORDS = {"a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "o
 
 def title_case(s):
     """"decision and gated cards" -> "Decision and Gated Cards". Only all-lowercase words change:
-    names and codes the author already cased (FieldPal, COUPA, KAL-132, iPhone) stay as written.
+    names and codes the author already cased (FieldPal, ACME, AC-42, iPhone) stay as written.
     Small words stay lowercase except first and last."""
     words = s.split(" ")
     last = max((i for i, w in enumerate(words) if w), default=0)
