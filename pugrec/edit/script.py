@@ -71,7 +71,8 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
                 "border": None, "border_width": 2, "radius": 12,    # border null = the accent
                 "duration": 4.5, "in": 0.7, "out": 0.35,            # seconds, in and out included
                 "from": "auto", "to": "none", "distance": 0.025,    # auto = from its corner's side
-                "sparkle": False},
+                "sparkle": False,
+                "pause": 0},   # s: freeze the recording (picture and sound) at `at` while it comes in
     "captions": {"show": True, "size": 0.045, "position": "auto", "max_words": 6, "highlight": True,
                  "fix": {},  # word -> correction, for names the transcript gets wrong (Akme -> Acme)
                  "font": "IBM Plex Sans", "weight": 600, "color": "#f1e4d9",
@@ -803,6 +804,8 @@ def callout_style(v, path, base):
             out[k] = _num(val, p, 0, 1)
         elif k == "duration":
             out[k] = _num(val, p, 0.5, 60)
+        elif k == "pause":
+            out[k] = _num(val, p, 0, 10)
         elif k in ("in", "out"):
             out[k] = _num(val, p, 0, 5)
         else:  # border_width, radius: px at 1080p

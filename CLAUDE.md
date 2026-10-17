@@ -149,5 +149,8 @@ James's rule (2026-10-13): **commit little and often.**
   styled by `style.callout` (a theme's), with direction of travel in and out; a section can lead
   its wipe with the theme's sparkle sweep. New layer: `stroke` (a part-drawn polyline); text
   layers may be `align: left`. Every existing edit resolved to the same plan before and after.
+  `pause` holds the recording (frames with `hold: true`: one source moment, silence) while a
+  callout comes in. The preview's player.js is not reloaded by the SSE plan reload: after a
+  player change, hard-refresh the page (an old player looped the audio through a hold).
 - Next ideas: move transitions between contain views; overlays / other sources; key-shortcut
   captions from `key` events; title cards; VAAPI decode in builds; a keybind in the dotfiles.

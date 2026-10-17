@@ -465,8 +465,11 @@ def runs(frames, fps):
     out, i0 = [], 0
     dt = 1 / fps
     for i in range(1, len(frames) + 1):
+        # A hold (a callout's pause) is a run of its own: the same source moment on every frame.
+        step = 0.0 if i < len(frames) and frames[i].get("hold") else dt
         if i == len(frames) or frames[i]["src"] != frames[i - 1]["src"] or \
-                abs(frames[i]["st"] - frames[i - 1]["st"] - dt) > 1e-3:
+                bool(frames[i].get("hold")) != bool(frames[i - 1].get("hold")) or \
+                abs(frames[i]["st"] - frames[i - 1]["st"] - step) > 1e-3:
             out.append((i0, i, frames[i0]["src"], frames[i0]["st"]))
             i0 = i
     return out
@@ -476,7 +479,9 @@ def audio_args(plan, frames, first_input):
     """ffmpeg inputs + filter for the audio under exactly these frames (10 ms fades at splices)."""
     files = {a["source"]: a["file"] for a in plan["audio"]}
     fps = plan["output"]["fps"]
-    pieces = [(src, st, st + (i1 - i0) / fps) for i0, i1, src, st in runs(frames, fps)]
+    # A hold is silence: a piece with no source file (like a title card).
+    pieces = [("hold" if frames[i0].get("hold") else src, st, st + (i1 - i0) / fps)
+              for i0, i1, src, st in runs(frames, fps)]
     if not any(p[0] in files for p in pieces):
         return [], None
     inputs, idx = [], {}
@@ -517,10 +522,12 @@ def _render_range(args):
         for r0, r1, _src, st in runs(frames, fps):
             run = frames[r0:r1]
             used = {l["src"] for f in run for l in f["layers"] if l["type"] == "video"}
-            decs = {s: Decoder(plan["streams"][s], st, fps, len(run)) for s in used}
+            held = bool(run[0].get("hold"))   # one picture, decoded once, under every frame of the hold
+            decs = {s: Decoder(plan["streams"][s], st, fps, 1 if held else len(run)) for s in used}
+            still = {s: d.next() for s, d in decs.items()} if held else None
             try:
                 for f in run:
-                    paint(canvas, f["layers"], {s: d.next() for s, d in decs.items()}, plan.get("images"))
+                    paint(canvas, f["layers"], still or {s: d.next() for s, d in decs.items()}, plan.get("images"))
                     enc.stdin.write(canvas.data)
                     if counter is not None:
                         with counter.get_lock():

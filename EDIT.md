@@ -267,7 +267,8 @@ style:
   callout: {look: bar, corner: top-left, margin: 0.045, size: 0.034, text_size: 0.024,   # callouts (below)
             padding: 0.02, font: null, weight: 700, text_weight: 500, color: "#f1e4d9",
             background: "#16171a", opacity: 0.86, border: null, border_width: 2, radius: 12,
-            duration: 4.5, in: 0.7, out: 0.35, from: auto, to: none, distance: 0.025, sparkle: false}
+            duration: 4.5, in: 0.7, out: 0.35, from: auto, to: none, distance: 0.025, sparkle: false,
+            pause: 0}
   transition: {move: 0.6}    # default transition
 ```
 The bubble hides automatically when the shot itself shows the camera. Captions appear when the
@@ -349,6 +350,11 @@ can't say (a role, what a feature is, what's next). Few of them - one every 30-4
   `margin`, `size` / `text_size` / `padding` (fractions of the shorter side), `font` (null =
   the captions'), `weight` / `text_weight`, `color`, `background`, `opacity`, `border` (null =
   the accent), `border_width`, `radius` (px at 1080p), `sparkle`.
+- **`pause: <s>`**: the recording stands still for that long at `at` - one held picture,
+  silence under it - while the callout comes in, then carries on from the same moment. For a
+  section, `pause` = `in` and `at` just before its scene change: the wipe gets its full time and
+  the change happens under the finished panel. Put it in a real silence between sentences (look
+  at the audio level; the transcript's word times can be ~0.3 s out), never mid-word.
 - **`sparkle: true`** (sections only): the theme's sweep sprite gallops across leading the wipe,
   shedding its sparkle trail. Like the sparkle/sweep transitions, only with a theme that has a
   `sparkle:` section - anywhere else `check` refuses it.

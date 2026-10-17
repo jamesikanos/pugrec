@@ -774,6 +774,20 @@ class Callouts(unittest.TestCase):
         self.assertTrue(any(l["type"] == "star" for l in mid))                # the trail
         self.assertLess(mid[0]["clip"][2], 1920)                              # revealed behind the sweep
 
+    def test_pause_holds_the_recording_while_the_callout_comes_in(self):
+        p = plan(self.data({"at": 3.0, "title": "Project pages", "look": "section", "pause": 1.0}), self.d, fps=10)
+        base = plan(self.data({"at": 3.0, "title": "Project pages", "look": "section"}), self.d, fps=10)
+        self.assertAlmostEqual(p["duration"], base["duration"] + 1.0, places=3)   # the pause adds time
+        held = [f for f in p["frames"] if f.get("hold")]
+        self.assertEqual(len(held), 10)
+        self.assertTrue(all(f["st"] == 3.0 and f["src"] == "main" for f in held))   # one moment, still
+        after = p["frames"][p["frames"].index(held[-1]) + 1]
+        self.assertAlmostEqual(after["st"], 3.0, places=3)                     # then it carries on from there
+        self.assertNotIn("hold", after)
+        # the section animates through the hold: its title is further along at the end than the start
+        title = lambda f: next(l for l in f["layers"] if l["type"] == "text" and l["words"][0]["w"] == "Project pages")
+        self.assertLess(title(held[0])["opacity"], title(held[-1])["opacity"])
+
     def test_overlap_in_one_corner_warns(self):
         p = plan(self.data({"at": 1, "title": "a"}, {"at": 3, "title": "b"},
                            {"at": 3, "title": "c", "corner": "top-right"}), self.d)

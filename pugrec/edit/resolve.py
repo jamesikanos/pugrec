@@ -19,6 +19,8 @@ Any layer may carry `clip: [x, y, w, h]` (output px): drawn only inside it (the 
 and `bg: true`: a background (blur copy, colour, backdrop, shadow) - transitions cross-fade it,
 the spotlight and `move` never treat it as the view. Compositors ignore the flag.
 Title cards are frames with src "card:intro"/"card:outro" (no video, silence underneath).
+A callout's `pause` holds the recording: frames with `hold: true` repeat source time `st` (one
+still picture, silence underneath) while the output clock - and so the callout - runs on.
 
 Times in a plan: output seconds for frames, *source* seconds in layers (`t`), so
 every layer says which source and which moment of it - splicing several
@@ -1184,7 +1186,7 @@ class OutputResolver:
         return out
 
     # -- frames ----------------------------------------------------------
-    def frame(self, source, t, dt, jumped):
+    def frame(self, source, t, dt, jumped, hold=False):
         self.frame_i += 1
         self.clock = self.frame_i * dt
         scene = self.scene_at(source, t)
@@ -1262,7 +1264,8 @@ class OutputResolver:
             layers += self.bubble_layer(scene, t, dt, changed, trans["duration"] if not jumped else 0)
         layers += self.logo_layers()
         layers += self.callout_layers(source, t)
-        layers += self.caption_layers(source, t)
+        if not hold:   # nothing is being said during a hold
+            layers += self.caption_layers(source, t)
         return scene, layers
 
     prev_view = None
@@ -1297,6 +1300,13 @@ def segments(sc, sessions):
         if pos < dur:
             segs.append((main, pos, dur))
     # Title cards are segments without a source ("card:intro"/"card:outro", times = card time).
+    # A callout's pause holds its source at `at`: a "hold:<source>" segment (times = the frozen
+    # moment .. + the pause) spliced in where the source reaches `at`.
+    for c in sorted((c for c in sc.get("callouts") or [] if c["pause"] > 0), key=lambda c: c["at"]):
+        for i, (src, a, b) in enumerate(segs):
+            if src == c["source"] and a <= c["at"] < b:
+                segs[i:i + 1] = [(src, a, c["at"]), ("hold:" + src, c["at"], c["at"] + c["pause"]), (src, c["at"], b)]
+                break
     if sc.get("intro"):
         segs.insert(0, ("card:intro", 0.0, sc["intro"]["duration"]))
     if sc.get("outro"):
@@ -1357,15 +1367,24 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
             seg_i += 1
         src, a, b, o = segs[seg_i]
         t_src = a + (t_out - o)
+        hold = src.startswith("hold:")
+        if hold:   # the recording stands still: the same source moment, frame after frame
+            src, t_src = src[5:], a
         jumped = last_src is not None and (src != last_src[0] or abs(t_src - last_src[1] - dt) > 1e-6)
-        last_src = (src, t_src)
+        last_src = (src, t_src - dt if hold else t_src)   # resuming after a hold isn't a jump
+        if hold:
+            jumped = False
         if src.startswith("card:"):
             spec = sc[src[5:]]
             frames.append({"t": round(t_out, 4), "src": src, "st": round(t_src, 4), "scene": -1,
                            "layers": res.card_layers(spec, t_src) + res.logo_layers()})
             continue
-        scene, layers = res.frame(src, t_src, dt, jumped)
+        scene, layers = res.frame(src, t_src, dt, jumped, hold)
         scene_first.setdefault(scene["index"], round(t_out, 3))
+        if hold:
+            frames.append({"t": round(t_out, 4), "src": src, "st": round(t_src, 4), "scene": scene["index"],
+                           "hold": True, "layers": layers})
+            continue
         frames.append({"t": round(t_out, 4), "src": src, "st": round(t_src, 4), "scene": scene["index"],
                        "layers": layers})
 
