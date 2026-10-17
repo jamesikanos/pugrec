@@ -399,7 +399,29 @@ def text_image(l):
 def draw_text(canvas, l):
     bgr, alpha = text_image(l)
     h, w = bgr.shape[:2]
-    blit(canvas, bgr, int(round(l["x"] - w / 2)), int(round(l["y"] - h / 2)), alpha, l.get("opacity", 1.0))
+    x = l["x"] if l.get("align") == "left" else l["x"] - w / 2
+    blit(canvas, bgr, int(round(x)), int(round(l["y"] - h / 2)), alpha, l.get("opacity", 1.0))
+
+
+def draw_stroke(canvas, l):
+    """A polyline (a callout's border, part drawn), anti-aliased, touching only its own box."""
+    H, W = canvas.shape[:2]
+    pts = l["points"]
+    if len(pts) < 2 or l.get("opacity", 1.0) <= 0:
+        return
+    lw = max(1, int(round(l["width"])))
+    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+    x0, y0 = max(0, int(min(xs)) - lw - 2), max(0, int(min(ys)) - lw - 2)
+    x1, y1 = min(W, int(max(xs)) + lw + 3), min(H, int(max(ys)) + lw + 3)
+    if x1 <= x0 or y1 <= y0:
+        return
+    roi = canvas[y0:y1, x0:x1]
+    over = roi.copy()
+    arr = np.array([[(px - x0) * 16, (py - y0) * 16] for px, py in pts], np.int32)
+    color = tuple(int(c) for c in hex_bgr(l["color"]))
+    cv2.polylines(over, [arr], bool(l.get("closed")), color, lw, cv2.LINE_AA, shift=4)  # 1/16 px precision
+    a = l.get("opacity", 1.0)
+    roi[...] = cv2.addWeighted(over, a, roi, 1 - a, 0)
 
 
 def paint(canvas, layers, frames, images=None):
@@ -433,6 +455,8 @@ def paint(canvas, layers, frames, images=None):
             draw_image(canvas, l, images)
         elif l["type"] == "star":
             draw_star(canvas, l)
+        elif l["type"] == "stroke":
+            draw_stroke(canvas, l)
 
 
 def runs(frames, fps):

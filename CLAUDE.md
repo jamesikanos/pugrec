@@ -145,5 +145,9 @@ James's rule (2026-10-13): **commit little and often.**
   downscale (the 16% gain is the downscale itself, CPU does the same), more jobs (slower),
   GPU H.264 encode (bigger files for little), headless Chrome as compositor (no HW AV1 decode,
   20-45 ms readback per frame).
+- Done 2026-10-17: callouts (`callouts:`) - info boxes in four looks (draw, bar, pill, section),
+  styled by `style.callout` (a theme's), with direction of travel in and out; a section can lead
+  its wipe with the theme's sparkle sweep. New layer: `stroke` (a part-drawn polyline); text
+  layers may be `align: left`. Every existing edit resolved to the same plan before and after.
 - Next ideas: move transitions between contain views; overlays / other sources; key-shortcut
   captions from `key` events; title cards; VAAPI decode in builds; a keybind in the dotfiles.

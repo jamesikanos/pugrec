@@ -188,7 +188,7 @@ function drawText(l) {
   const widths = l.words.map((w) => ctx.measureText(w.w).width);
   const tw = widths.reduce((a, b) => a + b, 0) + space * (widths.length - 1);
   const W = tw + 2 * l.pad, H = l.size * 1.5;
-  const x0 = l.x - W / 2, y0 = l.y - H / 2;
+  const x0 = l.align === "left" ? l.x : l.x - W / 2, y0 = l.y - H / 2;
   ctx.globalAlpha = (l.opacity ?? 1) * l.bg_opacity;
   ctx.beginPath(); ctx.roundRect(x0, y0, W, H, l.radius); ctx.fillStyle = l.bg; ctx.fill();
   ctx.globalAlpha = l.opacity ?? 1;
@@ -235,6 +235,19 @@ function drawStar(l) {
   ctx.restore();
 }
 
+function drawStroke(l) {
+  // A callout's border, part drawn: the same polyline as compose.draw_stroke.
+  if (l.points.length < 2) return;
+  ctx.save();
+  ctx.globalAlpha = l.opacity ?? 1;
+  ctx.beginPath();
+  l.points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+  if (l.closed) ctx.closePath();
+  ctx.lineWidth = l.width; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.strokeStyle = l.color; ctx.stroke();
+  ctx.restore();
+}
+
 function draw(frame) {
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
   for (const l of frame.layers) {
@@ -250,6 +263,7 @@ function draw(frame) {
     else if (l.type === "text") drawText(l);
     else if (l.type === "image") drawImage(l);
     else if (l.type === "star") drawStar(l);
+    else if (l.type === "stroke") drawStroke(l);
     if (l.clip) ctx.restore();
   }
 }
