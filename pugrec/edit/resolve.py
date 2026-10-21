@@ -573,6 +573,9 @@ class OutputResolver:
                 self.warn(s, "punch and push together look restless: pick one for this scene")
             if s["push_set"] and s["push"] and not any(sh["kind"] == "camera" for sh, _ in self.panes_for(s)):
                 self.warn(s, "push: only on the camera (a pushed app or screen looks weird); ignored")
+            if any(sh["kind"] == "camera" and sh.get("follow") for sh, _ in self.panes_for(s)):
+                self.warn(s, "follow: true on a camera shot tracks every lean (looks nervous): camera shots "
+                             "hold and push by default, only the bubble follows - drop follow")
             for p in s["punch"]:
                 if nxt is not None and p["at"] >= nxt["at"]:
                     self.warn(s, f"punch at {p['at']} is after the scene ends ({nxt['at']}); ignored")

@@ -94,7 +94,7 @@ Each scene lasts until the next scene's `at`.
 | Shot | What it shows |
 | --- | --- |
 | `screen` | the whole monitor |
-| `camera` / `{camera: {zoom: 1.3}, follow: true}` | the webcam, head and shoulders, centred on the face (`faces.jsonl`). Held still by default, framed on where the face usually is during the scene (the median), and given its movement by the push; `follow: true` re-frames as the face moves instead (the bubble always follows) |
+| `camera` / `{camera: {zoom: 1.3}, follow: true}` | the webcam, head and shoulders, centred on the face (`faces.jsonl`). Held still by default, framed on where the face usually is during the scene (the median), and given its movement by the push; `follow: true` re-frames as the face moves instead - nervous on a camera shot, `check` warns (the bubble always follows) |
 | `auto` / `{auto: {zoom: 2}}` | automatic: zooms in on clicks/typing/scrolling (slightly before they happen), otherwise frames the focused window |
 | `{window: SEL, follow: true, region: [x, y, w, h], padding: 0.04}` | a window. `follow` (default true) tracks it as it moves/resizes; `follow: false` freezes it where it was when the scene started. `region` = part of the window, fractions of its size. |
 | `{cursor: {zoom: 2, dead_zone: 0.2}}` | follows the mouse; the view only moves when the cursor leaves the middle `1 - 2*dead_zone` |

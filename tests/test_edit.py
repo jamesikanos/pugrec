@@ -253,6 +253,8 @@ class Resolver(unittest.TestCase):
             os.remove(os.path.join(self.d, "faces.jsonl"))
         xs = lambda p: [videos(frame_at(p, t), "/camera")[0]["rect"][0] for t in (1.0, 5.0, 9.0)]
         self.assertGreater(xs(moving)[2], xs(moving)[0] + 300)    # followed the face
+        self.assertTrue([w for w in moving["warnings"] if "follow: true on a camera" in w])
+        self.assertFalse([w for w in still["warnings"] if "follow" in w])
         self.assertEqual(len(set(xs(still))), 1)                   # held still...
         start = videos(frame_at(moving, 0.0), "/camera")[0]["rect"][0]
         self.assertGreater(xs(still)[0], start + 200)              # ...not where it was at the start
