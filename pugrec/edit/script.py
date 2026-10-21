@@ -47,8 +47,9 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
               "position": [0.5, 0.5],  # where the card sits in the free space (0 = left/top)
               "shadow": 0},            # 0 = none (the PugPal look) .. 1 = strong
     # Slow push-in while a shot holds (Ken Burns): {to: 0.8, over: 10} = the view shrinks to 80%
-    # over 10 s. null = off; scenes say `push: true` (or a theme sets it here).
-    "push": None,
+    # over 10 s; to: null = 0.8 wide, 0.9 tall. Camera only (a pushed app looks weird), so on by
+    # default: every camera shot or pane pushes in unless its scene says `push: false`. null = off.
+    "push": {"to": None, "over": 10.0},
     # Punch-in on an important point: a quick ~6% zoom in (with a slight dip out first - the
     # anticipation), held, then eased back out. Only where a scene says `punch: <source s>`.
     "punch": {"zoom": 0.06, "dip": 0.006, "hold": 1.5},
@@ -167,10 +168,10 @@ def shot(v, path):
         _keys(v, path, ["camera", "follow"])
         opt = v["camera"] or {}
         _keys(opt, p, ["zoom"])
-        out = {"kind": "camera", "zoom": _num(opt.get("zoom", 1.0), f"{p}.zoom", 1, 4)}
-        if not v.get("follow", True):
-            out["follow"] = False   # only when asked: existing edits keep resolving to the same plan
-        return out
+        # Held still by default (James, 2026-10-21): a camera that tracks every lean looks nervous;
+        # the push gives a long camera shot its movement. Following is for the bubble.
+        return {"kind": "camera", "zoom": _num(opt.get("zoom", 1.0), f"{p}.zoom", 1, 4),
+                "follow": bool(v.get("follow", False))}
     if kind == "auto":
         _keys(v, path, ["auto"])
         opt = v["auto"] or {}
@@ -360,11 +361,15 @@ def scene_for_output(sc, output, style, path, bubble_base=None):
     sp = ov["spotlight"] if ov and "spotlight" in ov else sc.get("spotlight_raw", "style")
     s["spotlight"] = style["spotlight"] if sp == "style" else spotlight(sp, f"{path}.spotlight", style["spotlight"])
     # Push-in: the scene's (or this output's override), else the style's. Not sticky.
+    # A punch wins over the style's push (the two moves fight); an explicit push + punch warns.
     pr = ov["push"] if ov and "push" in ov else sc.get("push_raw", "style")
     s["push"] = style["push"] if pr == "style" else push(pr, f"{path}.push")
+    s["push_set"] = pr != "style"
     # Punch-ins: the scene's (or this output's own list). Not sticky.
     pn = ov["punch"] if ov and "punch" in ov else sc.get("punch_raw")
     s["punch"] = punch(pn, f"{path}.punch", style["punch"], sc["at"])
+    if s["punch"] and not s["push_set"]:
+        s["push"] = None
     # Inset: the style's <- the scene's <- a pane's own.
     ins_raw = ov["inset"] if ov and "inset" in ov else sc.get("inset_raw")
     s["inset"] = inset(ins_raw, f"{path}.inset", style["inset"])

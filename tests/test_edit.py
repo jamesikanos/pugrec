@@ -238,21 +238,25 @@ class Resolver(unittest.TestCase):
         p = plan({"style": {"spotlight": True}, "scenes": [{"at": 0, "shot": "camera"}]}, self.d)
         self.assertFalse([l for l in videos(frame_at(p, 2.0)) if l.get("blur")])
 
-    def test_camera_follow_false_holds_the_framing(self):
-        # A face drifting left to right: the camera follows it by default, holds with follow: false.
+    def test_camera_holds_on_the_usual_face_unless_follow(self):
+        # A face drifting left to right: the camera holds by default (on the face's median place
+        # over the scene, not where it was at the start), follows with follow: true.
         with open(os.path.join(self.d, "faces.jsonl"), "w") as f:
             for i in range(101):
                 f.write(json.dumps({"t": int(i * 0.1 * SEC), "x": 0.2 + 0.4 * i / 100, "y": 0.3,
                                     "w": 0.1, "h": 0.2}) + "\n")
         try:
-            moving = plan({"scenes": [{"at": 0, "shot": {"camera": {"zoom": 1.5}}}]}, self.d)
-            still = plan({"scenes": [{"at": 0, "shot": {"camera": {"zoom": 1.5}, "follow": False}}]}, self.d)
+            moving = plan({"scenes": [{"at": 0, "shot": {"camera": {"zoom": 1.5}, "follow": True}, "push": False}]},
+                          self.d)
+            still = plan({"scenes": [{"at": 0, "shot": {"camera": {"zoom": 1.5}}, "push": False}]}, self.d)
         finally:
             os.remove(os.path.join(self.d, "faces.jsonl"))
         xs = lambda p: [videos(frame_at(p, t), "/camera")[0]["rect"][0] for t in (1.0, 5.0, 9.0)]
         self.assertGreater(xs(moving)[2], xs(moving)[0] + 300)    # followed the face
-        self.assertEqual(len(set(xs(still))), 1)                   # held where it started
-        self.assertEqual(xs(still)[0], videos(frame_at(moving, 0.0), "/camera")[0]["rect"][0])
+        self.assertEqual(len(set(xs(still))), 1)                   # held still...
+        start = videos(frame_at(moving, 0.0), "/camera")[0]["rect"][0]
+        self.assertGreater(xs(still)[0], start + 200)              # ...not where it was at the start
+        self.assertLess(xs(still)[0], xs(moving)[2])                # but its usual place, mid-drift
 
     def test_fade_transition_blends(self):
         p = plan({"scenes": [{"at": 0, "shot": "screen", "bubble": False},
@@ -461,7 +465,7 @@ class Push(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def widths(self, p, src="/screen", t0=0.0, t1=10.0):
+    def widths(self, p, src="/camera", t0=0.0, t1=10.0):
         return [(f["t"], videos(f, src)[-1]["rect"][2]) for f in p["frames"] if t0 <= f["t"] <= t1]
 
     def test_curve_ease_in_steady_ease_out(self):
@@ -472,51 +476,64 @@ class Push(unittest.TestCase):
         steps = [R.push_amount(t + 0.1, 10) - R.push_amount(t, 10) for t in (2, 4, 6, 8)]
         self.assertTrue(max(steps) - min(steps) < 1e-9)              # a steady rate in the middle
 
-    def test_screen_push_to_80_percent_over_10s(self):
-        p = plan({"scenes": [{"at": 0, "shot": {"rect": [0, 0, 2560, 1080]}, "fit": "cover", "push": True,
-                              "bubble": False}]}, self.d)
+    def test_camera_pushes_to_80_percent_over_10s_by_default(self):
+        p = plan({"scenes": [{"at": 0, "shot": "camera", "bubble": False}]}, self.d)
         w = dict(self.widths(p))
-        self.assertAlmostEqual(w[0.0], 2560, delta=1)
-        self.assertAlmostEqual(w[9.9], 0.8 * 2560, delta=4)
+        self.assertAlmostEqual(w[9.9] / w[0.0], 0.8, delta=0.002)
         ws = [v for _, v in sorted(w.items())]
         self.assertTrue(all(b <= a + 1e-6 for a, b in zip(ws, ws[1:])))      # only ever tighter
-        self.assertLess(max(a - b for a, b in zip(ws, ws[1:])), 0.01 * 2560)  # and slowly
+        self.assertLess(max(a - b for a, b in zip(ws, ws[1:])), 0.01 * ws[0])  # and slowly
 
     def test_tall_outputs_push_half_as_far(self):
         p = plan({"outputs": [{"name": "vertical", "size": "1080x1920"}],
-                  "scenes": [{"at": 0, "shot": {"rect": [0, 0, 1215, 2160]}, "fit": "cover", "push": True,
-                              "bubble": False}]}, self.d, "vertical")
+                  "scenes": [{"at": 0, "shot": "camera", "bubble": False}]}, self.d, "vertical")
         w = dict(self.widths(p))
         self.assertAlmostEqual(w[9.9] / w[0.0], 0.9, delta=0.005)
 
     def test_explicit_to_and_over(self):
-        p = plan({"scenes": [{"at": 0, "shot": {"rect": [0, 0, 2560, 1080]}, "fit": "cover", "bubble": False,
-                              "push": {"to": 0.9, "over": 4}}]}, self.d)
+        p = plan({"scenes": [{"at": 0, "shot": "camera", "bubble": False, "push": {"to": 0.9, "over": 4}}]}, self.d)
         w = dict(self.widths(p))
         self.assertAlmostEqual(w[4.0] / w[0.0], 0.9, delta=0.002)
         self.assertAlmostEqual(w[9.0], w[4.0], delta=0.5)                    # then it holds
 
     def test_a_cut_inside_does_not_jump_it(self):
-        p = plan({"cuts": {"ranges": [[3.0, 6.0]]},
-                  "scenes": [{"at": 0, "shot": {"rect": [0, 0, 2560, 1080]}, "fit": "cover", "push": True,
-                              "bubble": False}]}, self.d)
+        p = plan({"cuts": {"ranges": [[3.0, 6.0]]}, "scenes": [{"at": 0, "shot": "camera", "bubble": False}]}, self.d)
         ws = [v for _, v in self.widths(p, t0=0, t1=6.5)]
-        self.assertLess(max(a - b for a, b in zip(ws, ws[1:])), 0.01 * 2560)  # 3 s of source skipped, no jump
+        self.assertLess(max(a - b for a, b in zip(ws, ws[1:])), 0.01 * ws[0])  # 3 s of source skipped, no jump
 
     def test_camera_and_inset_card(self):
-        p = plan({"scenes": [{"at": 0, "shot": "camera", "fit": "inset", "push": True, "bubble": False}]}, self.d)
+        p = plan({"scenes": [{"at": 0, "shot": "camera", "fit": "inset", "bubble": False}]}, self.d)
         a, b = videos(frame_at(p, 0.0), "/camera")[0], videos(frame_at(p, 9.9), "/camera")[0]
         self.assertEqual(a["dst"], b["dst"])                                  # the card stays
         self.assertAlmostEqual(b["rect"][2] / a["rect"][2], 0.8, delta=0.01)  # the picture tightens
 
-    def test_off_by_default_and_false_wins_over_the_style(self):
-        base = {"scenes": [{"at": 0, "shot": {"rect": [0, 0, 2560, 1080]}, "fit": "cover", "bubble": False}]}
+    def test_never_on_the_screen_even_when_asked(self):
+        for shot in ({"rect": [0, 0, 2560, 1080]}, {"window": {"title": "left"}}, "screen"):
+            p = plan({"scenes": [{"at": 0, "shot": shot, "fit": "cover", "push": True, "bubble": False}]}, self.d)
+            w = dict(self.widths(p, "/screen"))
+            self.assertAlmostEqual(w[9.9], w[0.0])
+            self.assertTrue([w for w in p["warnings"] if "push: only on the camera" in w])
+
+    def test_split_pushes_the_camera_pane_only(self):
+        p = plan({"scenes": [{"at": 0, "shot": {"split": ["screen", "camera"]}, "bubble": False}]}, self.d)
+        cam, scr = dict(self.widths(p)), dict(self.widths(p, "/screen"))
+        self.assertAlmostEqual(cam[9.9] / cam[0.0], 0.8, delta=0.005)
+        self.assertAlmostEqual(scr[9.9], scr[0.0])
+        self.assertFalse(p["warnings"])
+
+    def test_false_and_a_null_style_turn_it_off(self):
+        base = {"scenes": [{"at": 0, "shot": "camera", "bubble": False, "push": False}]}
         w = dict(self.widths(plan(base, self.d)))
         self.assertAlmostEqual(w[9.9], w[0.0])
-        base["style"] = {"push": {"to": 0.8}}
-        base["scenes"][0]["push"] = False
+        base = {"style": {"push": None}, "scenes": [{"at": 0, "shot": "camera", "bubble": False}]}
         w = dict(self.widths(plan(base, self.d)))
         self.assertAlmostEqual(w[9.9], w[0.0])
+
+    def test_a_punch_drops_the_default_push(self):
+        p = plan({"scenes": [{"at": 0, "shot": "camera", "punch": 5, "bubble": False}]}, self.d)
+        w = dict(self.widths(p))
+        self.assertAlmostEqual(w[9.9], w[0.0])
+        self.assertFalse([w for w in p["warnings"] if "punch and push" in w])
 
     def test_cursor_shots_are_left_alone_with_a_warning(self):
         p = plan({"scenes": [{"at": 0, "shot": {"cursor": {"zoom": 2}}, "push": True, "bubble": False}]}, self.d)

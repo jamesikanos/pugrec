@@ -154,13 +154,11 @@ James's rule (2026-10-13): **commit little and often.**
   player change, hard-refresh the page (an old player looped the audio through a hold).
 - **Pinned (James, 2026-10-17): camera motion is too extreme - make it gentler, with options.**
   From cutting a real demo, where every one of these looked wrong:
-  - **push / punch in a split should move the camera pane only.** Today they zoom the whole
-    scene, so the app pane lurches too ("jarring"); the workaround was a full-frame camera shot.
-    Likely shape: by default a split's push/punch applies to its camera pane, plus pane-level
-    `push:` / `punch:` to choose explicitly.
-  - **A fixed framing from the average face position** (faces.jsonl over the shot's span),
-    not following. `follow: false` today freezes on wherever the face is at the scene's first
-    frame, which is arbitrary if the speaker shifts. An option such as `follow: average`.
+  - Done 2026-10-21 (James changed the defaults): **push is camera-only and on by default**
+    (a split pushes its camera pane; never the screen/app - "it looks weird"), and **camera shots
+    hold still** on the face's median place over the scene; `follow: true` is opt-in (the bubble
+    follows). A punch drops the default push. Every edit's camera scenes changed plan, on purpose.
+  - Still open: **punch in a split** zooms both panes; it should be the camera pane only.
   - **Gentler follow**: smoother and slower to react when it does follow (smoothing time /
     dead zone as options), instead of visibly tracking every movement.
   - **Options with milder defaults** for all of the above: James found today's punch overdone even

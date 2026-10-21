@@ -203,10 +203,10 @@ Rules that matter:
   The backdrop comes from the theme (`style.backdrop`); without one it's the PugPal gradient. Keep
   `shadow` at 0 unless the theme or the author wants one. Look at a built frame: the card should have
   even room around it and nothing important cut off.
-- *Slow push-in* - also an option, not a default: `push: true` on a scene that holds a while
-  (a talking-head intro/outro, a long camera or window shot, an inset card) makes it feel alive.
-  Skip it on short scenes (< ~3 s) and on cursor/auto shots. Use it when the author asks for motion /
-  "Ken Burns" / "zoom in slowly", or with the presenter look above.
+- *Slow push-in* - on by default, on the camera only: a camera shot (or a split's camera pane)
+  pushes in slowly while it holds, and stays still otherwise (no following the face; the bubble
+  follows). Never push the app or the screen - pugrec won't. `push: false` on a camera scene the
+  author wants held completely still.
 - *Punch-in* - an option for emphasis: `punch: <s>` on a camera scene, `at` on the stressed
   word of the point being made (from transcript.jsonl). Use few (one per ~30 s at most, or they
   stop meaning anything), on talking-head shots - not on the app, and never in a scene with
@@ -366,7 +366,7 @@ Each scene lasts until the next scene's `at`.
 | `fit` | `auto` (default) / `cover` / `contain` / `inset` (below) |
 | `background` | behind a `contain` view or an `inset` card: `blur` (contain's default), `backdrop` (inset's default: the style's backdrop) or a colour `"#16171a"` |
 | `inset` | for `fit: inset`: `{padding, radius, aspect, position, shadow}` over `style.inset` (below) |
-| `push` | a slow push-in while the shot holds: `true`, a number (`to`), `{to, over}`, or `false` (default: the style's, off) - below |
+| `push` | a slow push-in on the camera while the shot holds: `true`, a number (`to`), `{to, over}`, or `false` (default: the style's, on) - below |
 | `punch` | a quick punch-in on an important point: a source time (when the zoom lands), a list of them, or `{at, zoom, dip, hold}` items (default: none) - below |
 | `transition` | into this scene: `cut`, `{move: s}`, `{fade: s}` (default `{move: 0.6}`) |
 | `bubble` | camera bubble: `{corner, size, margin, shape, show}`, `false` to hide, `true` to show. **Sticky**: applies until a later scene changes it |
@@ -379,7 +379,7 @@ Each scene lasts until the next scene's `at`.
 | Shot | What it shows |
 | --- | --- |
 | `screen` | the whole monitor |
-| `camera` / `{camera: {zoom: 1.3}, follow: true}` | the webcam, head and shoulders, centred on the face (`faces.jsonl`). `follow` (default true) re-frames as the face moves; `follow: false` holds the framing where the face was when the scene started - steadier for a talking head, and with `push` a clean, slow push-in |
+| `camera` / `{camera: {zoom: 1.3}, follow: true}` | the webcam, head and shoulders, centred on the face (`faces.jsonl`). Held still by default, framed on where the face usually is during the scene (the median), and given its movement by the push; `follow: true` re-frames as the face moves instead (the bubble always follows) |
 | `auto` / `{auto: {zoom: 2}}` | automatic: zooms in on clicks/typing/scrolling (slightly before they happen), otherwise frames the focused window |
 | `{window: SEL, follow: true, region: [x, y, w, h], padding: 0.04}` | a window. `follow` (default true) tracks it as it moves/resizes; `follow: false` freezes it where it was when the scene started. `region` = part of the window, fractions of its size. |
 | `{cursor: {zoom: 2, dead_zone: 0.2}}` | follows the mouse; the view only moves when the cursor leaves the middle `1 - 2*dead_zone` |
@@ -440,20 +440,24 @@ scenes:
 ```yaml
   - at: 4.6
     shot: camera
-    push: true                 # = {to: 0.8, over: 10}: the view tightens to 80% over 10 s
+    push: {to: 0.9, over: 6}   # gentler and quicker than the default {to: 0.8, over: 10}
   - at: 30
-    shot: {window: {address: "0x5616f59775b0"}}
-    push: {to: 0.9, over: 6}   # gentler and quicker
+    shot: {split: [{window: {address: "0x5616f59775b0"}}, camera]}   # pushes the camera pane only
+  - at: 50
+    shot: camera
+    push: false                # held still
 ```
-The "Ken Burns" move: barely noticeable, but a long hold on a face or an app feels alive. It's
-an option, off unless a scene (or a theme's `style.push`) asks; `push: false` turns a style's off
-for one scene. It eases in over 1 s, moves steadily, eases out at `to` and then holds; a shorter
-scene simply gets less of it. It follows the video as watched, so cuts inside the scene
-(`pauses`, `fillers`) don't make it jump. It tightens about the view's centre - the face, for the
-camera - and works full frame, in split panes (both panes), in `contain` views and inside inset
-cards (the card stays, the picture tightens). Not on `cursor`/`auto` shots (they move already;
-`check` warns). `push: true` is 0.8 on wide outputs and 0.9 on tall ones: the camera is 1080p and
-a 9:16 frame already enlarges it ~1.8x, so a full push there gets soft (an explicit `to` is used as is).
+The "Ken Burns" move: barely noticeable, but a long hold on a face feels alive. **Camera only, and
+on by default**: every camera shot - full frame, an inset card (the card stays, the picture
+tightens), the camera pane of a split - pushes in unless its scene says `push: false` (or a theme
+sets `style.push: null`). Never the screen, an app window or a rect, not even in a split: a pushed
+app looks weird (`check` warns when a scene asks for it with no camera in it). A scene with a
+`punch` doesn't get the default push (the two moves fight). It eases in over 1 s, moves steadily,
+eases out at `to` and then holds; a shorter scene simply gets less of it. It follows the video as
+watched, so cuts inside the scene (`pauses`, `fillers`) don't make it jump. It tightens about the
+face. `to: null` / `push: true` is 0.8 on wide outputs and 0.9 on tall ones: the camera is 1080p
+and a 9:16 frame already enlarges it ~1.8x, so a full push there gets soft (an explicit `to` is
+used as is).
 
 #### Punch: a quick zoom in on an important point
 
@@ -471,9 +475,9 @@ over 0.3 s. The move starts 0.45 s before `at`, so `at` is the stressed word in 
 Defaults come from `style.punch: {zoom: 0.06, dip: 0.006, hold: 1.5}`; `dip: 0` = straight in.
 Keep it subtle: 10% looked overdone on a talking head. It
 runs on the video as watched (a cut inside it doesn't jump or end it); one whose start was cut
-away still fires when the source is inside it. It works where `push` does (camera, window,
-screen, rect; full frame, panes, `contain`, inset cards - the card stays). Not together with
-`push` in one scene: the two moves fight (`check` warns).
+away still fires when the source is inside it. It works on camera, window, screen and rect shots
+(full frame, panes, `contain`, inset cards - the card stays). It replaces the default camera push
+in its scene; an explicit `push` with it fights (`check` warns).
 A view already showing the whole source has no room for the dip, so it's skipped there. Not on
 `cursor`/`auto` shots; `check` warns about those and about a punch after its scene ends.
 
@@ -547,7 +551,7 @@ style:
      angle: 160,             # CSS degrees: 0 = towards the top, 90 = right, 180 = down
      image: null}            # or an image (PNG/JPEG/WebP, cover-cropped); setting one replaces the other
   inset: {padding: 0.06, radius: 18, aspect: auto, position: [0.5, 0.5], shadow: 0}   # fit: inset defaults
-  push: null                 # e.g. {to: 0.8, over: 10}: every scene pushes in unless it says push: false
+  push: {to: null, over: 10} # camera push-in (to: null = 0.8 wide, 0.9 tall); null = off unless a scene asks
   punch: {zoom: 0.06, dip: 0.006, hold: 1.5}  # defaults for scenes' punch-ins
   callout: {look: bar, corner: top-left, margin: 0.045, size: 0.034, text_size: 0.024,   # callouts (below)
             padding: 0.02, font: null, weight: 700, text_weight: 500, color: "#f1e4d9",
