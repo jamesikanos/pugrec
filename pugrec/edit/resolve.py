@@ -109,7 +109,7 @@ class Session:
         self._video_end = {}
 
     def video_end(self, kind):
-        """Session time (s) of the last video packet in screen.mkv/camera.mkv, or None if
+        """Session time (s) of the last video packet in the screen/camera file, or None if
         unknown. The container duration can hide a stalled encoder (2026-10-13_19-20-50:
         video stopped at 63.8 s, audio and container ran to 94 s)."""
         if kind in self._video_end:

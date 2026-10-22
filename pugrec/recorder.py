@@ -30,7 +30,8 @@ from . import hypr, jsonl
 FORMAT_VERSION = 1
 CURSOR_HZ = 120
 WINDOWS_HZ = 10
-REDACT_RE = re.compile(r"1password|pinentry|polkit|gcr-prompter|keyring|seahorse", re.I)
+REDACT_RE = re.compile(r"1password|pinentry|polkit|gcr-prompter|keyring|seahorse|"
+                       r"com\.apple\.(Passwords|keychainaccess|SecurityAgent|loginwindow)|coreautha|bitwarden", re.I)
 LOCK_LAYER_RE = re.compile(r"lock", re.I)
 HELPER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "input_helper.py")
 OVERLAY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay", "countdown.qml")
@@ -41,6 +42,8 @@ MODIFIERS = {"KEY_LEFTSHIFT": "shift", "KEY_RIGHTSHIFT": "shift", "KEY_LEFTCTRL"
 
 
 def videos_dir():
+    if sys.platform == "darwin":
+        return os.path.expanduser("~/Movies/PugRec")
     try:
         d = subprocess.run(["xdg-user-dir", "VIDEOS"], capture_output=True, text=True).stdout.strip()
     except FileNotFoundError:
@@ -57,7 +60,16 @@ def default_source():
 
 
 def notify(summary, body="", urgency="normal", replace=None, expire_ms=None):
-    """notify-send; returns the notification id (pass it as `replace` to update it in place)."""
+    """notify-send; returns the notification id (pass it as `replace` to update it in place).
+    macOS: a Notification Center banner (no ids: nothing to replace)."""
+    if sys.platform == "darwin":
+        q = lambda s: '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+        try:
+            subprocess.run(["osascript", "-e", f"display notification {q(body)} with title {q(summary)} "
+                            f"subtitle \"pugrec\""], capture_output=True, timeout=3)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+        return None
     cmd = ["notify-send", "-a", "pugrec", "-u", urgency, "-i", "media-record", "--print-id"]
     if replace:
         cmd += ["-r", str(replace)]
@@ -250,7 +262,7 @@ class Session:
         self.wf = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=self.wf_log,
                                    stderr=subprocess.PIPE, text=True, bufsize=1,
                                    start_new_session=True,  # our Ctrl+C mustn't reach it before we stop it
-                                   preexec_fn=_die_with_parent)
+                                   preexec_fn=DIE_WITH_PARENT)
         got = threading.Event()
         method = {}
 
@@ -453,7 +465,7 @@ class Session:
         self.cam_log = open(os.path.join(self.dir, "camera.log"), "w", buffering=1)
         wall_minus_mono = time.time_ns() - time.monotonic_ns()
         self.cam = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=self.cam_log, stderr=subprocess.PIPE,
-                                    text=True, bufsize=1, start_new_session=True, preexec_fn=_die_with_parent)
+                                    text=True, bufsize=1, start_new_session=True, preexec_fn=DIE_WITH_PARENT)
 
         def drain():
             seen = False
@@ -496,7 +508,7 @@ class Session:
             self.mic_mon = subprocess.Popen(
                 ["parec", f"--device={self.mic}", "--format=s16le", "--channels=1", "--rate=8000",
                  "--raw", "--latency-msec=100"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                start_new_session=True, preexec_fn=_die_with_parent)
+                start_new_session=True, preexec_fn=DIE_WITH_PARENT)
         except FileNotFoundError:
             self.notice("parec not found: can't tell if the mic is muted")
             return
@@ -576,18 +588,25 @@ class Session:
         self.ready_file = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), f"pugrec-ready.{os.getpid()}")
         open(self.ready_file, "w").close()
         waiting = "Getting ready…" if self.args.no_camera else "Starting camera…"
+        cmd, env = self.overlay_cmd("countdown", n, waiting, self.ready_file)
         try:
             self.overlay = subprocess.Popen(
-                ["quickshell", "-p", OVERLAY],
-                env=dict(os.environ, PUGREC_COUNT=str(n), PUGREC_MONITOR=self.monitor,
-                         PUGREC_READY_FILE=self.ready_file, PUGREC_WAITING=waiting),
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                start_new_session=True, preexec_fn=_die_with_parent)
+                cmd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                start_new_session=True, preexec_fn=DIE_WITH_PARENT)
         except FileNotFoundError:
             self.overlay = None
             return
         self.overlay_started = time.monotonic()
         print("pugrec: getting ready (Esc/Cancel on the overlay: discard)", file=sys.stderr)
+
+    def overlay_cmd(self, mode, count=0, waiting="", ready_file=None):
+        """The overlay's command line and environment (Quickshell here; MacSession overrides)."""
+        env = dict(os.environ, PUGREC_MONITOR=self.monitor, PUGREC_WAITING=waiting)
+        if mode == "stopping":
+            env["PUGREC_MODE"] = "stopping"
+        else:
+            env.update(PUGREC_COUNT=str(count), PUGREC_READY_FILE=ready_file or "")
+        return ["quickshell", "-p", OVERLAY], env
 
     def overlay_cancelled(self):
         return bool(self.overlay) and self.overlay.poll() == 3
@@ -651,7 +670,8 @@ class Session:
         keep = (end_ns - first) / 1e9  # seconds of camera time up to the stop
         if keep <= 0:
             return
-        part = path + ".part.mkv"
+        root, ext = os.path.splitext(path)
+        part = root + ".part" + ext
         r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-map", "0", "-c", "copy",
                             "-t", f"{keep:.3f}", part], capture_output=True, text=True)
         if r.returncode == 0 and os.path.getsize(part) > 0:
@@ -665,12 +685,11 @@ class Session:
         """The overlay in "stopping" mode: a small spinner + "Saving…" while the files are
         finalised. It takes no keyboard and no clicks (fully click-through): nothing to do but
         wait, and the recorder closes it when done (it also closes itself after 2 minutes)."""
+        cmd, env = self.overlay_cmd("stopping", waiting="Saving…")
         try:
             self.saving = subprocess.Popen(
-                ["quickshell", "-p", OVERLAY],
-                env=dict(os.environ, PUGREC_MODE="stopping", PUGREC_MONITOR=self.monitor, PUGREC_WAITING="Saving…"),
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                start_new_session=True, preexec_fn=_die_with_parent)
+                cmd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                start_new_session=True, preexec_fn=DIE_WITH_PARENT)
         except FileNotFoundError:
             self.saving = None
 
@@ -847,14 +866,37 @@ def _die_with_parent():
     ctypes.CDLL(None).prctl(1, signal.SIGINT)  # PR_SET_PDEATHSIG
 
 
+# Linux only (prctl). On macOS the capture helper stops when its stdin closes instead.
+DIE_WITH_PARENT = _die_with_parent if sys.platform.startswith("linux") else None
+
+
 def pidfile():
     return os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "pugrec.pid")
+
+
+def _cmdline(pid):
+    if os.path.exists("/proc"):
+        return open(f"/proc/{pid}/cmdline", "rb").read()
+    r = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True)
+    if r.returncode:
+        raise ProcessLookupError(pid)
+    return r.stdout
+
+
+def _alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 def running_pid():
     try:
         pid = int(open(pidfile()).read().strip())
-        cmdline = open(f"/proc/{pid}/cmdline", "rb").read()
+        cmdline = _cmdline(pid)
     except (FileNotFoundError, ValueError, ProcessLookupError):
         return None
     return pid if b"pugrec" in cmdline else None
@@ -897,7 +939,7 @@ def stop():
         return 1
     os.kill(pid, signal.SIGTERM)
     for _ in range(100):
-        if not os.path.exists(f"/proc/{pid}"):
+        if not _alive(pid):
             return 0
         time.sleep(0.1)
     print("pugrec: recorder still running after 10 s", file=sys.stderr)

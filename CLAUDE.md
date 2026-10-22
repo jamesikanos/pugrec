@@ -11,6 +11,8 @@ EDIT.md's reference sections - when the script changes, update both.
 ```
 bin/pugrec             launcher: system python3 for recording, .venv for everything after
 pugrec/recorder.py     Session: wf-recorder + camera ffmpeg + pollers + input helper -> session.jsonl
+pugrec/recorder_mac.py MacSession: the same Session driven by macos/pugrec-capture (stdin: camera/screen/stop)
+macos/                 Swift helper: ScreenCaptureKit + AVFoundation + CGEventTap + window list + overlay
 pugrec/hypr.py         Hyprland IPC (request socket, socket2 events), window/monitor state + diffs
 pugrec/input_helper.py root helper (pkexec), evdev -> JSON lines; stdlib + evdev only
 pugrec/jsonl.py        single writer thread (append-only, flush 100 ms), crash-tolerant reader
@@ -47,6 +49,15 @@ tests/                 unittest; fake_session.py makes a synthetic 5K session
   (Slack workaround in the dotfiles' xdph.conf) and shows a picker. wf-recorder = 60 fps, no picker.
 - **AV1 for the source** (5120x2160; the GPU's H.264 encoder can't), **H.264 MP4 for output**.
 - No pip deps for recording: PyGObject/evdev/stdlib from the image. numpy/OpenCV only in `.venv`.
+- **macOS is a second backend, not a fork** (macOS port, 2026-10-14): `MacSession` subclasses
+  `Session` and writes the same session.jsonl; Mac-only code sits behind `sys.platform == "darwin"`
+  and Linux keeps working. Apple Silicon only.
+- **HEVC + ALAC in .mov on macOS**: Apple Silicon's media engine has no AV1 encoder, and HEVC
+  keeps native resolution at a sane size. Readers take file names from `stream_start.file`, never
+  `screen.mkv`/`camera.mkv`.
+- **One Swift helper on macOS** (`pugrec-capture`): ScreenCaptureKit, AVFoundation, the event tap
+  and the window list are only reachable from Swift/ObjC; Python drives it over stdin/stdout JSON
+  lines, as it drives wf-recorder on Linux. Timestamps are host time = `time.monotonic_ns()`.
 
 ## Git: commit little and often
 
@@ -67,6 +78,11 @@ James's rule (2026-10-13): **commit little and often.**
 - **No customer names anywhere** - files, tests, examples, commit messages. Examples use Acme.
 
 ## Gotchas
+
+- macOS: the helper's timestamps are host time (mach_absolute_time) = Python's time.monotonic_ns()
+  there, so frame PTS are the anchor directly. ScreenCaptureKit's mic starts ~0.15 s after the first
+  frame: audio extracts use audio.PAD_TO_ZERO. TCC permissions belong to the launching app (the
+  terminal) - not the helper.
 
 - Sync anchor = wf-recorder's "pts_time: 0" log line; if a wf-recorder update changes its
   logging, `session_start.sync` falls back to "Output #0 log line" (~ms worse). With audio,

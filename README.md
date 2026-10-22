@@ -30,6 +30,30 @@ Other commands: `record --no-input` (no keys, no clicks), `toggle` (for a keybin
 `info SESSION`, `check SESSION` (validate an edit, list scenes), `faces SESSION`,
 `proxy SESSION`, `transcript --cuts` (print suggested cuts). `render` is an old auto-zoom test harness.
 
+## macOS (Apple Silicon)
+
+The same commands work on a Mac. `pugrec record` runs a small Swift helper (`macos/`,
+built by `pugrec setup`): ScreenCaptureKit for the screen, AVFoundation for the camera, a
+listen-only event tap for clicks and keys, the window list for windows and focus. Sessions go
+to `~/Movies/PugRec`, as `screen.mov` (HEVC + the mic as ALAC) and `camera.mov` (HEVC):
+Apple Silicon has no AV1 encoder. The session format is otherwise the same.
+
+With [Homebrew](https://brew.sh) installed:
+
+```bash
+git clone https://github.com/jamesikanos/pugrec.git && cd pugrec && bin/pugrec setup
+```
+
+`setup` installs what's missing (the Xcode Command Line Tools; from Homebrew Python 3.14, ffmpeg,
+whisper-cpp and the IBM Plex fonts), then builds macos/pugrec-capture, .venv and the whisper
+model. Run it again after a pull: it only redoes what changed.
+
+Permissions, once, for the app you record from (your terminal): **Screen Recording**, **Camera**,
+**Microphone**, and **Input Monitoring** for `--keys`. macOS also asks now and then to let it
+"bypass the system private window picker": allow it (it can appear over the countdown).
+No Spaces API: a window is on screen (workspace 1) or not (-1). Window classes are bundle IDs
+(`com.google.Chrome`), and focus is the frontmost app's frontmost window.
+
 ## Setup
 
 Recording needs nothing beyond the system. Post-processing needs a venv, and transcription a

@@ -4,7 +4,7 @@
                 [--output DP-3] [--fps 60] [--dir DIR]
   pugrec stop
   pugrec toggle                      start, or stop if already recording (for a keybind)
-  pugrec setup [--no-model]          make a checkout ready (.venv, whisper model); idempotent
+  pugrec setup [--no-model]          make a checkout ready (.venv, whisper model; macOS: tools, helper); idempotent
   pugrec info SESSION
   pugrec faces SESSION               webcam face track -> faces.jsonl (derived)
   pugrec audio SESSION               cleaned mic -> mic-clean.flac (derived)
@@ -30,8 +30,12 @@ def cmd_record(a):
     if not recorder.claim_pidfile():
         print("pugrec: already recording (pugrec stop)", file=sys.stderr)
         return 1
+    if sys.platform == "darwin":
+        from .recorder_mac import MacSession as Session
+    else:
+        Session = recorder.Session
     try:
-        recorder.Session(a).run()
+        Session(a).run()
     finally:
         recorder.release_pidfile()
     return 0
@@ -227,20 +231,22 @@ def main(argv=None):
     sub = p.add_subparsers(dest="cmd", required=True)
 
     r = sub.add_parser("record", help="record until `pugrec stop` or Ctrl+C")
-    r.add_argument("--output", help="monitor to record (default: the focused one)")
+    r.add_argument("--output", help="monitor to record (default: the focused one; macOS: the one with the cursor)")
     r.add_argument("--fps", type=int, default=60)
-    r.add_argument("--mic", help="PulseAudio/PipeWire source (default: the default source)")
+    r.add_argument("--mic", help="PulseAudio/PipeWire source; macOS: mic name or ID (default: the default source)")
     r.add_argument("--no-mic", action="store_true")
     r.add_argument("--keys", action=argparse.BooleanOptionalAction, default=None,
-                   help="also record key presses: asks for your password (root helper). Default: clicks only, "
-                        "no prompt; `keys = true` in ~/.config/pugrec/config.toml makes --keys the default")
+                   help="also record key presses: asks for your password (root helper; macOS: needs Input "
+                        "Monitoring for the terminal, once). Default: clicks only, no prompt; `keys = true` in ~/.config/pugrec/config.toml makes --keys the default")
     r.add_argument("--no-input", action="store_true", help="no keys and no clicks at all")
-    r.add_argument("--camera", help="V4L2 device (default: first /dev/v4l/by-id/*-video-index0)")
+    r.add_argument("--camera", help="V4L2 device (default: first /dev/v4l/by-id/*-video-index0); "
+                                    "macOS: camera name or ID (default: the system default)")
     r.add_argument("--camera-size", default="1920x1080", help="MJPEG mode, e.g. 3840x2160 (default 1920x1080)")
     r.add_argument("--no-camera", action="store_true")
     r.add_argument("--countdown", type=int, default=3,
                    help="seconds of 3-2-1 after the camera/keys are ready; the edit starts after it (0 = none)")
     r.add_argument("--dir", help="parent folder for sessions (default: ~/Videos/PugRec)")
+    r.add_argument("--exclude-pid", type=int, help=argparse.SUPPRESS)  # macOS: an app kept out of the video
     r.set_defaults(fn=cmd_record)
 
     s = sub.add_parser("stop", help="stop the running recording")
@@ -254,7 +260,7 @@ def main(argv=None):
     i.add_argument("session")
     i.set_defaults(fn=cmd_info)
 
-    fc = sub.add_parser("faces", help="track the face in camera.mkv -> faces.jsonl (render does this if missing)")
+    fc = sub.add_parser("faces", help="track the face in the camera file -> faces.jsonl (render does this if missing)")
     fc.add_argument("session")
     fc.set_defaults(fn=lambda a: __import__("pugrec.faces").faces.detect(a.session) and 0)
 
@@ -313,7 +319,8 @@ def main(argv=None):
     th.add_argument("--defaults", action="store_true", help="print the default (PugPal) style as a theme file")
     th.set_defaults(fn=cmd_themes)
 
-    su = sub.add_parser("setup", help="make this checkout ready: .venv (when requirements changed) + whisper model")
+    su = sub.add_parser("setup", help="make this checkout ready: .venv (when requirements changed) + whisper model; "
+                                      "macOS: also Homebrew tools and the capture helper")
     su.add_argument("--no-model", action="store_true", help="skip the whisper model download (874 MB)")
     su.set_defaults(fn=lambda a: __import__("pugrec.setup").setup.run(a.no_model))
 

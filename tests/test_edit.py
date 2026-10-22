@@ -1050,7 +1050,7 @@ class Themes(unittest.TestCase):
         p["audio"] = [{"source": "main", "file": "/x/mic-clean.flac"}]
         _, filt = compose.audio_args(p, p["frames"], 1)
         self.assertTrue(filt.startswith("anullsrc=r=48000:cl=mono,atrim=duration=1.0000"))  # intro first
-        self.assertIn("[1:a:0]atrim=start=0.0000", filt)                                     # then the recording
+        self.assertIn("[1:a:0]aresample=async=1:first_pts=0,atrim=start=0.0000", filt)                                     # then the recording
 
 
 class StartMarker(unittest.TestCase):

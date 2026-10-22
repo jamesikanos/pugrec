@@ -14,6 +14,7 @@ import sys
 import cv2
 import numpy as np
 
+from ..audio import PAD_TO_ZERO
 from ..render import _read_exact
 
 
@@ -264,9 +265,17 @@ def font_file(family, weight):
         fc_weight = {100: 0, 200: 40, 300: 50, 400: 80, 500: 100, 600: 180, 700: 200, 800: 205, 900: 210}
         w = fc_weight.get(round(weight / 100) * 100, 80)
         try:
-            r = subprocess.run(["fc-match", "-f", "%{file}", f"{family}:weight={w}"], capture_output=True,
+            r = subprocess.run(["fc-match", "-f", "%{family}\t%{file}", f"{family}:weight={w}"], capture_output=True,
                                text=True, timeout=5)
-            _font_files[key] = r.stdout.strip() or FONT
+            got, _, path = r.stdout.strip().partition("\t")
+            # fontconfig never says "not found": it substitutes (Verdana on a Mac without Plex),
+            # and the browser preview would substitute something else. Say so once.
+            if path and family.lower() not in (f.strip().lower() for f in got.split(",")):
+                hint = " (brew install --cask font-ibm-plex-sans)" if "plex" in family.lower() and \
+                    sys.platform == "darwin" else ""
+                print(f"build: font {family!r} isn't installed; captions use {got.split(',')[0]}{hint}",
+                      file=sys.stderr)
+            _font_files[key] = path or FONT
         except (FileNotFoundError, subprocess.TimeoutExpired):
             _font_files[key] = FONT
     return _font_files[key]
@@ -496,7 +505,8 @@ def audio_args(plan, frames, first_input):
             parts.append(f"anullsrc=r=48000:cl=mono,atrim=duration={d:.4f},{same}[a{i}]")
         else:
             fade = min(0.01, d / 4)
-            parts.append(f"[{idx[src]}:a:0]atrim=start={a:.4f}:end={b:.4f},asetpts=PTS-STARTPTS,"
+            # The raw mic can start after t=0 (macOS: ~0.15 s): padded first, atrim's times are session times.
+            parts.append(f"[{idx[src]}:a:0]{PAD_TO_ZERO},atrim=start={a:.4f}:end={b:.4f},asetpts=PTS-STARTPTS,"
                          f"afade=t=in:d={fade:.3f},afade=t=out:st={max(0, d - fade):.4f}:d={fade:.3f},{same}[a{i}]")
         labels.append(f"[a{i}]")
     parts.append("".join(labels) + f"concat=n={len(labels)}:v=0:a=1[aout]")

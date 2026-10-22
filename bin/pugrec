@@ -1,9 +1,30 @@
 #!/usr/bin/env bash
 # Run pugrec from this checkout. Recording uses the system Python (GObject,
-# evdev, nothing to install); render needs numpy + OpenCV from ./.venv.
+# evdev, nothing to install; macOS: python3 on PATH + macos/pugrec-capture); render needs numpy + OpenCV from ./.venv.
 set -euo pipefail
 here="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 py=/usr/bin/python3
+# macOS: the system python3 is too old (tomllib needs 3.11), and Homebrew's newest can be ahead of
+# the pinned wheels (onnxruntime had none for 3.15): the newest of these, Homebrew's first.
+# `setup` installs one when there's none.
+if [[ "$(uname)" == Darwin ]]; then
+    PY_VERSIONS="3.14 3.13 3.12 3.11"
+    py=""
+    for v in $PY_VERSIONS; do
+        for c in /opt/homebrew/bin/python$v /usr/local/bin/python$v "$(command -v python$v || true)"; do
+            [[ -x "$c" ]] && { py="$c"; break 2; }
+        done
+    done
+    if [[ -z "$py" && "${1:-}" == setup ]] && command -v brew >/dev/null; then
+        echo "setup: installing Python 3.14 (brew install python@3.14)" >&2
+        brew install python@3.14 && py="$(brew --prefix)/bin/python3.14"
+    fi
+    if [[ -z "$py" ]]; then
+        command -v brew >/dev/null || { echo "pugrec: needs Homebrew (https://brew.sh), then 'bin/pugrec setup'" >&2; exit 1; }
+        echo "pugrec: needs Python ${PY_VERSIONS// /, }: run 'bin/pugrec setup' (or brew install python@3.14)" >&2
+        exit 1
+    fi
+fi
 if [[ "${1:-}" =~ ^(render|faces|audio|check|build|preview|proxy|draft|themes)$ ]]; then
     py="$here/.venv/bin/python"
     [[ -x "$py" ]] || { echo "pugrec: run 'pugrec setup' first (makes .venv)" >&2; exit 1; }

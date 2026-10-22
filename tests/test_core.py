@@ -358,5 +358,139 @@ class KeysOptInTest(unittest.TestCase):
         self.assertFalse(self.want(False, {"keys": True}))   # --no-keys wins over the config
 
 
+class FacesNeededTest(unittest.TestCase):
+    """The camera file comes from stream_start: camera.mkv on Linux, camera.mov on macOS."""
+    def session(self, d, cam_file):
+        with open(os.path.join(d, "session.jsonl"), "w") as f:
+            f.write('{"t": 0, "type": "stream_start", "stream": "camera", "file": "%s"}\n' % cam_file)
+        open(os.path.join(d, cam_file), "w").close()
+
+    def test_mov_and_mkv(self):
+        from pugrec import faces
+        for cam in ("camera.mkv", "camera.mov"):
+            with tempfile.TemporaryDirectory() as d:
+                self.session(d, cam)
+                self.assertTrue(faces.needed(d), cam)
+                open(os.path.join(d, "faces.jsonl"), "w").close()
+                self.assertFalse(faces.needed(d), cam)
+
+    def test_no_camera(self):
+        from pugrec import faces
+        with tempfile.TemporaryDirectory() as d:
+            self.assertFalse(faces.needed(d))
+            with open(os.path.join(d, "session.jsonl"), "w") as f:
+                f.write('{"t": 0, "type": "stream_start", "stream": "screen", "file": "screen.mov"}\n')
+            self.assertFalse(faces.needed(d))
+
+
+class MacSessionTest(unittest.TestCase):
+    """MacSession's handling of pugrec-capture's lines, without a Mac: what it writes to
+    session.jsonl for each kind of event."""
+    MON = {"name": "Built-in", "id": 1, "x": 0, "y": 0, "width": 3024, "height": 1964, "scale": 2,
+           "workspace": 1, "special": 0, "focused": True, "locked": False}
+
+    def setUp(self):
+        import argparse
+        from pugrec.recorder_mac import MacSession
+        self.tmp = tempfile.TemporaryDirectory()
+        self.s = MacSession(argparse.Namespace(dir=self.tmp.name))
+        self.s.out.close()
+        self.out = []
+        self.s.out = type("Out", (), {"write": lambda _, rec: self.out.append(rec)})()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def start(self, anchor=1000):
+        self.s.mons = {self.MON["name"]: self.MON}  # as run() seeds them from `pugrec-capture state`
+        self.s.on_capture("screen_start", anchor, {"pixels": [3024, 1964], "mic": "MacBook Pro Microphone"})
+        self.s.clock.set()
+
+    def windows(self, mono, *wins, focus=None, mons=None):
+        self.s.on_windows(mono, {"windows": list(wins), "monitors": mons or [self.MON], "focus": focus})
+
+    def types(self):
+        return [r["type"] for r in self.out]
+
+    def test_screen_start_sets_the_anchor(self):
+        self.start(1000)
+        self.assertEqual(self.s.anchor, 1000)
+        self.assertEqual(self.s.screen_pixels, [3024, 1964])
+        self.assertTrue(self.s.screen_ready.is_set())
+
+    def test_input_before_the_anchor_is_dropped(self):
+        self.s.on_capture("button", 500, {"code": "BTN_LEFT", "value": 1})  # no clock yet
+        self.start(1000)
+        self.s.on_capture("button", 900, {"code": "BTN_LEFT", "value": 1})  # before the first frame
+        self.s.on_capture("button", 1500, {"code": "BTN_LEFT", "value": 1})
+        self.assertEqual(self.out, [{"t": 500, "type": "button", "code": "BTN_LEFT", "value": 1}])
+
+    def test_first_cursor_is_not_movement(self):
+        self.start()
+        self.s.on_capture("cursor", 1100, {"x": 10, "y": 20})
+        self.assertIsNone(self.s.last_cursor_move)
+        self.s.on_capture("cursor", 1200, {"x": 11, "y": 20})
+        self.assertEqual(self.s.last_cursor_move, 1200)
+        self.assertEqual(self.types(), ["cursor", "cursor"])
+
+    def test_keys_redacted_in_password_windows(self):
+        self.start()
+        pw = dict(fake_session.LEFT, address="0x1", **{"class": "com.apple.Passwords", "title": "Passwords"})
+        self.windows(1100, pw, focus="0x1")
+        self.s.on_capture("key", 1200, {"code": "KEY_LEFTSHIFT", "value": 1})
+        self.s.on_capture("key", 1300, {"code": "KEY_A", "value": 1})
+        keys = [r for r in self.out if r["type"] == "key"]
+        self.assertEqual(keys[0]["code"], "KEY_LEFTSHIFT")  # modifiers are kept
+        self.assertTrue(keys[1]["redacted"])
+        self.assertNotIn("code", keys[1])
+        self.assertEqual(keys[1]["mods"], ["shift"])
+
+    def test_keys_recorded_elsewhere(self):
+        self.start()
+        self.windows(1100, fake_session.LEFT, focus="0xa")
+        self.s.on_capture("key", 1200, {"code": "KEY_A", "value": 1})
+        key = self.out[-1]
+        self.assertEqual((key["code"], key.get("redacted")), ("KEY_A", None))
+
+    def test_focus_and_titles_tracked(self):
+        self.start()
+        self.windows(1100, fake_session.LEFT, fake_session.RIGHT, focus="0xa")
+        self.assertEqual(self.s.focus, {"class": "kitty", "title": "left"})
+        self.windows(1200, fake_session.LEFT, dict(fake_session.RIGHT, title="right 2"), focus="0xb")
+        self.assertEqual(self.s.focus, {"class": "kitty", "title": "right 2"})
+        self.windows(1300, fake_session.LEFT, focus="0xa")
+        self.assertEqual(self.types(), ["window_open", "window_open", "window_focus",
+                                        "window_update", "window_focus", "window_close", "window_focus"])
+        self.assertEqual(self.out[3], {"t": 200, "type": "window_update", "address": "0xb", "title": "right 2"})
+        self.windows(1400, fake_session.LEFT, focus="0xa")  # nothing changed: nothing written
+        self.assertEqual(len(self.out), 7)
+
+    def test_monitor_focused_only_change_not_written(self):
+        self.start()
+        n = len(self.out)
+        self.windows(1200, mons=[dict(self.MON, focused=False)])  # the cursor moved to another screen
+        self.assertEqual(len(self.out), n)
+        self.windows(1300, mons=[dict(self.MON, focused=True, locked=True)])
+        self.assertEqual(self.out[-1], {"t": 300, "type": "monitor", "name": "Built-in", "focused": True,
+                                        "locked": True})
+        self.assertTrue(self.s.locked)
+
+    def test_notices_before_the_anchor_wait(self):
+        self.s.on_capture("camera_failed", 500, {"error": "no camera"})
+        self.assertTrue(self.s.cam_ready.is_set())
+        self.assertEqual(self.out, [])
+        self.assertIn("camera unavailable", self.s.pending[0])
+
+    def test_mic_mute_warned_once(self):
+        from unittest import mock
+        self.start()
+        with mock.patch("pugrec.recorder_mac.notify") as notify:
+            self.s.on_capture("mic_mute", 1100, {"source": "mic", "muted": True})
+            self.s.on_capture("mic_mute", 1200, {"source": "mic", "muted": False})
+            self.s.on_capture("mic_mute", 1300, {"source": "mic", "muted": True})
+        self.assertEqual(notify.call_count, 1)  # only a mic that starts muted is warned about
+        self.assertEqual([r["muted"] for r in self.out if r["type"] == "mic_mute"], [True, False, True])
+
+
 if __name__ == "__main__":
     unittest.main()
