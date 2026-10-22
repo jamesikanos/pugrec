@@ -6,10 +6,11 @@ re-resolves and the page reloads the plan in place (Server-Sent Events) - errors
 show on the page instead of a stale preview.
 
 Proxies (`pugrec proxy SESSION`, made on demand): the 5K screen at 2560 wide and
-the camera at 960 wide, AV1 on the GPU, 30 fps CFR with a keyframe every second
+the camera at 960 wide, AV1 on the GPU (macOS: H.264 on the media engine), 30 fps CFR with a keyframe every second
 so scrubbing is quick; times equal session/camera times. Served from 127.0.0.1 only.
 """
 
+import errno
 import json
 import mimetypes
 import os
@@ -22,6 +23,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import resolve, script
+from ..audio import PAD_TO_ZERO
 
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 PREVIEW_FPS = 30
@@ -36,6 +38,14 @@ def _proxy(src, dst, width):
     print(f"proxy: {os.path.basename(src)} -> {os.path.relpath(dst, os.path.dirname(os.path.dirname(dst)))}",
           file=sys.stderr)
     base = ["ffmpeg", "-v", "error", "-y"]
+    if sys.platform == "darwin":
+        # VideoToolbox: hardware HEVC decode, H.264 encode (Apple Silicon has no AV1 encoder).
+        subprocess.run(base + ["-hwaccel", "videotoolbox", "-i", src,
+                               "-vf", f"fps={PREVIEW_FPS}:start_time=0,scale='min({width},iw)':-2,format=nv12",
+                               "-an", "-c:v", "h264_videotoolbox", "-g", str(PREVIEW_FPS), "-b:v", "6M",
+                               "-movflags", "+faststart", dst + ".part.mp4"], check=True)
+        os.replace(dst + ".part.mp4", dst)
+        return
     tail = ["-an", "-c:v", "av1_vaapi", "-g", str(PREVIEW_FPS), "-b:v", "6M", "-movflags", "+faststart", dst + ".part.mp4"]
     gpu = base + VAAPI + ["-i", src, "-vf", f"fps={PREVIEW_FPS}:start_time=0,scale_vaapi=w={width}:h=-2"] + tail
     if subprocess.run(gpu).returncode != 0:  # e.g. no VAAPI: CPU decode + scale, GPU encode
@@ -62,7 +72,8 @@ def make_proxies(session):
     elif session.screen.get("audio"):
         raw = os.path.join(d, "audio.flac")
         if not os.path.exists(raw):
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", scr, "-map", "0:a:0", "-ac", "1", raw], check=True)
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", scr, "-map", "0:a:0",
+                            "-af", PAD_TO_ZERO, "-ac", "1", raw], check=True)
         out["audio"] = raw
     return out
 
@@ -100,7 +111,7 @@ class State:
             if path in self.tracking or not faces.needed(path):
                 continue
             self.tracking.add(path)
-            print(f"preview: tracking the face in {os.path.basename(path)}/camera.mkv "
+            print(f"preview: tracking the face in {os.path.basename(path)}/{os.path.basename(faces.camera_file(path))} "
                   "(the camera framing updates when it's done)", file=sys.stderr)
 
             def run(path=path):
@@ -276,7 +287,7 @@ def serve(edit_path, port=8765, open_browser=True):
             port = p
             break
         except OSError as e:
-            if e.errno != 98:  # EADDRINUSE
+            if e.errno != errno.EADDRINUSE:
                 raise
     if srv is None:
         raise SystemExit(f"preview: ports {port}-{port + 19} are all in use; pick one with --port")
@@ -284,7 +295,7 @@ def serve(edit_path, port=8765, open_browser=True):
     url = f"http://127.0.0.1:{port}/"
     print(f"preview: {url}  (edit {state.edit_path}; Ctrl+C to stop)", file=sys.stderr)
     if open_browser:
-        subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

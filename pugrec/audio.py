@@ -31,10 +31,23 @@ import urllib.request
 
 from . import jsonl
 
+# The mic track can start a little after the video's PTS 0 (macOS: ScreenCaptureKit's mic
+# starts ~0.15 s after the first frame). Extracting it to a plain file drops that offset,
+# so pad the start with silence: every extract then starts at session t=0, like the file.
+# Both platforms: on Linux the start is already 0 (nothing to pad), but async=1 also fills a
+# gap of more than 0.1 s mid-stream with silence, so a dropped stretch can't shift what follows.
+PAD_TO_ZERO = "aresample=async=1:first_pts=0"
+
 DF_VERSION = "0.5.6"
+# Per platform: the release asset and its SHA-256 (pinned on first download; GitHub lists none).
+DF_BUILDS = {
+    "linux": ("x86_64-unknown-linux-musl", "70775e251eee44c0f2451a1e833326cf8bcbbe304d3e7cd12851e6fce72ef7da"),
+    "darwin": ("aarch64-apple-darwin", "4601e7f4e4c03e59a4c5b5000216ef3add3e808799cfccd95e14e83ea4611081"),
+}
+_DF_TARGET, DF_SHA256 = DF_BUILDS["darwin" if sys.platform == "darwin" else "linux"]
 DF_URL = (f"https://github.com/Rikorose/DeepFilterNet/releases/download/v{DF_VERSION}/"
-          f"deep-filter-{DF_VERSION}-x86_64-unknown-linux-musl")
-DF_SHA256 = "70775e251eee44c0f2451a1e833326cf8bcbbe304d3e7cd12851e6fce72ef7da"
+          f"deep-filter-{DF_VERSION}-{_DF_TARGET}")
+DF_NAME = f"bin/deep-filter-{DF_VERSION}" + ("-macos" if sys.platform == "darwin" else "")
 VAD_URL = "https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx"
 VAD_SHA256 = "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3"
 
@@ -75,6 +88,7 @@ def fetch(url, sha256, name, executable=False):
     p = os.path.join(_cache(), name)
     if not os.path.exists(p):
         print(f"audio: downloading {url}", file=sys.stderr)
+        os.makedirs(os.path.dirname(p), exist_ok=True)  # bin/ only exists once something made it
         urllib.request.urlretrieve(url, p + ".part")
         os.replace(p + ".part", p)
     with open(p, "rb") as f:
@@ -229,11 +243,11 @@ def clean(session_dir, out_name="mic-clean.flac"):
     src = os.path.join(session_dir, screen["file"])
     import shutil
     # A deep-filter on PATH (e.g. shipped in the PugPal image) wins; else our pinned download.
-    df = shutil.which("deep-filter") or fetch(DF_URL, DF_SHA256, f"bin/deep-filter-{DF_VERSION}", executable=True)
+    df = shutil.which("deep-filter") or fetch(DF_URL, DF_SHA256, DF_NAME, executable=True)
     with tempfile.TemporaryDirectory(prefix="pugrec-audio-") as tmp:
         raw_wav = os.path.join(tmp, "mic.wav")
         # Channel 0 only (wf-recorder stores the mono mic as identical stereo).
-        _ff("-i", src, "-map", "0:a:0", "-af", "pan=mono|c0=c0", "-ar", str(SR), "-c:a", "pcm_f32le", raw_wav)
+        _ff("-i", src, "-map", "0:a:0", "-af", PAD_TO_ZERO + ",pan=mono|c0=c0", "-ar", str(SR), "-c:a", "pcm_f32le", raw_wav)
         print("audio: 1/4 DeepFilterNet (noise, keyboard)", file=sys.stderr)
         subprocess.run([df, "-D", "-o", os.path.join(tmp, "df"), raw_wav], check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

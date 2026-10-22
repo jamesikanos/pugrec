@@ -1,7 +1,7 @@
 """Face track for the webcam: `pugrec faces SESSION` -> SESSION/faces.jsonl.
 
-Derived data (recomputable from camera.mkv), so it's a separate file, never part
-of session.jsonl. One line per sampled camera frame with a face:
+Derived data (recomputable from camera.mkv, macOS camera.mov), so it's a separate file,
+never part of session.jsonl. One line per sampled camera frame with a face:
     {"t": <session ns>, "x": .., "y": .., "w": .., "h": .., "score": ..}
 x/y/w/h = the face box as fractions of the camera frame (0..1), top-left origin.
 Frames without a face are simply absent. The editor and the test render use it
@@ -85,10 +85,21 @@ def detect(session_dir):
     return out_path
 
 
+def camera_file(session_dir):
+    """The camera's file from its stream_start (camera.mkv, macOS camera.mov), or None."""
+    p = os.path.join(session_dir, "session.jsonl")
+    if not os.path.exists(p):
+        return None
+    cam = next((r for r in jsonl.read(p) if r["type"] == "stream_start" and r["stream"] == "camera"), None)
+    return os.path.join(session_dir, cam["file"]) if cam else None
+
+
 def needed(session_dir):
     """True when the session has a camera but no face track yet (build/preview make it then)."""
-    return (os.path.exists(os.path.join(session_dir, "camera.mkv"))
-            and not os.path.exists(os.path.join(session_dir, "faces.jsonl")))
+    if os.path.exists(os.path.join(session_dir, "faces.jsonl")):
+        return False
+    cam = camera_file(session_dir)
+    return bool(cam) and os.path.exists(cam)
 
 
 def load(session_dir):

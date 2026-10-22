@@ -494,7 +494,8 @@ focus). Per scene: `spotlight: false` / `true` / `{...}`, not sticky (the style 
 Zoomed in inside the window, nothing is blurred. Limits: anything outside the window's rectangle
 is blurred too (a menu or popup sticking out of it, the cursor when it leaves it), and anything
 *over* the window stays sharp (e.g. a notification popping up on top of it). `pugrec draft` turns
-it on for the window with the most focus time.
+it on for the window with the most focus time; on macOS, where windows overlap, for `focused`
+(the frontmost window, so nothing is stacked over it).
 
 #### Transitions
 
