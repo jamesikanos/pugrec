@@ -30,6 +30,7 @@ sources later needs nothing new in the compositors.
 import bisect
 import math
 import os
+import statistics
 
 from .. import faces as faces_mod
 from .. import jsonl
@@ -137,6 +138,16 @@ class Session:
             return a[1:]
         f = (t - a[0]) / (b[0] - a[0])
         return tuple(a[k] + (b[k] - a[k]) * f for k in (1, 2, 3))
+
+    def face_held(self, t0, t1):
+        """(cx, cy, h): the face's usual place over [t0, t1] (the median of each, so a lean or
+        a look away doesn't drag it), or the face at t0 if none was detected in the span."""
+        if not self.faces:
+            return None
+        fs = self.faces[bisect.bisect_left(self.faces_t, t0):bisect.bisect_right(self.faces_t, t1)]
+        if not fs:
+            return self.face_at(t0)
+        return tuple(statistics.median(f[k] for f in fs) for k in (1, 2, 3))
 
 
 PUNCT = ".,!?;:\"'()…"
@@ -421,8 +432,9 @@ def rr(r):
 class ShotEval:
     """Evaluates one pane's shot over consecutive frames (keeps smoothing state)."""
 
-    def __init__(self, shot, sess, scene_at, aspect, warn):
+    def __init__(self, shot, sess, span, aspect, warn):
         self.shot, self.s, self.aspect, self.warn = shot, sess, aspect, warn
+        scene_at = span[0]
         self.kind = shot["kind"]
         self.source = "camera" if self.kind == "camera" else "screen"
         self.spring = None
@@ -443,6 +455,8 @@ class ShotEval:
         if self.source == "camera" and not sess.camera:
             warn("camera shot but the session has no camera: showing the whole screen")
             self.kind, self.source = "screen", "screen"
+        # A held camera (the default) frames the face where it usually is during the scene.
+        self.held_face = sess.face_held(*span) if self.kind == "camera" and not shot.get("follow") else None
 
     def bounds(self):
         if self.source == "camera":
@@ -497,7 +511,7 @@ class ShotEval:
             return (cx - w / 2, cy - h / 2, w, h)
         if k == "camera":
             cw, ch = self.s.cam_size
-            f = self.s.face_at(t)
+            f = self.held_face or self.s.face_at(t)
             if not f:
                 return (0.0, 0.0, float(cw), float(ch))
             fcx, fcy, fh = f
@@ -513,8 +527,9 @@ class ShotEval:
     def target(self, t, dt, first):
         """Smoothed target rect at t."""
         r = self.raw_target(t)
-        # follow: false holds a window/camera where it was when the scene started (a still camera
-        # frame instead of one that bobs with every lean - push can still tighten it).
+        # follow: false holds a window where it was when the scene started; a camera holds by
+        # default, on the face's usual place (a still frame instead of one that bobs with every
+        # lean - the push gives it movement).
         if self.kind in ("screen", "rect") or (self.kind in ("window", "camera") and not self.shot.get("follow", True)):
             if self.frozen is None:
                 self.frozen = r
@@ -556,6 +571,11 @@ class OutputResolver:
             nxt = next((n for n in self.scenes[i + 1:] if n["source"] == s["source"]), None)
             if s["punch"] and s["push"]:
                 self.warn(s, "punch and push together look restless: pick one for this scene")
+            if s["push_set"] and s["push"] and not any(sh["kind"] == "camera" for sh, _ in self.panes_for(s)):
+                self.warn(s, "push: only on the camera (a pushed app or screen looks weird); ignored")
+            if any(sh["kind"] == "camera" and sh.get("follow") for sh, _ in self.panes_for(s)):
+                self.warn(s, "follow: true on a camera shot tracks every lean (looks nervous): camera shots "
+                             "hold and push by default, only the bubble follows - drop follow")
             for p in s["punch"]:
                 if nxt is not None and p["at"] >= nxt["at"]:
                     self.warn(s, f"punch at {p['at']} is after the scene ends ({nxt['at']}); ignored")
@@ -896,17 +916,15 @@ class OutputResolver:
         rects = pane_rects(layout, shot["ratio"], self.W, self.H, self.style["gap"] * min(self.W, self.H))
         return list(zip(shot["panes"], rects))
 
-    PUSH_KINDS = ("camera", "window", "screen", "rect")  # cursor/auto already move
+    PUNCH_KINDS = ("camera", "window", "screen", "rect")  # cursor/auto already move
 
     def pushed(self, scene, kind, view):
         """The view, slowly tightened while the scene holds (`push`), on the output clock - cuts
-        inside the scene don't make it jump. Shrinks about the view's centre (the face, for the
-        camera), so it stays inside the source."""
+        inside the scene don't make it jump. Shrinks about the view's centre (the face), so it
+        stays inside the source. Camera only - in a split, the camera pane only: a pushed app
+        or screen looks weird (James, 2026-10-21)."""
         pu = scene.get("push")
-        if not pu:
-            return view
-        if kind not in self.PUSH_KINDS:
-            self.warn(scene, f"push: only on camera, window, screen and rect shots (not {kind}); ignored")
+        if not pu or kind != "camera":
             return view
         to = pu["to"] if pu["to"] is not None else (0.8 if self.W >= self.H else 0.9)
         elapsed = self.clock - self.scene_t0.get(scene["index"], self.clock)
@@ -918,7 +936,7 @@ class OutputResolver:
         whose start was cut away still fires if the source is inside it."""
         if not scene.get("punch"):
             return view
-        if kind not in self.PUSH_KINDS:
+        if kind not in self.PUNCH_KINDS:
             self.warn(scene, f"punch: only on camera, window, screen and rect shots (not {kind}); ignored")
             return view
         lead = PUNCH_DIP + PUNCH_IN
@@ -958,7 +976,9 @@ class OutputResolver:
         key = scene["index"]
         if key not in self.evals:
             sess = self.sessions[scene["source"]]
-            self.evals[key] = [ShotEval(self.framed_shot(scene, shot), sess, scene["at"],
+            nxt = next((s["at"] for s in self.scenes if s["source"] == scene["source"] and s["at"] > scene["at"]),
+                       sess.duration)
+            self.evals[key] = [ShotEval(self.framed_shot(scene, shot), sess, (scene["at"], nxt),
                                         self.frame_aspect(scene, shot, dst), lambda m, s=scene: self.warn(s, m))
                                for shot, dst in self.panes_for(scene)]
         return self.evals[key]

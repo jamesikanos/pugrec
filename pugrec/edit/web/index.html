@@ -37,10 +37,11 @@
   .scene .t { color: var(--muted); font-family: var(--mono); font-size: 12px; }
   .scene.cut { opacity: .45; }
   .warn { color: var(--warn); font-size: 12px; margin: 4px 0; }
-  footer { display: grid; grid-template-columns: auto auto 1fr; gap: 12px; align-items: center; padding: 10px 16px;
+  footer { display: grid; grid-template-columns: auto auto auto 1fr; gap: 12px; align-items: center; padding: 10px 16px;
            border-top: 1px solid var(--line); }
   footer button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius);
                   width: 40px; height: 32px; font-size: 15px; cursor: pointer; }
+  footer button.on { border-color: var(--orange); }
   #time { font-family: var(--mono); font-size: 13px; color: var(--muted); min-width: 120px; }
   #bar { position: relative; height: 34px; background: var(--panel); border-radius: var(--radius); cursor: pointer;
          overflow: hidden; }
@@ -70,10 +71,11 @@
   <h2>Scenes</h2>
   <div id="scenes"></div>
   <div id="warnings"></div>
-  <p class="hint">Space play/pause · ←/→ 1 s (Shift 5 s) · [ ] previous/next scene · Save edit.yaml to update.</p>
+  <p class="hint">Space play/pause · M mute · ←/→ 1 s (Shift 5 s) · [ ] previous/next scene · Save edit.yaml to update.</p>
 </aside>
 <footer>
   <button id="play" title="Play/pause (Space)">▶</button>
+  <button id="mute" title="Mute (M)">🔊</button>
   <span id="time">0.00 / 0.00</span>
   <div id="bar"><div class="head" id="head"></div></div>
 </footer>

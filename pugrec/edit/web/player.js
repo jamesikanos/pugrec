@@ -6,7 +6,7 @@
 const $ = (id) => document.getElementById(id);
 const canvas = $("c");
 const ctx = canvas.getContext("2d");
-const state = { outputs: [], output: null, plan: null, t: 0, playing: false, last: 0, version: -1 };
+const state = { outputs: [], output: null, plan: null, t: 0, playing: false, last: 0, version: -1, muted: false };
 const media = {};   // url -> <video>/<audio>
 
 const hidden = document.createElement("div");
@@ -16,7 +16,7 @@ document.body.appendChild(hidden);
 function el(tag, url) {
   if (media[url]) return media[url];
   const m = document.createElement(tag);
-  m.preload = "auto"; m.muted = tag === "video"; m.playsInline = true;
+  m.preload = "auto"; m.muted = tag === "video" || state.muted; m.playsInline = true;
   m.src = url;
   // In the DOM, and one seek after metadata: a detached, never-seeked <video> may never decode a frame.
   m.addEventListener("loadedmetadata", () => { m.currentTime = Math.max(m.currentTime, 0.001); }, { once: true });
@@ -289,6 +289,16 @@ function setPlaying(on) {
   $("play").textContent = state.playing ? "❚❚" : "▶";
 }
 
+// Mute: the <audio> elements' own muted flag (silences them through the gain node too). The
+// videos are always muted. Remembered per browser, so a reload doesn't blare.
+function setMuted(on) {
+  state.muted = on;
+  for (const m of Object.values(media)) if (m.tagName === "AUDIO") m.muted = on;
+  $("mute").textContent = on ? "🔇" : "🔊";
+  $("mute").classList.toggle("on", on);
+  try { localStorage.setItem("pugrec.muted", on ? "1" : ""); } catch (e) { /* storage blocked */ }
+}
+
 function seek(t) { state.t = Math.min(Math.max(0, t), state.plan ? state.plan.duration : 0); }
 
 // ---- UI --------------------------------------------------------------------------
@@ -394,6 +404,8 @@ async function refresh(info) {
 
 // ---- input -----------------------------------------------------------------------
 $("play").onclick = () => setPlaying(!state.playing);
+$("mute").onclick = () => setMuted(!state.muted);
+try { setMuted(localStorage.getItem("pugrec.muted") === "1"); } catch (e) { /* storage blocked */ }
 $("bar").onclick = (e) => {
   const r = $("bar").getBoundingClientRect();
   if (state.plan) seek(((e.clientX - r.left) / r.width) * state.plan.duration);
@@ -402,6 +414,7 @@ document.addEventListener("keydown", (e) => {
   if (!state.plan) return;
   const step = e.shiftKey ? 5 : 1;
   if (e.code === "Space") { e.preventDefault(); setPlaying(!state.playing); }
+  else if (e.key === "m" || e.key === "M") setMuted(!state.muted);
   else if (e.key === "ArrowLeft") seek(state.t - step);
   else if (e.key === "ArrowRight") seek(state.t + step);
   else if (e.key === "[" || e.key === "]") {
