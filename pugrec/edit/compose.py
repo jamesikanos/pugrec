@@ -541,44 +541,94 @@ def _render_range(args):
     return rc
 
 
-def build(plan, out_path, crf=18, preset="medium", progress=True, jobs=4):
-    """Paint the plan into out_path (MP4). The plan has every frame's layers, so chunks are
-    independent: `jobs` processes each render a range, then they're joined without
-    re-encoding and the audio is muxed in once."""
+def _render_cpu(plan, tmp, n, crf, preset, jobs, progress, t0):
+    """compose.py's chunks: `jobs` forked processes each paint a range. -> (rc, [(part, frames)])."""
     import multiprocessing as mp
-    import tempfile
     import time
     global _PLAN, _COUNTER
+    fps = plan["output"]["fps"]
+    jobs = max(1, min(jobs, n // (fps * 2) or 1))  # chunks of at least ~2 s
+    bounds = [round(i * n / jobs) for i in range(jobs + 1)]
+    _PLAN = plan
+    parts = [os.path.join(tmp, f"part{i:03d}.mkv") for i in range(jobs)]
+    ctx = mp.get_context("fork")
+    counter = _COUNTER = ctx.Value("i", 0)
+    work = [(bounds[i], bounds[i + 1], parts[i], crf, preset) for i in range(jobs)]
+    with ctx.Pool(jobs) as pool:
+        res = pool.map_async(_render_range, work)
+        while not res.ready():
+            res.wait(1)
+            if progress:
+                el = time.monotonic() - t0
+                print(f"\rbuild {plan['output']['name']}: {counter.value / fps:6.1f}/{n / fps:.1f} s "
+                      f"({counter.value / el if el else 0:.0f} fps, {jobs} jobs)", end="", file=sys.stderr)
+        rcs = res.get()
+    if any(rcs):
+        print(f"\nbuild: a chunk failed (exit codes {rcs})", file=sys.stderr)
+        return 1, []
+    return 0, [(parts[i], bounds[i + 1] - bounds[i]) for i in range(jobs)]
+
+
+def _render_gpu(plan, tmp, n, crf, preset, encoder, progress, t0):
+    """pugrec-gpu (gpu.py): one process paints everything (the GPU's video chip is shared, so
+    more processes measured no faster). -> (rc, [(part, frames)])."""
+    import multiprocessing as mp
+    import threading
+    import time
+    from . import gpu
+    fps = plan["output"]["fps"]
+    part = os.path.join(tmp, "part-gpu.mkv")
+    counter = mp.Value("i", 0)
+    box = {}
+    th = threading.Thread(target=lambda: box.update(rc=gpu.render_range(plan, 0, n, part, encoder, crf, preset,
+                                                                        counter=counter, tmp=tmp)))
+    th.start()
+    while th.is_alive():
+        th.join(1)
+        if progress:
+            el = time.monotonic() - t0
+            print(f"\rbuild {plan['output']['name']}: {counter.value / fps:6.1f}/{n / fps:.1f} s "
+                  f"({counter.value / el if el else 0:.0f} fps, gpu)", end="", file=sys.stderr)
+    return box.get("rc", 1), [(part, n)]
+
+
+def build(plan, out_path, crf=18, preset="medium", progress=True, jobs=4, compositor="cpu", encoder="x264"):
+    """Paint the plan into out_path (MP4). The plan has every frame's layers, so chunks are
+    independent: they're rendered, joined without re-encoding, and the audio is muxed in once.
+
+    compositor: "cpu" (this file: `jobs` processes, x264), "gpu" (pugrec-gpu, see gpu.py) or
+    "auto" (gpu when it's built). A GPU build that fails falls back to the CPU. encoder ("gpu" =
+    h264_vaapi, or "x264") only applies to the GPU compositor; the CPU one always uses x264."""
+    import tempfile
+    import time
+    from . import gpu
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)  # before rendering, not at the mux
     fps = plan["output"]["fps"]
     frames = plan["frames"]
     n = len(frames)
-    jobs = max(1, min(jobs, n // (fps * 2) or 1))  # chunks of at least ~2 s
-    bounds = [round(i * n / jobs) for i in range(jobs + 1)]
-    _PLAN = plan
+    W, H = plan["output"]["size"]
+    use_gpu = compositor in ("gpu", "auto") and gpu.binary() is not None and W % 4 == 0 and H % 2 == 0
+    if compositor == "gpu" and not use_gpu:
+        print("build: no GPU compositor (run scripts/build-gpu.sh; output width must be a multiple of 4) "
+              "- using the CPU", file=sys.stderr)
     with tempfile.TemporaryDirectory(prefix="pugrec-build-") as tmp:
-        parts = [os.path.join(tmp, f"part{i:03d}.mkv") for i in range(jobs)]
-        ctx = mp.get_context("fork")
-        counter = _COUNTER = ctx.Value("i", 0)
-        work = [(bounds[i], bounds[i + 1], parts[i], crf, preset) for i in range(jobs)]
         t0 = time.monotonic()
-        with ctx.Pool(jobs) as pool:
-            res = pool.map_async(_render_range, work)
-            while not res.ready():
-                res.wait(1)
-                if progress:
-                    el = time.monotonic() - t0
-                    print(f"\rbuild {plan['output']['name']}: {counter.value / fps:6.1f}/{n / fps:.1f} s "
-                          f"({counter.value / el if el else 0:.0f} fps, {jobs} jobs)", end="", file=sys.stderr)
-            rcs = res.get()
-        if any(rcs):
-            print(f"\nbuild: a chunk failed (exit codes {rcs})", file=sys.stderr)
-            return 1
+        used = "gpu" if use_gpu else f"{jobs} jobs"
+        if use_gpu:
+            rc, parts = _render_gpu(plan, tmp, n, crf, preset, encoder, progress, t0)
+            if rc:
+                why = "GPU memory limit" if rc == 99 else f"exit {rc}"
+                print(f"\nbuild: the GPU compositor stopped ({why}) - building on the CPU instead", file=sys.stderr)
+                use_gpu, used = False, f"{jobs} jobs"
+        if not use_gpu:
+            rc, parts = _render_cpu(plan, tmp, n, crf, preset, jobs, progress, t0)
+            if rc:
+                return 1
         lst = os.path.join(tmp, "parts.txt")
         with open(lst, "w") as f:
             # Exact durations: Matroska doesn't store the last frame's, so concat would drop it.
-            for i, p in enumerate(parts):
-                f.write(f"file '{p}'\nduration {(bounds[i + 1] - bounds[i]) / fps:.6f}\n")
+            for p, k in parts:
+                f.write(f"file '{p}'\nduration {k / fps:.6f}\n")
         a_inputs, a_filter = audio_args(plan, frames, 1)
         cmd = ["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst, *a_inputs]
         if a_filter:
@@ -587,6 +637,6 @@ def build(plan, out_path, crf=18, preset="medium", progress=True, jobs=4):
         rc = subprocess.run(cmd).returncode
     if progress:
         el = time.monotonic() - t0
-        print(f"\rbuild {plan['output']['name']}: {n} frames in {el:.0f}s ({n / el:.0f} fps, {jobs} jobs) -> "
+        print(f"\rbuild {plan['output']['name']}: {n} frames in {el:.0f}s ({n / el:.0f} fps, {used}) -> "
               f"{out_path}" + ("" if rc == 0 else f" (exit {rc})"), file=sys.stderr)
     return rc

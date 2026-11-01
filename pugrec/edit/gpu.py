@@ -256,13 +256,13 @@ class Job:
 
 
 def encoder_cmd(W, H, fps, path, encoder="gpu", crf=18, preset="medium"):
-    """ffmpeg reading pugrec-gpu's NV12 frames: h264_vaapi (CQP; qp = crf + 2, measured to give
-    about x264's size at crf 18) or libx264 as compose.py uses it."""
+    """ffmpeg reading pugrec-gpu's NV12 frames: h264_vaapi (CQP, qp = crf + 4: on a real demo that
+    matched x264 crf 18's VMAF at ~15% more bytes, 2026-11-01) or libx264 as compose.py uses it."""
     cmd = ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "nv12", "-s", f"{W}x{H}", "-r", str(fps),
            "-i", "-"]
     if encoder == "gpu":
         cmd += ["-vaapi_device", RENDER_NODE, "-vf", "format=nv12,hwupload", "-c:v", "h264_vaapi",
-                "-rc_mode", "CQP", "-qp", str(int(crf) + 2)]
+                "-rc_mode", "CQP", "-qp", str(int(crf) + 4)]
     else:
         cmd += ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p"]
     return cmd + ["-f", "matroska", path]
