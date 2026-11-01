@@ -29,13 +29,14 @@ static const char *VS_QUAD =
     "  return texelFetch(t, p, 0).r;\n"                                                           \
     "}\n"
 
-/* NV12 (dmabuf planes) -> RGB, the stream's range and matrix (unknown = BT.601, swscale's default). */
+/* NV12 (dmabuf planes) -> RGB as compose.Decoder's bgr24: the stream's range and matrix (unknown =
+ * BT.601, swscale's default), chroma nearest (swscale's unscaled converter; measured). */
 static const char *FS_YUV = FS_COMMON
     "uniform sampler2D uY, uUV; uniform int uFull, uBt709;\n"
     "void main(){\n"
-    "  ivec2 p = pix(); vec2 sz = uTarget;\n"
+    "  ivec2 p = pix();\n"
     "  float y = texelFetch(uY, p, 0).r;\n"
-    "  vec2 uv = texture(uUV, (vec2(p) + 0.5) / sz).rg;\n"
+    "  vec2 uv = texelFetch(uUV, p / 2, 0).rg;\n"   /* swscale's same-size yuv420p -> rgb: chroma replicated */
     "  if (uFull == 1) { uv -= 128.0 / 255.0; }\n"
     "  else { y = (y - 16.0 / 255.0) * 255.0 / 219.0; uv = (uv - 128.0 / 255.0) * 255.0 / 224.0; }\n"
     "  vec3 c = uBt709 == 1 ? vec3(y + 1.5748 * uv.y, y - 0.187324 * uv.x - 0.468124 * uv.y, y + 1.8556 * uv.x)\n"

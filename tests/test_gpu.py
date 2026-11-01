@@ -82,8 +82,7 @@ def card_plan(layers_per_frame, w=W, h=H):
                        for i, ls in enumerate(layers_per_frame)]}
 
 
-@unittest.skipUnless(G.binary(), "pugrec-gpu not built (scripts/build-gpu.sh)")
-class Parity(unittest.TestCase):
+class Compare:
     def compare(self, plan, max_y=4, mean_y=1.0, max_uv=4, mean_uv=1.0, label=""):
         with tempfile.TemporaryDirectory() as tmp:
             g = gpu_frames(plan, tmp)
@@ -112,6 +111,9 @@ class Parity(unittest.TestCase):
         self.assertLessEqual(auv, mean_uv, msg)
         return msg
 
+
+@unittest.skipUnless(G.binary(), "pugrec-gpu not built (scripts/build-gpu.sh)")
+class Parity(Compare, unittest.TestCase):
     def test_fill_shapes_and_opacity(self):
         frames = []
         for shape, radius in (("rect", 0), ("round", 12.4), ("circle", 0), ("rect", 7)):
@@ -172,6 +174,58 @@ class Parity(unittest.TestCase):
                    {"type": "ring", "x": 100, "y": 90, "r": 30, "width": 4, "color": "#ffffff", "clip": [0, 0, edge, H]}]
                   for edge in (40.5, 101.5, 250)]
         print(self.compare(card_plan(frames), label="clip"))
+
+
+def make_clip(path, w, h, fps, secs):
+    """A moving test pattern (every frame differs), AV1 full range like the recorder's."""
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"testsrc2=s={w}x{h}:r={fps}:d={secs}",
+                    "-c:v", "libsvtav1", "-preset", "12", "-crf", "30", "-pix_fmt", "yuv420p", "-color_range", "pc",
+                    path], check=True)
+
+
+@unittest.skipUnless(G.binary(), "pugrec-gpu not built (scripts/build-gpu.sh)")
+class VideoParity(Compare, unittest.TestCase):
+    """Frame choice and video layers: two streams (one with an offset and its own fps), a cut,
+    a hold and a run that starts before the camera does."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.screen = os.path.join(cls.tmp.name, "screen.mkv")
+        cls.camera = os.path.join(cls.tmp.name, "camera.mkv")
+        make_clip(cls.screen, 1280, 720, 60, 6)
+        make_clip(cls.camera, 640, 360, 30, 6)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def plan(self, layers):
+        streams = {"s/screen": {"file": self.screen, "size": [1280, 720], "offset": 0.0},
+                   "s/camera": {"file": self.camera, "size": [640, 360], "offset": 0.37}}
+        frames, t = [], 0.0
+        for st0, n, hold in ((0.1, 12, False), (2.5, 20, False), (3.0, 8, True), (3.0, 10, False), (5.7, 15, False)):
+            for i in range(n):
+                f = {"t": t, "src": "s", "st": st0 if hold else st0 + i / FPS, "scene": 0, "layers": layers}
+                if hold:
+                    f["hold"] = True
+                frames.append(f)
+                t += 1 / FPS
+        return {"output": {"name": "t", "size": [W, H], "fps": FPS}, "streams": streams, "images": {}, "audio": [],
+                "frames": frames}
+
+    def test_frame_choice_cut_hold(self):
+        layers = [{"type": "video", "src": "s/screen", "rect": [0, 0, 1280, 720], "dst": [0, 0, W, H]},
+                  {"type": "video", "src": "s/camera", "rect": [120.3, 0, 360, 360], "dst": [10.4, 90.2, 80, 80],
+                   "shape": "circle", "border": [3, "#f1e4d9"]}]
+        print(self.compare(self.plan(layers), label="video"))
+
+    def test_zoom_blur_dim_round(self):
+        layers = [{"type": "video", "src": "s/screen", "rect": [-40, -20, 1360, 760], "dst": [0, 0, W, H],
+                   "blur": 40, "dim": 0.35},
+                  {"type": "video", "src": "s/screen", "rect": [301.7, 155.2, 210.5, 118.4], "dst": [40.5, 20.3, 240, 135],
+                   "shape": "round", "radius": 9.5, "opacity": 0.8}]
+        print(self.compare(self.plan(layers), label="video zoom/blur"))
 
 
 if __name__ == "__main__":
