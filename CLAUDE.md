@@ -145,6 +145,16 @@ James's rule (2026-10-13): **commit little and often.**
   downscale (the 16% gain is the downscale itself, CPU does the same), more jobs (slower),
   GPU H.264 encode (bigger files for little), headless Chrome as compositor (no HW AV1 decode,
   20-45 ms readback per frame).
+  Prototype measured 2026-11-01 (James's OK; ffmpeg chains, not yet a pugrec compositor), 30 s
+  of a real session (5K screen + 1080p camera, crop + bubble), 1080p60 out:
+  today's `pugrec build` 72 s (0.42x real time) | Vulkan decode -> libplacebo composite ->
+  h264_vulkan 11.4 s (2.6x, **6.3x faster**) | same, 1080p readback -> x264 medium 13.3 s (5.4x
+  faster) | 5K AV1 decode alone 6 s (5x real time: the floor). VRAM +390 MB (two parallel jobs
+  +835 MB, and no faster - the video chip is shared). At equal size GPU H.264 matched x264
+  (VMAF 96.2 vs 96.0) on screen content. So GPU encode is only ~15% on top: the win is keeping
+  5K frames off the Python pipe (Decoder reads full 5K bgr24). Gotchas: VAAPI scale honours
+  `crop`, but overlay_vaapi refused a second stream on Mesa; libplacebo `corner_rounding` is not
+  per input (the bubble needs a real shader). Next: a native compositor reading the plan.
 - Done 2026-10-17: callouts (`callouts:`) - info boxes in four looks (draw, bar, pill, section),
   styled by `style.callout` (a theme's), with direction of travel in and out; a section can lead
   its wipe with the theme's sparkle sweep. New layer: `stroke` (a part-drawn polyline); text
