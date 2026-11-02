@@ -109,6 +109,11 @@ def camera_holders(dev):
     return out
 
 
+# --camera-quality: av1_vaapi constant quality (lower = finer, bigger). Without the flag the encoder's
+# own default is used (~19.5 Mbit/s for a 1080p talking head). Picked 2026-11-02 on a real 1080p30
+# take (60 s re-encoded, VMAF on a 9:16 crop scaled to 1080x1920): high 40 = 10 Mbit/s, 97.3;
+# medium 60 = 5 Mbit/s, 95.2; small 80 = 2.5 Mbit/s, 92.8 (the default re-encode: 17 Mbit/s, 98.6).
+CAMERA_QUALITY = {"high": 40, "medium": 60, "small": 80}
 CAMERA_NAME = "BRIO"  # the recording camera, by name (config: camera = "<path or name regex>")
 # The camera's own zoom/pan/tilt for a recording: wide and centred - pugrec frames the face itself.
 # Whatever was set before (e.g. a meeting setup) is put back when the recording ends.
@@ -433,6 +438,15 @@ class Session:
 
     # -- run -------------------------------------------------------------
     # -- camera ----------------------------------------------------------
+    def camera_quality(self):
+        """The stream_start fields for --camera-quality (none without the flag: as before)."""
+        level = getattr(self.args, "camera_quality", None)
+        return {"quality": {"level": level, "rc_mode": "CQP", "global_quality": CAMERA_QUALITY[level]}} if level else {}
+
+    def camera_rc(self):
+        q = self.camera_quality().get("quality")
+        return ["-rc_mode", "CQP", "-global_quality", str(q["global_quality"])] if q else []
+
     def start_camera(self):
         """ffmpeg: camera MJPEG -> CPU decode -> GPU AV1 -> camera.mkv (PTS from 0).
         ffmpeg logs the first frame's kernel timestamp ("start: <s>"): CLOCK_MONOTONIC
@@ -449,7 +463,7 @@ class Session:
         self.cam_file = os.path.join(self.dir, "camera.mkv")
         cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-v", "info", "-y", "-vaapi_device", "/dev/dri/renderD128",
                "-f", "v4l2", "-input_format", "mjpeg", "-video_size", f"{w}x{h}", "-framerate", "30", "-i", dev,
-               "-vf", "format=nv12,hwupload", "-c:v", "av1_vaapi", "-f", "matroska", self.cam_file]
+               "-vf", "format=nv12,hwupload", "-c:v", "av1_vaapi", *self.camera_rc(), "-f", "matroska", self.cam_file]
         self.cam_log = open(os.path.join(self.dir, "camera.log"), "w", buffering=1)
         wall_minus_mono = time.time_ns() - time.monotonic_ns()
         self.cam = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=self.cam_log, stderr=subprocess.PIPE,
@@ -478,7 +492,7 @@ class Session:
                     self.emit({"type": "stream_start", "stream": "camera", "file": "camera.mkv",
                                "device": os.path.basename(dev), "pixels": [int(w), int(h)], "fps": 30,
                                "codec": "av1", "first_frame_t": self.t(first_mono),
-                               "controls": getattr(self, "cam_controls", {})}, first_mono)
+                               "controls": getattr(self, "cam_controls", {}), **self.camera_quality()}, first_mono)
             self.cam_ready.set()  # ffmpeg ended before a frame: don't wait for it
             rc = self.cam.wait()
             if not self.stop.is_set():

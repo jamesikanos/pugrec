@@ -339,6 +339,27 @@ class CameraControlsTest(unittest.TestCase):
         self.assertEqual(self.session({"zoom_absolute": 180}, {"camera_controls": False}), [])
 
 
+class CameraQualityTest(unittest.TestCase):
+    """--camera-quality: opt-in rate control; without it the encode and stream_start are as before."""
+
+    def session(self, **args):
+        import argparse
+        s = recorder.Session.__new__(recorder.Session)   # no files, no threads: just the encode choice
+        s.args = argparse.Namespace(**args)
+        return s
+
+    def test_default_is_unchanged(self):
+        for s in (self.session(), self.session(camera_quality=None)):
+            self.assertEqual(s.camera_rc(), [])
+            self.assertEqual(s.camera_quality(), {})
+
+    def test_levels(self):
+        s = self.session(camera_quality="medium")
+        self.assertEqual(s.camera_rc(), ["-rc_mode", "CQP", "-global_quality", "60"])
+        self.assertEqual(s.camera_quality(), {"quality": {"level": "medium", "rc_mode": "CQP", "global_quality": 60}})
+        self.assertLess(recorder.CAMERA_QUALITY["high"], recorder.CAMERA_QUALITY["small"])   # lower = finer
+
+
 class KeysOptInTest(unittest.TestCase):
     """Keys need a password, so they're opt-in: --keys, or `keys = true` in config.toml."""
     def want(self, flag, cfg):
