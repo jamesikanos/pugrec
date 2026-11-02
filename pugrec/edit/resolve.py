@@ -1808,7 +1808,118 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
     }
     if res.derived:   # only edits with a cut-out carry it (old plans stay byte-identical)
         plan["derive"] = res.derived
+    if any(k in sc["audio"] for k in ("music", "sfx", "loudness")):   # likewise: only edits with a mix
+        plan["mix"] = mix_plan(sc, sessions, frames, fps, total, warnings)
     return plan
+
+
+# ---------------------------------------------------------------- the mix --
+VOICE_LUFS = -16.0          # = audio.TARGET_LUFS: mic-clean's loudness, what music volume is relative to
+DUCK_ATTACK, DUCK_RELEASE = 0.15, 0.5   # s for the music to go down under speech / come back
+SPEECH_PRE, SPEECH_POST, SPEECH_GAP = 0.15, 0.25, 0.5   # s padded round words; shorter gaps count as speech
+_audio_info = None
+
+
+def audio_info(path):
+    """{"lufs": integrated loudness, "dur": seconds} of an audio file, measured once (cached on disk
+    by path, size and mtime: a music bed is measured once, not per resolve)."""
+    global _audio_info
+    import json
+    import re
+    import subprocess
+    cache = os.path.expanduser("~/.cache/pugrec/audio-info.json")
+    if _audio_info is None:
+        try:
+            with open(cache) as f:
+                _audio_info = json.load(f)
+        except (OSError, ValueError):
+            _audio_info = {}
+    st = os.stat(path)
+    key = f"{os.path.abspath(path)}|{st.st_size}|{int(st.st_mtime)}"
+    if key not in _audio_info:
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-af", "ebur128=framelog=quiet",
+                            "-f", "null", "-"], capture_output=True, text=True)
+        i = re.findall(r"I:\s+(-?[\d.]+|-inf) LUFS", r.stderr)
+        d = re.findall(r"time=(\d+):(\d+):([\d.]+)", r.stderr) or re.findall(r"Duration: (\d+):(\d+):([\d.]+)", r.stderr)
+        lufs = float(i[-1]) if i and i[-1] != "-inf" else -70.0
+        dur = (lambda h, m, sec: int(h) * 3600 + int(m) * 60 + float(sec))(*d[-1]) if d else 0.0
+        _audio_info[key] = {"lufs": lufs, "dur": round(dur, 3)}
+        try:
+            os.makedirs(os.path.dirname(cache), exist_ok=True)
+            with open(cache, "w") as f:
+                json.dump(_audio_info, f)
+        except OSError:
+            pass
+    return _audio_info[key]
+
+
+def speech_spans(segments):
+    """[(a, b)] source seconds where someone is speaking: transcript words, padded, short gaps merged."""
+    spans = []
+    for w in (w for sg in segments or [] for w in sg["words"]):
+        a, b = w["t"] / 1e9 - SPEECH_PRE, w["end"] / 1e9 + SPEECH_POST
+        if spans and a <= spans[-1][1] + SPEECH_GAP:
+            spans[-1][1] = max(spans[-1][1], b)
+        else:
+            spans.append([a, b])
+    return spans
+
+
+def keyframes(ts, gs):
+    """Per-frame values -> the points where the slope changes (the curve is piecewise linear)."""
+    keep = [0] + [i for i in range(1, len(gs) - 1) if abs(gs[i - 1] - 2 * gs[i] + gs[i + 1]) > 1e-6] + [len(gs) - 1]
+    return [[round(ts[i], 4), round(gs[i], 5)] for i in dict.fromkeys(keep)]
+
+
+def mix_plan(sc, sessions, frames, fps, total, warnings):
+    """The music's gain curve (linear amplitude, output seconds) and when each sound effect fires.
+    Decided here once, so the build's audio graph and the preview's Web Audio play the same mix."""
+    au, mix = sc["audio"], {}
+    dt = 1 / fps
+    if "music" in au and frames:
+        m = au["music"]
+        info = audio_info(m["file"])
+        if info["lufs"] <= -69:
+            warnings.append(f"audio.music: {os.path.basename(m['file'])} is silent")
+        base = 10 ** ((VOICE_LUFS + m["volume"] - info["lufs"]) / 20)
+        spans = {name: speech_spans(sess.transcript) for name, sess in sessions.items()}
+        if not any(spans.values()) and m["duck"] > 0:
+            warnings.append("audio.music: no transcript, so no ducking under speech (pugrec transcript)")
+        starts = {name: [a for a, _ in sp] for name, sp in spans.items()}
+        down, up = m["duck"] / DUCK_ATTACK * dt, m["duck"] / DUCK_RELEASE * dt   # dB per frame
+        duck, ts, gs = 0.0, [], []
+
+        def gain(t):
+            fade = min(1.0, t / m["fade_in"] if m["fade_in"] else 1.0,
+                       (total - t) / m["fade_out"] if m["fade_out"] else 1.0)
+            return base * 10 ** (duck / 20) * max(0.0, fade)
+        for f in frames:
+            src = f["src"]
+            speaking = False
+            if not f.get("hold") and src in spans:
+                k = bisect.bisect_right(starts[src], f["st"]) - 1
+                speaking = k >= 0 and f["st"] <= spans[src][k][1]
+            duck = max(duck - down, -m["duck"]) if speaking else min(duck + up, 0.0)
+            ts.append(f["t"])
+            gs.append(gain(f["t"]))
+        ts.append(frames[-1]["t"] + dt)   # the curve covers the last frame to its end
+        gs.append(gain(ts[-1]))
+        mix["music"] = {"file": m["file"], "start": m["start"], "loop": m["loop"], "dur": info["dur"],
+                        "gain": keyframes(ts, gs)}
+    sfx = []
+    for i, x in enumerate(au.get("sfx") or []):
+        hit = next((f for f in frames if f["src"] == x["source"] and x["at"] <= f["st"] < x["at"] + 0.25), None)
+        if hit is None:
+            if not frames or frames[0]["t"] == 0:   # a --from build just doesn't reach it
+                warnings.append(f"audio.sfx[{i}] at {x['at']:g}s never plays: that moment is cut")
+            continue
+        sfx.append({"file": x["file"], "t": hit["t"], "gain": round(10 ** (x["volume"] / 20), 5),
+                    "dur": audio_info(x["file"])["dur"]})
+    if sfx:
+        mix["sfx"] = sfx
+    if "loudness" in au:
+        mix["loudness"] = au["loudness"]
+    return mix
 
 
 def describe(shot):

@@ -72,6 +72,18 @@ function jumpAudio(m, t) {
   }, RAMP * 1000 + 2);
 }
 
+// The music's gain at output time t: linear between resolve's keyframes [[t, gain], ...].
+function gainAt(keys, t) {
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    if (t <= keys[i][0]) {
+      const [a, ga] = keys[i - 1], [b, gb] = keys[i];
+      return ga + (gb - ga) * (t - a) / (b - a || 1);
+    }
+  }
+  return keys[keys.length - 1][1];
+}
+
 // ---- syncing media to the plan's source times --------------------------------
 function sync(frame) {
   const p = state.plan;
@@ -82,11 +94,31 @@ function sync(frame) {
     if (!want.has(st.url)) want.set(st.url, Math.max(0, l.t - st.offset));
   }
   if (!frame.hold) for (const a of p.audio) if (a.source === frame.src) want.set(a.url, frame.st);  // a hold is silent
+  // The mix (audio.music / sfx) runs on the output clock, through holds and cards too. Its levels
+  // come from the plan (resolve's gain curve), as in the build - nothing is decided here.
+  const free = new Set();
+  if (p.mix) {
+    const t = state.t, mu = p.mix.music;
+    if (mu) {
+      let pos = mu.start + t;
+      if (mu.loop && mu.dur > 0) pos %= mu.dur;
+      if (mu.loop || pos < mu.dur) {
+        want.set(mu.url, pos); free.add(mu.url);
+        el("audio", mu.url).volume = Math.min(1, gainAt(mu.gain, t));   // > 1 (a very quiet track): capped
+      }
+    }
+    for (const s of p.mix.sfx || []) {
+      if (t >= s.t && t < s.t + s.dur) {
+        want.set(s.url, t - s.t); free.add(s.url);
+        el("audio", s.url).volume = Math.min(1, s.gain);
+      }
+    }
+  }
   for (const [url, m] of Object.entries(media)) {
     if (!want.has(url)) { if (!m.paused) m.pause(); continue; }
     const t = want.get(url);
     const drift = Math.abs(m.currentTime - t);
-    if (state.playing && !frame.hold) {   // a hold: the picture stands still, as when paused
+    if (state.playing && (!frame.hold || free.has(url))) {   // a hold: the picture stands still, as when paused
       if (m._jumping) continue;              // a click-free jump is under way
       if (drift > 0.25) jumpAudio(m, t);     // cut, splice or drift: jump (audio: faded)
       if (m.paused) m.play().catch(() => {});
