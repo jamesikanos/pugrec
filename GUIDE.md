@@ -710,10 +710,13 @@ audio. Drawn above the video (and the bubble), below callouts and captions.
   - `corner` - a small one, `size` 0.32, `corner` `top-right` by default.
   - `full` - fills the frame (cover; the top of a tall image) - the "B-roll" look. The video and
     the audio carry on underneath.
-  - `face` - beside the speaker's face (an emoji reacting to a word), level with the top of the
-    head, on the roomier side (the right when centred). `size` = width as a fraction of the face's
-    height on screen (0.6). It finds the face in the largest camera picture of that moment (a
-    camera shot, a split pane, the bubble); with none on screen it goes top-right and `check` warns.
+  - `face` - by the speaker's head (an emoji reacting to a word), never touching it: the head's
+    box (hair and headphones) plus a gap stays clear. Beside it on the roomier side (the right
+    when centred), level with the top of the head; else the other side; else above it - shrunk to
+    fit, down to half size (a tight 9:16 head shot: above). `size` = width as a fraction of the
+    head's height on screen (0.4). It finds the face in the largest camera picture of that moment
+    (a camera shot, a split pane, the bubble); with none on screen, or no room, it goes top-right
+    and `check` warns.
 - **`text`** instead of `image`: a flash card in the card colours (`style.card`), 1-3 lines
   (`\n`), weight 800, `text_size` 0.075 of the shorter side, shrunk if a line would be wider than
   `size`. `*word*` = that word in the accent colour. A card or a corner only.

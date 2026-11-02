@@ -188,6 +188,33 @@ def apply_fixes(words, fixes):
 CAPTION_MARGIN = 0.06   # captions.fit: the room kept free each side, as a fraction of the width
 
 
+def face_spot(face, w, aspect, W, H, m):
+    """(x, y, w, h) for something `w` wide beside a head (face centre fx, fy and face height fh,
+    output px) that never touches it: the head's box (hair and headphones included) plus a gap is
+    kept clear. The roomier side, level with the top of the head; then the other side; then above
+    it - each shrunk to fit, down to half size. None if there's no room anywhere."""
+    fx, fy, fh = face
+    # faces.jsonl's height is the head's (hair to chin); measured on a talking head with headphones:
+    # the hair starts ~0.7 h above the centre, headphones ~0.5 h each side.
+    gap = 0.06 * fh
+    left, right, top = fx - 0.55 * fh - gap, fx + 0.55 * fh + gap, fy - 0.72 * fh - gap
+    first = 1 if fx <= W / 2 else -1                 # centred: the right
+    for side in (first, -first):
+        room = (W - m - right) if side > 0 else (left - m)
+        ww = min(w, room, (H - 2 * m) * aspect)
+        if ww >= 0.5 * w:
+            hh = ww / aspect
+            x = right if side > 0 else left - ww
+            y = min(max(fy - 0.4 * fh - hh / 2, m), H - m - hh)    # level with the top of the head
+            return (x, y, ww, hh)
+    room_h = top - m                                  # above the head, centred on it
+    ww = min(w, room_h * aspect, W - 2 * m)
+    if ww >= 0.5 * w:
+        hh = ww / aspect
+        return (min(max(fx - ww / 2, m), W - m - ww), top - hh, ww, hh)
+    return None
+
+
 def bare_word(w):
     """A caption word without its punctuation, lower case: what `emphasis` matches."""
     return w.strip(".,!?;:\"'()[]\u2018\u2019\u201c\u201d-").lower()
@@ -928,13 +955,15 @@ class OutputResolver:
                     h = w / a
                     x, y = W - m - w, m
                 else:
-                    fx, fy, fh = f
-                    w = ov["size"] * fh
-                    h = w / a
-                    side = 1 if fx <= W / 2 else -1         # beside the face, on the roomier side (centred: right)
-                    x = fx + side * (0.45 * fh + 0.4 * w) - w / 2
-                    y = fy - 0.45 * fh - h / 2              # level with the top of the head
-                    x, y = min(max(x, m), W - m - w), min(max(y, m), H - m - h)
+                    spot = face_spot(f, ov["size"] * f[2], a, W, H, m)
+                    if spot is None:
+                        self.warnings.append(f"[{self.out['name']}] overlays[{i}]: place: face - no room beside "
+                                             f"or above the head at {o['at']:g}s - shown top-right")
+                        w = 0.15 * s
+                        h = w / a
+                        x, y = W - m - w, m
+                    else:
+                        x, y, w, h = spot
                 win = (cx, cy, cw, ch)
             else:
                 max_w, max_h = ov["size"] * W, (0.7 if place == "card" else 0.4) * H
