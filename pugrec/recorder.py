@@ -28,6 +28,7 @@ import time
 from . import hypr, jsonl
 
 FORMAT_VERSION = 1
+FORMAT_NO_SCREEN = 2   # a session with no screen stream (record --no-screen): readers before it can't open one
 CURSOR_HZ = 120
 WINDOWS_HZ = 10
 REDACT_RE = re.compile(r"1password|pinentry|polkit|gcr-prompter|keyring|seahorse", re.I)
@@ -486,6 +487,7 @@ class Session:
                     first_mono = int(float(m.group(1)) * 1e9)
                     if first_mono > wall_minus_mono // 2:  # converted to wall clock (epoch): undo
                         first_mono -= wall_minus_mono
+                    self.cam_first_mono = first_mono   # --no-screen: this is the session's t = 0
                     self.cam_ready.set()  # the screen recorder starts now
                     self.clock.wait()     # the camera starts before the clock exists: time it once it does
                     self.cam_first_t = self.t(first_mono)
@@ -500,6 +502,59 @@ class Session:
         th = threading.Thread(target=drain, name="camera", daemon=True)
         th.start()
         self.threads.append(th)
+
+    def start_mic(self):
+        """--no-screen: the mic in its own lossless process -> mic.mka (FLAC). Its first sample's
+        time comes from ffmpeg's `start:` (the pulse input stamps wall-clock time: converted back
+        to CLOCK_MONOTONIC); finish() pads or trims the file so its sample 0 is t = 0."""
+        self.mic_file = os.path.join(self.dir, "mic.mka")
+        cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-v", "info", "-y", "-f", "pulse", "-i", self.mic,
+               "-ac", "1", "-c:a", "flac", "-f", "matroska", self.mic_file]
+        self.mic_log = open(os.path.join(self.dir, "mic.log"), "w", buffering=1)
+        wall_minus_mono = time.time_ns() - time.monotonic_ns()
+        self.mic_proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=self.mic_log, stderr=subprocess.PIPE,
+                                         text=True, bufsize=1, start_new_session=True, preexec_fn=_die_with_parent)
+
+        def drain():
+            seen = False
+            for line in self.mic_proc.stderr:
+                self.mic_log.write(line)
+                m = None if seen else re.search(r"\bstart: ([0-9]+\.[0-9]+)", line)
+                if m:
+                    seen = True
+                    first = int(float(m.group(1)) * 1e9)
+                    if first > wall_minus_mono // 2:
+                        first -= wall_minus_mono
+                    self.clock.wait()
+                    self.mic_first_t = self.t(first)
+                    self.emit({"type": "stream_start", "stream": "mic", "file": "mic.mka", "source": self.mic,
+                               "codec": "flac", "first_sample_t": self.mic_first_t}, first)
+            rc = self.mic_proc.wait()
+            if not self.stop.is_set():
+                self.notice(f"mic recording stopped (ffmpeg exit {rc}); see mic.log")
+        th = threading.Thread(target=drain, name="mic-rec", daemon=True)
+        th.start()
+        self.threads.append(th)
+
+    def align_mic(self, end_ns):
+        """mic.mka's sample 0 at t = 0 and its end at the stop: silence before the first sample,
+        or the samples before t = 0 cut (re-encoded, FLAC: lossless)."""
+        first = getattr(self, "mic_first_t", None)
+        path = getattr(self, "mic_file", None)
+        if first is None or not path or not os.path.exists(path):
+            return
+        lead = first / 1e9
+        af = f"adelay={round(lead * 1000)}:all=1" if lead > 0 else f"atrim=start={-lead:.4f},asetpts=PTS-STARTPTS"
+        part = path + ".part.mka"
+        r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-af", af, "-t", f"{end_ns / 1e9:.3f}",
+                            "-c:a", "flac", part], capture_output=True, text=True)
+        if r.returncode == 0 and os.path.getsize(part) > 0:
+            os.replace(part, path)
+        else:
+            if os.path.exists(part):
+                os.unlink(part)
+            self.notice(f"couldn't align mic.mka to the session clock ({r.stderr.strip()[-120:]}): "
+                        f"it starts {lead:+.3f}s off")
 
     def watch_mic(self):
         """Muted = the source delivers exact digital zeros (a live mic never does).
@@ -732,7 +787,10 @@ class Session:
         # typed, so it comes up at once (the screen recorder's first frame used to take up to 10 s).
         # Keys need root (a password); clicks don't on a normal desktop (the mouse is readable
         # through the seat's ACL), so keys are opt-in and most recordings don't prompt at all.
-        if self.args.no_input:
+        no_screen = getattr(self.args, "no_screen", False)
+        if no_screen and self.args.no_camera:
+            raise SystemExit("--no-screen records the camera (and the mic): drop --no-camera")
+        if self.args.no_input or no_screen:   # camera-only: no keys or clicks to record
             self.input_ready.set()
         else:
             self.start_input(privileged=self.want_keys())
@@ -757,13 +815,15 @@ class Session:
             self.start_camera()
         if not self.wait_for(self.cam_ready, "camera", 8):
             return self.abandon()
+        if no_screen:
+            return self.run_camera_only(t0, mons)
         # 4. The screen recorder: its first frame is the session's clock. Then the rest.
         method = self.start_screen(mon)
         w, h = round(mon["width"]), round(mon["height"])
         self.emit({"type": "session_start", "format": FORMAT_VERSION,
                    "started": datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
                    "host": socket.gethostname(), "monitors": mons, "windows": list(clients.values()),
-                   "focus": active.get("address"), "sync": method})
+                   "focus": active.get("address"), "sync": method, "anchor_mono": self.anchor})
         self.emit({"type": "stream_start", "stream": "screen", "file": "screen.mkv",
                    "monitor": mon["name"], "logical": [mon["x"], mon["y"], w / mon["scale"], h / mon["scale"]],
                    "pixels": [w, h], "scale": mon["scale"], "fps": self.args.fps, "codec": "av1",
@@ -787,6 +847,36 @@ class Session:
             self.stop.wait(0.5)
         self.finish()
 
+    def run_camera_only(self, t0, mons):
+        """record --no-screen: the camera's first frame is t = 0, the mic records on its own.
+        No screen, windows, cursor or input pollers."""
+        first = getattr(self, "cam_first_mono", None)
+        if first is None:
+            self.notice("the camera didn't start (see camera.log): nothing to record without the screen")
+            return self.abandon()
+        self.anchor = first
+        self.mic = None if self.args.no_mic else (self.args.mic or config().get("mic") or default_source())
+        if self.mic:
+            self.start_mic()
+        self.emit({"type": "session_start", "format": FORMAT_NO_SCREEN,
+                   "started": datetime.datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                   "host": socket.gethostname(), "monitors": mons, "windows": [], "focus": None,
+                   "sync": "camera first frame", "anchor_mono": self.anchor})
+        for msg in self.pending:
+            self.emit({"type": "notice", "message": msg})
+        self.pending = []
+        self.clock.set()
+        if self.mic:
+            self.watch_mic()
+        print(f"pugrec: recording the camera only -> {self.dir}  (stop: pugrec stop / Ctrl+C)", file=sys.stderr)
+        self.warm_up_and_count_down(t0)
+        while not self.stop.is_set():
+            if self.cam.poll() is not None:
+                self.notice(f"the camera recorder exited on its own (exit {self.cam.returncode})")
+                break
+            self.stop.wait(0.5)
+        self.finish()
+
     def finish(self):
         self.stop.set()
         end = self.t()
@@ -794,7 +884,8 @@ class Session:
         # together (the camera used to be signalled only after the screen was finalised: it
         # recorded ~3 s past the stop, and stopping took ~4 s).
         procs = []
-        for p, name, fname in ((self.wf, "wf-recorder", "screen.mkv"), (self.cam, "camera ffmpeg", "camera.mkv")):
+        for p, name, fname in ((self.wf, "wf-recorder", "screen.mkv"), (self.cam, "camera ffmpeg", "camera.mkv"),
+                               (getattr(self, "mic_proc", None), "mic ffmpeg", "mic.mka")):
             if p and p.poll() is None:
                 p.send_signal(signal.SIGINT)  # both finalise their files on SIGINT
                 procs.append((p, name, fname))
@@ -820,6 +911,7 @@ class Session:
         self.restore_camera_controls()
         if not self.cancelled:
             self.trim_camera(end)
+            self.align_mic(end)
         try:
             self.check_video_stall()
         except Exception as e:  # noqa: BLE001 - a check must never cost the recording
@@ -831,7 +923,9 @@ class Session:
         finally:  # whatever failed above, the timeline gets its end and is flushed
             self.emit({"type": "session_end", "duration": end, "counts": dict(self.counts)})
             self.out.close()
-            self.wf_log.close()
+            for log in (getattr(self, "wf_log", None), getattr(self, "mic_log", None)):
+                if log:
+                    log.close()
         self._remove_ready_file()
         self.hide_saving()
         if self.cancelled:  # stopped/cancelled before the countdown ended: the folder only holds warm-up

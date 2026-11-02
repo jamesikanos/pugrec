@@ -37,7 +37,7 @@ from .. import faces as faces_mod
 from .. import jsonl
 from .. import transcript as transcript_mod
 from ..render import Camera as AutoCamera
-from ..timeline import Timeline
+from ..timeline import Timeline, mic_track
 from . import script as script_mod
 
 # Colours come from the style (script.DEFAULT_STYLE = the PugPal look, or a theme).
@@ -95,7 +95,8 @@ class Session:
         self.records = jsonl.read(os.path.join(path, "session.jsonl"))
         self.tl = Timeline(self.records)
         streams = {r["stream"]: r for r in self.records if r["type"] == "stream_start"}
-        self.screen = streams["screen"]
+        self.screen = streams.get("screen")      # None: a camera-only session (record --no-screen)
+        self.mic = mic_track(self.records)      # the file with the mic (screen.mkv, or mic.mka)
         self.camera = streams.get("camera")
         if self.camera and not os.path.exists(os.path.join(path, self.camera["file"])):
             self.camera = None
@@ -631,6 +632,11 @@ class OutputResolver:
         self.images = {}     # image layers' files: id -> {file, size} (the plan's "images")
         cap = self.style["captions"]
         for i, s in enumerate(self.scenes):
+            if sessions[s["source"]].screen is None:   # camera-only: there is no screen to show
+                bad = [sh["kind"] for sh, _ in self.panes_for(s) if sh["kind"] not in ("camera", "image")]
+                if bad:
+                    raise script_mod.ScriptError(f"scenes[{s['index']}]: a {bad[0]} shot needs the screen, and "
+                                                 f"source {s['source']!r} is camera-only (record --no-screen)")
             nxt = next((n for n in self.scenes[i + 1:] if n["source"] == s["source"]), None)
             if s["punch"] and s["push"]:
                 self.warn(s, "punch and push together look restless: pick one for this scene")
@@ -1779,8 +1785,9 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
 
     streams = {}
     for name, sess in sessions.items():
-        streams[f"{name}/screen"] = {"file": os.path.join(sess.path, sess.screen["file"]),
-                                     "size": [sess.tl.W, sess.tl.H], "offset": 0.0}
+        if sess.screen:
+            streams[f"{name}/screen"] = {"file": os.path.join(sess.path, sess.screen["file"]),
+                                         "size": [sess.tl.W, sess.tl.H], "offset": 0.0}
         if sess.camera:
             streams[f"{name}/camera"] = {"file": os.path.join(sess.path, sess.camera["file"]),
                                          "size": list(sess.cam_size), "offset": sess.camera["first_frame_t"] / 1e9}
@@ -1791,8 +1798,8 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
             clean = os.path.join(sess.path, "mic-clean.flac")
             if sc["audio"]["source"] == "mic-clean" and os.path.exists(clean):
                 audio.append({"source": name, "file": clean})
-            elif sess.screen.get("audio"):
-                audio.append({"source": name, "file": os.path.join(sess.path, sess.screen["file"])})
+            elif sess.mic:
+                audio.append({"source": name, "file": os.path.join(sess.path, sess.mic)})
     plan = {
         "version": 1,
         "output": {"name": out["name"], "size": list(out["size"]), "fps": fps},

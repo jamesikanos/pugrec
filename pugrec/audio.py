@@ -223,16 +223,17 @@ def dip_curve(n, runs, sr=SR, floor_db=BREATH_IN_SPEECH_DB, fade=BREATH_FADE):
 def clean(session_dir, out_name="mic-clean.flac"):
     import numpy as np
     recs = jsonl.read(os.path.join(session_dir, "session.jsonl"))
-    screen = next(r for r in recs if r["type"] == "stream_start" and r["stream"] == "screen")
-    if not screen.get("audio"):
+    from .timeline import mic_track
+    mic = mic_track(recs)
+    if not mic:
         raise SystemExit("audio: this session has no mic track")
-    src = os.path.join(session_dir, screen["file"])
+    src = os.path.join(session_dir, mic)
     import shutil
     # A deep-filter on PATH (e.g. shipped in the PugPal image) wins; else our pinned download.
     df = shutil.which("deep-filter") or fetch(DF_URL, DF_SHA256, f"bin/deep-filter-{DF_VERSION}", executable=True)
     with tempfile.TemporaryDirectory(prefix="pugrec-audio-") as tmp:
         raw_wav = os.path.join(tmp, "mic.wav")
-        # Channel 0 only (wf-recorder stores the mono mic as identical stereo).
+        # Channel 0 only (wf-recorder stores the mono mic as identical stereo; mic.mka is mono).
         _ff("-i", src, "-map", "0:a:0", "-af", "pan=mono|c0=c0", "-ar", str(SR), "-c:a", "pcm_f32le", raw_wav)
         print("audio: 1/4 DeepFilterNet (noise, keyboard)", file=sys.stderr)
         subprocess.run([df, "-D", "-o", os.path.join(tmp, "df"), raw_wav], check=True,

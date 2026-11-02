@@ -1,6 +1,6 @@
 """pugrec - record the screen plus what happened on it; render with automatic zoom.
 
-  pugrec record [--keys] [--no-mic] [--mic SOURCE] [--no-input] [--no-camera] [--camera DEV] [--camera-size WxH]
+  pugrec record [--keys] [--no-mic] [--mic SOURCE] [--no-input] [--no-camera] [--no-screen] [--camera DEV] [--camera-size WxH]
                 [--output DP-3] [--fps 60] [--dir DIR]
   pugrec stop
   pugrec toggle                      start, or stop if already recording (for a keybind)
@@ -122,7 +122,11 @@ def cmd_check(a):
         return 1
     sessions = resolve.load_sessions(sc)
     for out in sc["outputs"]:
-        p = resolve.resolve(sc, out["name"], sessions=sessions, fps=10)
+        try:
+            p = resolve.resolve(sc, out["name"], sessions=sessions, fps=10)
+        except script.ScriptError as e:   # what only the sessions can tell (a camera-only source)
+            print(f"error: {e}", file=sys.stderr)
+            return 1
         print(f"{out['name']} {out['size'][0]}x{out['size'][1]}: {p['duration']:.1f}s, "
               f"{len(p['segments'])} segment(s)")
         for s in p["scenes"]:
@@ -163,7 +167,11 @@ def cmd_build(a):
         if name not in [o["name"] for o in sc["outputs"]]:
             print(f"error: no output {name!r} in the script", file=sys.stderr)
             return 1
-        p = resolve.resolve(sc, name, sessions=sessions, fps=a.fps, t_from=a.start, t_to=a.end)
+        try:
+            p = resolve.resolve(sc, name, sessions=sessions, fps=a.fps, t_from=a.start, t_to=a.end)
+        except script.ScriptError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
         for w in p["warnings"]:
             print(f"warning: {w}", file=sys.stderr)
         if p.get("derive"):   # cut-out scenes: the matted, restyled camera (made once, cached)
@@ -266,6 +274,9 @@ def main(argv=None):
                    help="smaller camera.mkv: high ~1/2 the size, medium ~1/4, small ~1/8 "
                         "(default: the encoder's own setting, ~19.5 Mbit/s at 1080p)")
     r.add_argument("--no-camera", action="store_true")
+    r.add_argument("--no-screen", action="store_true",
+                   help="camera + mic only (a talking head): the camera's first frame is the clock, "
+                        "the mic goes to mic.mka")
     r.add_argument("--countdown", type=int, default=3,
                    help="seconds of 3-2-1 after the camera/keys are ready; the edit starts after it (0 = none)")
     r.add_argument("--dir", help="parent folder for sessions (default: ~/Videos/PugRec)")
