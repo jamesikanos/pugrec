@@ -626,9 +626,12 @@ def captions(v, path, base):
         elif k == "max_words":
             out[k] = int(_num(val, f"{path}.max_words", 1, 20))
         elif k == "position":
-            if val not in ("auto", "bottom", "top", "middle"):
-                _err(f"{path}.position", "auto, bottom, top or middle")
-            out[k] = val
+            if isinstance(val, (int, float)) and not isinstance(val, bool):   # the line's centre, 0 = top, 1 = bottom
+                out[k] = _num(val, f"{path}.position", 0, 1)
+            elif val not in ("auto", "bottom", "top", "middle"):
+                _err(f"{path}.position", "auto, bottom, top, middle or a number 0..1 (the line's height, 0 = top)")
+            else:
+                out[k] = val
         elif k == "fix":
             if not isinstance(val, dict) or not all(isinstance(a, str) and isinstance(b, str) for a, b in val.items()):
                 _err(f"{path}.fix", "a mapping of words to corrections, e.g. {Akme: Acme, Field Pal: FieldPal}")

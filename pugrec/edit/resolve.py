@@ -187,6 +187,8 @@ def apply_fixes(words, fixes):
     return out
 
 
+POP_MAX = 1.071         # pop_scale's largest scale (its overshoot, back 2.4)
+CAPTION_EDGE = 0.02     # captions.position as a number: the gap kept to the top / bottom edge (of the height)
 CAPTION_MARGIN = 0.06   # captions.fit: the room kept free each side, as a fraction of the width
 
 
@@ -676,7 +678,12 @@ class OutputResolver:
         pos = cap["position"]
         if pos == "auto":
             pos = "bottom" if self.W >= self.H else "lower"
-        y = {"bottom": self.H - 0.09 * self.H, "lower": 0.72 * self.H, "middle": self.H / 2, "top": 0.1 * self.H}[pos]
+        if isinstance(pos, float):   # a height: clamped so the line (popped, stroked) stays inside the frame
+            stroke = cap["outline"]["width"] * self.unit if cap.get("look") == "outline" else 0
+            half = 0.75 * size * POP_MAX + stroke + CAPTION_EDGE * self.H
+            y = min(max(pos * self.H, half), self.H - half)
+        else:
+            y = {"bottom": self.H - 0.09 * self.H, "lower": 0.72 * self.H, "middle": self.H / 2, "top": 0.1 * self.H}[pos]
         out_words = []
         emph = {e.lower() for e in cap.get("emphasis") or []}
         for k, (wt, we, w) in enumerate(words):

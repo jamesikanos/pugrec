@@ -852,6 +852,25 @@ class Captions(unittest.TestCase):
         texts = [l for l in frame_at(p, 2.0)["layers"] if l["type"] == "text"]
         self.assertIn("Acme.", [w["w"] for w in texts[0]["words"]])   # "demo." -> "Acme."
 
+    def test_position_as_a_height(self):
+        def y(pos, output=None, **cap):
+            p = plan({"outputs": [{"name": "main", "size": "1920x1080"}, {"name": "vertical", "size": "1080x1920"}],
+                      "style": {"captions": dict({"position": pos}, **cap)}, "scenes": [{"at": 0, "shot": "screen"}]},
+                     self.d, output)
+            return [l for l in frame_at(p, 1.6)["layers"] if l["type"] == "text"][0]["y"]
+        self.assertEqual(y(0.8, "vertical"), 1536.0)
+        self.assertEqual(y(0.5), y("middle"))
+        top, bottom = y(0, "vertical"), y(1, "vertical")      # clamped: the line stays inside the frame
+        size = 0.045 * 1080
+        self.assertGreaterEqual(top, 0.75 * size * R.POP_MAX)
+        self.assertLessEqual(bottom, 1920 - 0.75 * size * R.POP_MAX)
+        self.assertGreater(y(1, "vertical", look="outline"), 0)   # the stroke counts too
+        self.assertLess(y(1, "vertical", look="outline"), bottom)
+        for bad, needle in ((1.2, "out of range"), (-0.1, "out of range"), ("lower2", "a number 0..1"), (True, "a number")):
+            with self.subTest(bad=bad), self.assertRaises(S.ScriptError) as cm:
+                S.parse({"style": {"captions": {"position": bad}}, "scenes": [{"at": 0, "shot": "screen"}]}, self.d)
+            self.assertIn(needle, str(cm.exception))
+
     def test_captions_off(self):
         p = plan({"style": {"captions": False}, "scenes": [{"at": 0, "shot": "screen"}]}, self.d)
         self.assertFalse([l for f in p["frames"] for l in f["layers"] if l["type"] == "text"])
