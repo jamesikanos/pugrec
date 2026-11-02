@@ -141,6 +141,10 @@ def cmd_check(a):
             return 1
         print(f"{out['name']} {out['size'][0]}x{out['size'][1]}: {p['duration']:.1f}s, "
               f"{len(p['segments'])} segment(s)")
+        voice = (p.get("mix") or {}).get("voice")
+        if voice:   # audio.breaths
+            n, secs = len(voice["breaths"]), sum(b - a for _, a, b in voice["breaths"])
+            print(f"  breaths: {n} between words lowered ({secs:.1f}s)")
         for s in p["scenes"]:
             when = "not shown (cut)" if s["out"] is None else f"{s['out']:6.2f}s"
             print(f"  [{s['index']}] source {s['at']:6.2f}s -> {when}  {s['label']}")
