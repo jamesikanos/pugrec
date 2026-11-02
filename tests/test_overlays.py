@@ -130,6 +130,26 @@ class Overlays(unittest.TestCase):
         self.assertEqual(self.images(p, 4.3), [])                                # 1.2 s by default
         self.assertFalse([w for w in p["warnings"] if "no face" in w])
 
+    def test_face_spot_never_touches_the_head(self):
+        from pugrec.edit.resolve import face_spot
+        def clear(box, face):
+            x, y, w, h = box
+            fx, fy, fh = face
+            return x + w <= fx - 0.55 * fh or x >= fx + 0.55 * fh or y + h <= fy - 0.72 * fh
+        tight = (543, 1320, 651)          # a 9:16 talking head (c01): no room either side -> above
+        box = face_spot(tight, 0.4 * 651, 1.0, 1080, 1920, 48)
+        self.assertTrue(clear(box, tight))
+        self.assertAlmostEqual(box[0] + box[2] / 2, 543, delta=1)
+        self.assertAlmostEqual(box[2], 0.4 * 651, delta=0.1)
+        wide = (960, 560, 400)            # 16:9: beside it, on the right
+        box = face_spot(wide, 160, 1.0, 1920, 1080, 48)
+        self.assertTrue(clear(box, wide))
+        self.assertGreater(box[0], 960)
+        squeezed = (300, 700, 700)        # little room anywhere: shrunk (>= half), or None
+        box = face_spot(squeezed, 280, 1.0, 1080, 1920, 48)
+        self.assertTrue(box is None or (clear(box, squeezed) and box[2] >= 140))
+        self.assertIsNone(face_spot((540, 300, 900), 360, 1.0, 1080, 1080, 48))
+
     def test_face_without_a_face_falls_back_with_a_warning(self):
         p = self.p([{"at": 3, "image": "emoji.png", "place": "face"}], "main")
         self.assertTrue(self.images(p, 3.5))

@@ -950,7 +950,7 @@ OVERLAY_DEFAULTS = {
                "in": {"kind": "slide", "s": 0.45, "dir": "auto"}, "out": {"kind": "fade", "s": 0.3, "dir": "auto"}},
     "full": {"duration": 4.0, "size": 1.0, "radius": 0.0, "shadow": 0.0,
              "in": {"kind": "fade", "s": 0.3, "dir": "auto"}, "out": {"kind": "fade", "s": 0.3, "dir": "auto"}},
-    "face": {"duration": 1.2, "size": 0.6, "radius": 0.0, "shadow": 0.0,
+    "face": {"duration": 1.2, "size": 0.4, "radius": 0.0, "shadow": 0.0,
              "in": {"kind": "pop", "s": 0.3, "dir": "auto"}, "out": {"kind": "fade", "s": 0.25, "dir": "auto"}},
 }
 OVERLAY_LOOK_KEYS = ["place", "corner", "size", "text_size", "crop", "in", "out", "radius", "shadow", "scroll",
