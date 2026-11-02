@@ -240,6 +240,9 @@ def main(argv=None):
     r.add_argument("--no-input", action="store_true", help="no keys and no clicks at all")
     r.add_argument("--camera", help="V4L2 device (default: first /dev/v4l/by-id/*-video-index0)")
     r.add_argument("--camera-size", default="1920x1080", help="MJPEG mode, e.g. 3840x2160 (default 1920x1080)")
+    r.add_argument("--camera-quality", choices=["high", "medium", "small"],
+                   help="smaller camera.mkv: high ~1/2 the size, medium ~1/4, small ~1/8 "
+                        "(default: the encoder's own setting, ~19.5 Mbit/s at 1080p)")
     r.add_argument("--no-camera", action="store_true")
     r.add_argument("--countdown", type=int, default=3,
                    help="seconds of 3-2-1 after the camera/keys are ready; the edit starts after it (0 = none)")
