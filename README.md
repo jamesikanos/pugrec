@@ -29,7 +29,8 @@ bin/pugrec whatsapp $S/build-vertical.mp4   # a copy WhatsApp plays inline (H.26
 Other commands: `record --no-input` (no keys, no clicks), `record --camera-quality high|medium|small`
 (a smaller camera.mkv: about 1/2, 1/4, 1/8 of the default's ~19.5 Mbit/s), `toggle` (for a keybind),
 `info SESSION`, `check SESSION` (validate an edit, list scenes), `faces SESSION`,
-`proxy SESSION`, `transcript --cuts` (print suggested cuts). `render` is an old auto-zoom test harness.
+`proxy SESSION`, `matte EDIT` (the camera cut-out an edit's `cutout:` scenes need; build/preview make it when missing),
+`transcript --cuts` (print suggested cuts). `render` is an old auto-zoom test harness.
 
 ## Setup
 

@@ -232,6 +232,8 @@ def shot(v, path):
             if "inset" in opts:
                 inset(opts["inset"], f"{pp}.inset", DEFAULT_STYLE["inset"])  # validate now
                 sh["inset_raw"] = opts["inset"]
+            if opts.get("cutout") is not None:
+                sh["cutout"] = cutout(opts["cutout"], f"{pp}.cutout", sh)
             inner.append(sh)
         if any(s["kind"] == "split" for s in inner):
             _err(p, "a split can't contain another split")
@@ -290,7 +292,26 @@ def bubble(v, path, base):
 
 
 SCENE_KEYS = ["at", "source", "shot", "fit", "background", "inset", "push", "punch", "transition", "bubble",
-              "spotlight", "label"]
+              "spotlight", "label", "cutout"]
+CUTOUT_STYLES = ("frost", "blur")   # pugrec/cutout.py; the defaults are cutout.DEFAULTS
+CUTOUT_DEFAULTS = {"strength": 0.2, "feather": 6}
+
+
+def cutout(v, path, sh):
+    """The speaker cut out of the camera, the background restyled: frost | {style, strength, feather}."""
+    if v is None or v is False:
+        return None
+    if isinstance(v, str):
+        v = {"style": v}
+    _keys(v, path, ["style", "strength", "feather"], ["style"])
+    if v["style"] not in CUTOUT_STYLES:
+        _err(f"{path}.style", f"expected one of {', '.join(CUTOUT_STYLES)}, got {v['style']!r}")
+    kinds = [p["kind"] for p in sh.get("panes", [])] or [sh["kind"]]
+    if "camera" not in kinds:
+        _err(path, "a cut-out needs the camera in the shot (shot: camera, or a split with a camera pane)")
+    return {"style": v["style"],
+            "strength": _num(v.get("strength", CUTOUT_DEFAULTS["strength"]), f"{path}.strength", 0, 1),
+            "feather": _num(v.get("feather", CUTOUT_DEFAULTS["feather"]), f"{path}.feather", 0, 30)}
 
 
 def spotlight(v, path, base):
@@ -323,6 +344,7 @@ def _scene(v, path, out_names, style, sources):
         _err(f"{path}.fit", f"expected one of {', '.join(FITS)}, got {fit!r}")
     sc["fit"] = fit
     sc["background"] = _background(v["background"], f"{path}.background") if "background" in v else None
+    sc["cutout"] = cutout(v["cutout"], f"{path}.cutout", sc["shot"]) if "cutout" in v else None
     sc["push_raw"] = v.get("push", "style")
     if sc["push_raw"] != "style":
         push(sc["push_raw"], f"{path}.push")  # validate now
@@ -360,6 +382,8 @@ def scene_for_output(sc, output, style, path, bubble_base=None):
             s["fit"] = ov["fit"]
         if "background" in ov:
             s["background"] = _background(ov["background"], f"{path}.{output}.background")
+        if "cutout" in ov or ("shot" in ov and s.get("cutout")):
+            s["cutout"] = cutout(ov.get("cutout", s.get("cutout")), f"{path}.{output}.cutout", s["shot"])
         if "transition" in ov:
             s["transition"] = transition(ov["transition"], f"{path}.{output}.transition")
         if "label" in ov:
@@ -785,7 +809,7 @@ def _background(v, path):
     _err(path, f"{BACKGROUNDS}, got {v!r}")
 
 
-PANE_KEYS = ("fit", "inset", "background")  # allowed on a split pane, next to its shot
+PANE_KEYS = ("fit", "inset", "background", "cutout")  # allowed on a split pane, next to its shot
 
 
 def _image_file(v, path, base_dir):

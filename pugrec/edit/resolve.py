@@ -28,6 +28,7 @@ sources later needs nothing new in the compositors.
 """
 
 import bisect
+import hashlib
 import math
 import os
 import statistics
@@ -597,6 +598,8 @@ class OutputResolver:
         self.lines = {name: caption_lines(sess.transcript or [], cap["max_words"], fixes=cap.get("fix"), **gap)
                       for name, sess in sessions.items()}
         self.caption_t0 = {}   # (source, line) -> output clock when it first showed (pop runs on that)
+        self.derived, self.derived_streams = {}, {}   # cut-out streams the scenes ask for (plan["derive"])
+        self.cutout_span = cutout_spans(self.scenes, segments(sc, sessions))
         self.lines_t = {name: [l[0] for l in ls] for name, ls in self.lines.items()}
 
     def caption_layers(self, source, t):
@@ -980,6 +983,22 @@ class OutputResolver:
                 s *= 1 - p["zoom"] * punch_amount(self.clock - self.punch_t0[key], p["hold"], p["dip"] / p["zoom"])
         return grow_rect(view, s, *bounds) if s != 1.0 else view
 
+    def cutout_stream(self, source, cut):
+        """The id of the camera with its background restyled (a derived file, made before a build)."""
+        sess = self.sessions[source]
+        t0, t1 = self.cutout_span[source]
+        cam = os.path.join(sess.path, sess.camera["file"])
+        matte = os.path.join(sess.path, "cutout", f"matte-{cutout_key('matte', t0, t1)}.mkv")
+        k = cutout_key(cut["style"], cut["strength"], cut["feather"], t0, t1)
+        sid = f"{source}/camera-{cut['style']}-{k}"
+        if sid not in self.derived:
+            self.derived[sid] = {"camera": cam, "offset": sess.camera["first_frame_t"] / 1e9, "size": list(sess.cam_size),
+                                 "from": t0, "to": t1, "matte": matte, "style": cut["style"],
+                                 "strength": cut["strength"], "feather": cut["feather"],
+                                 "file": os.path.join(sess.path, "cutout", f"{cut['style']}-{k}.mkv")}
+            self.derived_streams[sid] = {"file": self.derived[sid]["file"], "size": list(sess.cam_size), "offset": t0}
+        return sid
+
     def pane_opts(self, scene, shot):
         """(fit, background, inset) for one pane: the pane's own (in a split) or the scene's."""
         return (shot.get("fit") or scene["fit"], shot.get("background") or scene["background"],
@@ -1058,6 +1077,9 @@ class OutputResolver:
             if fit == "inset":
                 mode = "inset"
             stream = f"{src}/{ev.source}"
+            cut = (shot.get("cutout") or scene.get("cutout")) if ev.kind == "camera" else None
+            if cut:
+                stream = self.cutout_stream(src, cut)
             shape = "round" if split else "rect"
             if mode == "inset":
                 # A rounded card with room around it, on the backdrop (or blur / a colour).
@@ -1370,6 +1392,34 @@ def segments(sc, sessions):
     return out
 
 
+CUTOUT_ALGO = 1     # = pugrec.cutout.ALGO (kept here so resolving never imports OpenCV's matting code)
+CUTOUT_MODEL = "rvm_mobilenetv3_fp32"
+
+
+def cutout_key(*parts):
+    return hashlib.sha256(repr((CUTOUT_ALGO, CUTOUT_MODEL) + parts).encode()).hexdigest()[:10]
+
+
+def cutout_spans(scenes, segs, margin=0.5):
+    """{source: (t0, t1)}: the source time the cut-out scenes show (in any segment), plus a margin -
+    the span a derived camera stream covers. Edits of the timeline inside it reuse the same files."""
+    spans = {}
+    for i, s in enumerate(scenes):
+        if not (s.get("cutout") or any(p.get("cutout") for p in s["shot"].get("panes", []))):
+            continue
+        end = next((n["at"] for n in scenes[i + 1:] if n["source"] == s["source"]), float("inf"))
+        for src, a, b, _ in segs:
+            if src.split(":")[-1] != s["source"] or src.startswith("card:"):
+                continue
+            if src.startswith("hold:"):
+                b = a + 1e-3          # a hold shows one moment (its b is the pause's length, not source time)
+            lo, hi = max(a, s["at"]), min(b, end)
+            if lo < hi:
+                t0, t1 = spans.get(s["source"], (lo, hi))
+                spans[s["source"]] = (min(t0, lo), max(t1, hi))
+    return {k: (round(max(0.0, a - margin), 2), round(b + margin, 2)) for k, (a, b) in spans.items()}
+
+
 def stream_end_warnings(segs, sessions, sc, slack=0.5):
     """Warn when the edit uses source time after a stream's video really ends (a stalled
     encoder leaves sound with no picture; the container duration doesn't show it)."""
@@ -1446,6 +1496,7 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
         if sess.camera:
             streams[f"{name}/camera"] = {"file": os.path.join(sess.path, sess.camera["file"]),
                                          "size": list(sess.cam_size), "offset": sess.camera["first_frame_t"] / 1e9}
+    streams.update(res.derived_streams)
     audio = []
     if sc["audio"]["source"] != "none":
         for name, sess in sessions.items():
@@ -1454,7 +1505,7 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
                 audio.append({"source": name, "file": clean})
             elif sess.screen.get("audio"):
                 audio.append({"source": name, "file": os.path.join(sess.path, sess.screen["file"])})
-    return {
+    plan = {
         "version": 1,
         "output": {"name": out["name"], "size": list(out["size"]), "fps": fps},
         "duration": round(total, 4),
@@ -1467,6 +1518,9 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
         "warnings": warnings,
         "frames": frames,
     }
+    if res.derived:   # only edits with a cut-out carry it (old plans stay byte-identical)
+        plan["derive"] = res.derived
+    return plan
 
 
 def describe(shot):
