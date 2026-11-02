@@ -13,7 +13,7 @@ A session is a folder, by default `~/Videos/PugRec/<YYYY-MM-DD_HH-MM-SS>/`:
 | `transcript.jsonl` | **derived** (`pugrec transcript`): a `meta` line (model, backend, speed, `vocabulary` it was given), then `segment` lines `{t, end, text, words: [{t, end, w, p}]}`, ns on the session clock |
 | `edit.yaml` | the scene script ([EDIT.md](EDIT.md)) - by hand, by Claude or by `pugrec draft` (`edit.draft.yaml` if one exists) |
 | `proxy/` | **derived** (`pugrec proxy` / `preview`): browser copies of screen and camera, 30 fps CFR, times = source times |
-| `cutout/` | **derived** (`pugrec matte EDIT` / build / preview, recomputable): `matte-<hash>.mkv` (the speaker's alpha as H.264 luma) and `<style>-<hash>.mkv` (the camera with its background restyled), 30 fps CFR over the span an edit's `cutout` scenes use; time 0 = that span's start on the session clock |
+| `cutout/` | **derived** (`pugrec matte EDIT` / build / preview, recomputable): `matte-<hash>.mkv` (the speaker's alpha as H.264 luma) and `<style>-<hash>.mkv` (the camera with its background restyled; `none-<hash>.mkv`: the camera as it is, on the matte's frames, for `behind:`), 30 fps CFR over the span an edit's `cutout` scenes use; time 0 = that span's start on the session clock |
 | `build-<output>.mp4` | `pugrec build` results |
 | `mic-clean.flac` | **derived** (`pugrec audio`): the mic cleaned up (noise, keyboard, breaths, tone, -16 LUFS). Mono 48 kHz 24-bit, **same start and length as the mic track in `screen.mkv`**, so it replaces it 1:1 |
 
