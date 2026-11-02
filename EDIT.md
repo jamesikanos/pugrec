@@ -262,6 +262,9 @@ style:
            border: {color: "#f1e4d9", width: 3}}                                       # width px at 1080p; false = none
   click_rings: true          # a ring on each click, in the accent colour
   captions: {show: true, size: 0.045, position: auto, max_words: 6, highlight: true,   # auto = bottom / lower third on 9:16
+                                       # top / middle / bottom, or a number: the line's centre as a
+                                       # share of the height (0.8 = chest height on a 9:16 talking head;
+                                       # clamped so the line stays inside the frame)
              font: IBM Plex Sans, weight: 600, color: "#f1e4d9",                       # any installed font family
              background: "#16171a", background_opacity: 0.78,                           # the box behind the words
              fix: {},                # {Misheard: Right}; keys may be several words ("Field Pal": FieldPal),
