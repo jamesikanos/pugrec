@@ -87,6 +87,7 @@ Each scene lasts until the next scene's `at`.
 | `bubble` | camera bubble: `{corner, size, margin, shape, show}`, `false` to hide, `true` to show. **Sticky**: applies until a later scene changes it |
 | `spotlight` | `false` / `true` / `{window, blur, dim}` for this scene only (default: the style's) |
 | `cutout` | the speaker cut out of the camera, the background restyled: `frost`, `blur`, or `{style, strength, feather}` (default: none) - below |
+| `captions` | `{position}` while this scene is on screen, over `style.captions.position` (e.g. 0.8 on a tight shot, 0.87 on a wide one). A caption line keeps the place it first showed at: one that runs on past a cut doesn't jump; the next line takes the new scene's |
 | `label` | name in the preview/check (default: described from the shot) |
 | `<output name>` | overrides for one output, e.g. `vertical: {shot: ..., fit: ...}` |
 

@@ -311,9 +311,24 @@ def bubble(v, path, base):
 
 
 SCENE_KEYS = ["at", "source", "shot", "fit", "background", "inset", "push", "punch", "transition", "bubble",
-              "spotlight", "label", "cutout"]
+              "spotlight", "label", "cutout", "captions"]
 CUTOUT_STYLES = ("frost", "blur")   # pugrec/cutout.py; the defaults are cutout.DEFAULTS
 CUTOUT_DEFAULTS = {"strength": 0.2, "feather": 6}
+
+
+def caption_position(val, path):
+    """auto | top | middle | bottom, or a number: the line's centre as a share of the height (0 = top)."""
+    if isinstance(val, (int, float)) and not isinstance(val, bool):
+        return _num(val, path, 0, 1)
+    if val not in ("auto", "bottom", "top", "middle"):
+        _err(path, "auto, bottom, top, middle or a number 0..1 (the line's height, 0 = top)")
+    return val
+
+
+def scene_captions(v, path):
+    """A scene's `captions: {position}`: over style.captions while the scene is on screen."""
+    _keys(v, path, ["position"])
+    return {k: caption_position(val, f"{path}.{k}") for k, val in v.items()}
 
 
 def cutout(v, path, sh):
@@ -380,6 +395,8 @@ def _scene(v, path, out_names, style, sources, images=None):
     sc["fit"] = fit
     sc["background"] = _background(v["background"], f"{path}.background") if "background" in v else None
     sc["cutout"] = cutout(v["cutout"], f"{path}.cutout", sc["shot"]) if "cutout" in v else None
+    if v.get("captions"):   # only scenes that set it carry the key
+        sc["captions"] = scene_captions(v["captions"], f"{path}.captions")
     behind = [p for p in (sc["shot"].get("panes") or [sc["shot"]]) if p.get("behind")]
     if behind and (sc["cutout"] or any(p.get("cutout") for p in behind)):
         _err(f"{path}.cutout", "the speaker is already cut out over `behind:` - drop cutout here")
@@ -431,6 +448,8 @@ def scene_for_output(sc, output, style, path, bubble_base=None):
             s["transition"] = transition(ov["transition"], f"{path}.{output}.transition")
         if "label" in ov:
             s["label"] = ov["label"]
+        if ov.get("captions"):
+            s["captions"] = scene_captions(ov["captions"], f"{path}.{output}.captions")
     # Spotlight: per scene (not sticky) - the scene's value, else the style's.
     sp = ov["spotlight"] if ov and "spotlight" in ov else sc.get("spotlight_raw", "style")
     s["spotlight"] = style["spotlight"] if sp == "style" else spotlight(sp, f"{path}.spotlight", style["spotlight"])
@@ -626,12 +645,7 @@ def captions(v, path, base):
         elif k == "max_words":
             out[k] = int(_num(val, f"{path}.max_words", 1, 20))
         elif k == "position":
-            if isinstance(val, (int, float)) and not isinstance(val, bool):   # the line's centre, 0 = top, 1 = bottom
-                out[k] = _num(val, f"{path}.position", 0, 1)
-            elif val not in ("auto", "bottom", "top", "middle"):
-                _err(f"{path}.position", "auto, bottom, top, middle or a number 0..1 (the line's height, 0 = top)")
-            else:
-                out[k] = val
+            out[k] = caption_position(val, f"{path}.position")
         elif k == "fix":
             if not isinstance(val, dict) or not all(isinstance(a, str) and isinstance(b, str) for a, b in val.items()):
                 _err(f"{path}.fix", "a mapping of words to corrections, e.g. {Akme: Acme, Field Pal: FieldPal}")

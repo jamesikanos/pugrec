@@ -658,11 +658,12 @@ class OutputResolver:
         self.lines = {name: caption_lines(sess.transcript or [], cap["max_words"], fixes=cap.get("fix"), **gap)
                       for name, sess in sessions.items()}
         self.caption_t0 = {}   # (source, line) -> output clock when it first showed (pop runs on that)
+        self.caption_pos = {}  # (source, line) -> its position, fixed when it first showed (no jump mid-line)
         self.derived, self.derived_streams = {}, {}   # cut-out streams the scenes ask for (plan["derive"])
         self.cutout_span = cutout_spans(self.scenes, segments(sc, sessions))
         self.lines_t = {name: [l[0] for l in ls] for name, ls in self.lines.items()}
 
-    def caption_layers(self, source, t):
+    def caption_layers(self, source, t, scene=None):
         cap = self.style["captions"]
         if not cap["show"] or not self.lines[source]:
             return []
@@ -675,7 +676,8 @@ class OutputResolver:
         if cap.get("animation") == "pop":
             t0_out = self.caption_t0.setdefault((source, i), self.clock)
             scale = pop_scale(self.clock - t0_out)
-        pos = cap["position"]
+        # A line keeps the place it first showed at: the scene's captions.position then, else the style's.
+        pos = self.caption_pos.setdefault((source, i), (scene or {}).get("captions", {}).get("position", cap["position"]))
         if pos == "auto":
             pos = "bottom" if self.W >= self.H else "lower"
         if isinstance(pos, float):   # a height: clamped so the line (popped, stroked) stays inside the frame
@@ -1666,7 +1668,7 @@ class OutputResolver:
         layers += self.logo_layers()
         layers += self.callout_layers(source, t)
         if not hold:   # nothing is being said during a hold
-            layers += self.caption_layers(source, t)
+            layers += self.caption_layers(source, t, scene)
         return scene, layers
 
     prev_view = None

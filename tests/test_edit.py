@@ -871,6 +871,23 @@ class Captions(unittest.TestCase):
                 S.parse({"style": {"captions": {"position": bad}}, "scenes": [{"at": 0, "shot": "screen"}]}, self.d)
             self.assertIn(needle, str(cm.exception))
 
+    def test_scene_position_and_no_jump_mid_line(self):
+        def ys(scenes, output="vertical"):
+            p = plan({"outputs": [{"name": "main", "size": "1920x1080"}, {"name": "vertical", "size": "1080x1920"}],
+                      "style": {"captions": {"position": 0.8}}, "scenes": scenes}, self.d, output)
+            return {round(f["t"], 1): l["y"] for f in p["frames"] for l in f["layers"] if l["type"] == "text"}
+        # Line 1 ("So this is the demo.") starts ~0.9 s, line 2 ("Now um the editor") ~5.4 s.
+        y = ys([{"at": 0, "shot": "screen"}, {"at": 1.6, "shot": "screen", "captions": {"position": 0.87}}])
+        self.assertEqual({y[t] for t in y if t < 3}, {1536.0})              # line 1 keeps its place past the cut
+        self.assertEqual({y[t] for t in y if t > 5}, {round(0.87 * 1920, 1)})   # line 2 takes the new scene's
+        y = ys([{"at": 0, "shot": "screen", "captions": {"position": "top"}, "vertical": {"captions": {"position": 0.5}}}])
+        self.assertEqual(set(y.values()), {960.0})                           # a per-output override
+        self.assertEqual(set(ys([{"at": 0, "shot": "screen", "captions": {"position": "top"}}], "main").values()), {108.0})
+        for bad, needle in (({"position": 2}, "scenes[0].captions.position"), ({"size": 0.1}, "unknown key 'size'")):
+            with self.subTest(bad=bad), self.assertRaises(S.ScriptError) as cm:
+                S.parse({"scenes": [{"at": 0, "shot": "screen", "captions": bad}]}, self.d)
+            self.assertIn(needle, str(cm.exception))
+
     def test_captions_off(self):
         p = plan({"style": {"captions": False}, "scenes": [{"at": 0, "shot": "screen"}]}, self.d)
         self.assertFalse([l for f in p["frames"] for l in f["layers"] if l["type"] == "text"])
