@@ -71,10 +71,22 @@ def cmd_info(a):
     total = end["duration"] / 1e9 if end else None
     for r in recs:
         if r["type"] == "stream_start":
-            print(f"stream    {r['stream']}: {r['file']} {r.get('pixels')} {r.get('codec')} audio={r.get('audio')}")
+            if r["stream"] == "mic":
+                print(f"stream    mic: {r['file']} {r.get('codec')} source={r.get('source')} "
+                      f"first sample {r.get('first_sample_t', 0) / 1e9:+.3f}s (aligned to 0)")
+            else:
+                print(f"stream    {r['stream']}: {r['file']} {r.get('pixels')} {r.get('codec')} audio={r.get('audio')}")
             # Where the tracks really end: a stalled encoder leaves sound with no picture, and
             # the container duration hides it (2026-10-13_19-20-50: video 63.8 s, audio 94.2 s).
             path = os.path.join(a.session, r["file"])
+            if r["stream"] == "mic":   # camera-only sessions: audio only, aligned to t 0 at the stop
+                au = last_pts(path, "a:0")
+                print("          audio: ? (no readable audio packets)" if au is None else f"          audio ends {au:7.2f}s")
+                if au is None:
+                    problems.append("mic: no readable audio")
+                elif total and total - au > 3.0:
+                    problems.append(f"mic: audio stops at {au:.1f}s, the recording ran to {total:.1f}s")
+                continue
             off = r.get("first_frame_t", 0) / 1e9
             v = last_pts(path, "v:0")
             au = last_pts(path, "a:0") if r.get("audio") else None
