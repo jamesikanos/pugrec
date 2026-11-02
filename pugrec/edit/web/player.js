@@ -90,8 +90,11 @@ function sync(frame) {
   const want = new Map();  // element -> file time
   for (const l of frame.layers) {
     if (l.type !== "video") continue;
-    const st = p.streams[l.src];
-    if (!want.has(st.url)) want.set(st.url, Math.max(0, l.t - st.offset));
+    for (const id of [l.src, l.matte]) {   // behind:'s matte plays alongside its camera
+      if (!id) continue;
+      const st = p.streams[id];
+      if (!want.has(st.url)) want.set(st.url, Math.max(0, l.t - st.offset));
+    }
   }
   if (!frame.hold) for (const a of p.audio) if (a.source === frame.src) want.set(a.url, frame.st);  // a hold is silent
   // The mix (audio.music / sfx) runs on the output clock, through holds and cards too. Its levels
@@ -153,7 +156,9 @@ function drawVideo(l) {
   ctx.filter = f.length ? f.join(" ") : "none";
   // A blurred layer is drawn a little larger so the blur doesn't fade at its edges.
   const pad = l.blur ? l.blur * 2 : 0;
-  ctx.drawImage(v, sx * kx, sy * ky, sw * kx, sh * ky, dx - pad, dy - pad, dw + 2 * pad, dh + 2 * pad);
+  const m = l.matte && !l.blur ? el("video", state.plan.streams[l.matte].url) : null;
+  if (m && m.readyState >= 2) ctx.drawImage(matted(v, m, [sx * kx, sy * ky, sw * kx, sh * ky], dw, dh), dx, dy, dw, dh);
+  else if (!m) ctx.drawImage(v, sx * kx, sy * ky, sw * kx, sh * ky, dx - pad, dy - pad, dw + 2 * pad, dh + 2 * pad);
   ctx.restore();
   if (l.border) {
     ctx.save();
@@ -163,6 +168,29 @@ function drawVideo(l) {
     ctx.lineWidth = bw; ctx.strokeStyle = color; ctx.stroke();
     ctx.restore();
   }
+}
+
+// behind: the camera with the matte's luma as its alpha (the same crop; the matte proxy has the
+// camera's size). The matte goes through an SVG luminanceToAlpha filter, then the colour "source-in".
+let matteCanvas = null;
+function matted(v, m, crop, dw, dh) {
+  if (!document.getElementById("luma2alpha")) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.style.position = "absolute";
+    svg.innerHTML = '<filter id="luma2alpha" color-interpolation-filters="sRGB">' +
+                    '<feColorMatrix type="luminanceToAlpha"/></filter>';
+    document.body.appendChild(svg);
+  }
+  const c = matteCanvas = matteCanvas || document.createElement("canvas");
+  c.width = Math.max(1, Math.round(dw)); c.height = Math.max(1, Math.round(dh));
+  const o = c.getContext("2d");
+  o.globalCompositeOperation = "copy";
+  o.filter = "url(#luma2alpha)";
+  o.drawImage(m, ...crop, 0, 0, c.width, c.height);
+  o.filter = "none";
+  o.globalCompositeOperation = "source-in";
+  o.drawImage(v, ...crop, 0, 0, c.width, c.height);
+  return c;
 }
 
 function drawFill(l) {

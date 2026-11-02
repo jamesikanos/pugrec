@@ -67,7 +67,12 @@ def composite(src8, pha, style="frost", strength=DEFAULTS["strength"], feather=D
     pugcam's maths, reordered for memory bandwidth (several of these run at once and full-size float
     passes were the bottleneck): everything blurry - the normalised blur, frost's glow and colour, and
     the feather's fill of "you, blurred" - is done at the working size and upsampled once; only the
-    edge (the feathered alpha) and the final blend are full size, the blend in uint8."""
+    edge (the feathered alpha) and the final blend are full size, the blend in uint8.
+
+    style "none": the camera as it is - the colour a `behind:` scene draws over its source with the
+    matte as alpha (on the matte's own frame grid, so the two line up frame for frame)."""
+    if style == "none":
+        return src8
     H, W = pha.shape
     u = H / 1080
     sigma = (2 + strength * 100 * 0.4) * u

@@ -4,7 +4,8 @@ The plan is the only thing the compositors (browser preview, build) see, so they
 can't disagree. Pure: no video is decoded here. Layers:
 
   video  {src: "main/screen", t: <source s>, rect: [x,y,w,h] source px,
-          dst: [x,y,w,h] output px, shape: rect|round|circle, radius, blur, dim, opacity, border}
+          dst: [x,y,w,h] output px, shape: rect|round|circle, radius, blur, dim, opacity, border,
+          matte: <stream id> (behind: its luma is the alpha, cropped and scaled as the colour)}
   fill   {dst, color, shape, radius, opacity}
   gradient {dst, colors: [2-4], angle (CSS deg: 0 up, 90 right), shape, radius, opacity}   (backdrop)
   shadow {dst, radius, blur (= 2 sigma, canvas shadowBlur), offset (px down), opacity}  (under a card)
@@ -1216,14 +1217,23 @@ class OutputResolver:
         return cands[max(0, i)]
 
     def panes_for(self, scene):
+        """[(shot, dst)] to draw, in order. A camera with `behind:` is two: the shot it stands over,
+        then the camera itself on top (`over`: drawn with the matte as its alpha)."""
         shot = scene["shot"]
         if shot["kind"] != "split":
-            return [(shot, (0.0, 0.0, float(self.W), float(self.H)))]
-        layout = shot["layout"]
-        if layout == "auto":
-            layout = "row" if self.W >= self.H else "column"
-        rects = pane_rects(layout, shot["ratio"], self.W, self.H, self.style["gap"] * min(self.W, self.H))
-        return list(zip(shot["panes"], rects))
+            pairs = [(shot, (0.0, 0.0, float(self.W), float(self.H)))]
+        else:
+            layout = shot["layout"]
+            if layout == "auto":
+                layout = "row" if self.W >= self.H else "column"
+            rects = pane_rects(layout, shot["ratio"], self.W, self.H, self.style["gap"] * min(self.W, self.H))
+            pairs = list(zip(shot["panes"], rects))
+        if not any(sh.get("behind") for sh, _ in pairs):
+            return pairs
+        out = []
+        for sh, dst in pairs:
+            out += [(sh["behind"], dst), (dict(sh, over=True), dst)] if sh.get("behind") else [(sh, dst)]
+        return out
 
     PUNCH_KINDS = ("camera", "window", "screen", "rect", "image")  # cursor/auto already move
 
@@ -1272,6 +1282,17 @@ class OutputResolver:
                                  "strength": cut["strength"], "feather": cut["feather"],
                                  "file": os.path.join(sess.path, "cutout", f"{cut['style']}-{k}.mkv")}
             self.derived_streams[sid] = {"file": self.derived[sid]["file"], "size": list(sess.cam_size), "offset": t0}
+        return sid
+
+    def matte_stream(self, source):
+        """The id of the speaker's matte (luma = alpha) over the cut-out span, made with the camera's
+        derived stream (cutout.derive writes both)."""
+        sess = self.sessions[source]
+        t0, t1 = self.cutout_span[source]
+        k = cutout_key("matte", t0, t1)
+        sid = f"{source}/matte-{k}"
+        self.derived_streams.setdefault(sid, {"file": os.path.join(sess.path, "cutout", f"matte-{k}.mkv"),
+                                              "size": list(sess.cam_size), "offset": t0})
         return sid
 
     def pane_opts(self, scene, shot):
@@ -1359,6 +1380,12 @@ class OutputResolver:
             cut = (shot.get("cutout") or scene.get("cutout")) if ev.kind == "camera" else None
             if cut:
                 stream = self.cutout_stream(src, cut)
+            matte = None
+            if shot.get("over") and ev.kind == "camera":   # behind: the plain camera on the matte's frames, on top
+                stream = self.cutout_stream(src, {"style": "none", "strength": 0.0, "feather": 0.0})
+                matte = self.matte_stream(src)
+                mode = "cover"
+            n0 = len(layers)
             shape = "round" if split else "rect"
             if mode == "inset":
                 # A rounded card with room around it, on the backdrop (or blur / a colour).
@@ -1400,6 +1427,10 @@ class OutputResolver:
                                "shape": "round", "radius": r1(self.style["radius"] * self.unit)})
                 if views_out is not None:
                     views_out.append((stream, tgt, inner))
+            if matte:
+                for l in layers[n0:]:
+                    if l["type"] == "video" and not l.get("bg"):
+                        l["matte"] = matte
         return [self.as_image(l) if l["type"] == "video" and l["src"].startswith("image:") else l for l in layers]
 
     def as_image(self, l):
@@ -1699,7 +1730,8 @@ def cutout_spans(scenes, segs, margin=0.5):
     the span a derived camera stream covers. Edits of the timeline inside it reuse the same files."""
     spans = {}
     for i, s in enumerate(scenes):
-        if not (s.get("cutout") or any(p.get("cutout") for p in s["shot"].get("panes", []))):
+        shots = [s["shot"]] + s["shot"].get("panes", [])
+        if not (s.get("cutout") or any(p.get("cutout") or p.get("behind") for p in shots)):
             continue
         end = next((n["at"] for n in scenes[i + 1:] if n["source"] == s["source"]), float("inf"))
         for src, a, b, _ in segs:
@@ -1941,4 +1973,6 @@ def describe(shot):
         return f"cursor x{shot['zoom']:g}"
     if k == "image":
         return f"image {shot['source']}" + (" scroll" if shot.get("scroll") else "")
+    if k == "camera" and shot.get("behind"):
+        return f"camera over {describe(shot['behind'])}"
     return k

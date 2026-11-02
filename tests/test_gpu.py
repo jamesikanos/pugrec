@@ -39,7 +39,7 @@ def cpu_frames(plan):
     out = []
     for r0, r1, _src, st in C.runs(frames, fps):
         run = frames[r0:r1]
-        used = {l["src"] for f in run for l in f["layers"] if l["type"] == "video"}
+        used = {s for f in run for l in f["layers"] if l["type"] == "video" for s in (l["src"], l.get("matte")) if s}
         held = bool(run[0].get("hold"))
         decs = {s: C.Decoder(plan["streams"][s], st, fps, 1 if held else len(run)) for s in used}
         still = {s: d.next() for s, d in decs.items()} if held else None
@@ -186,6 +186,19 @@ def make_clip(path, w, h, fps, secs):
                     path], check=True)
 
 
+def make_matte(path, w, h, fps, secs):
+    """A matte like cutout's (grey, H.264 full range, its encoder): a soft disc moving across."""
+    from pugrec import cutout
+    enc = cutout._encoder(path, w, h, "gray", 6)
+    yy, xx = np.mgrid[0:h, 0:w]
+    for i in range(fps * secs):
+        cx = w * (0.2 + 0.6 * i / (fps * secs))
+        d = np.hypot(xx - cx, yy - h / 2)
+        enc.stdin.write((np.clip((h * 0.35 - d) / 12, 0, 1) * 255).astype(np.uint8).tobytes())
+    enc.stdin.close()
+    enc.wait()
+
+
 @unittest.skipUnless(G.binary(), "pugrec-gpu not built (scripts/build-gpu.sh)")
 class VideoParity(Compare, unittest.TestCase):
     """Frame choice and video layers: two streams (one with an offset and its own fps), a cut,
@@ -199,13 +212,17 @@ class VideoParity(Compare, unittest.TestCase):
         make_clip(cls.screen, 1280, 720, 60, 6)
         make_clip(cls.camera, 640, 360, 30, 6)
 
+        cls.matte = os.path.join(cls.tmp.name, "matte.mkv")
+        make_matte(cls.matte, 640, 360, 30, 6)
+
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
     def plan(self, layers):
         streams = {"s/screen": {"file": self.screen, "size": [1280, 720], "offset": 0.0},
-                   "s/camera": {"file": self.camera, "size": [640, 360], "offset": 0.37}}
+                   "s/camera": {"file": self.camera, "size": [640, 360], "offset": 0.37},
+                   "s/matte": {"file": self.matte, "size": [640, 360], "offset": 0.37}}
         frames, t = [], 0.0
         for st0, n, hold in ((0.1, 12, False), (2.5, 20, False), (3.0, 8, True), (3.0, 10, False), (5.7, 15, False)):
             for i in range(n):
@@ -222,6 +239,15 @@ class VideoParity(Compare, unittest.TestCase):
                   {"type": "video", "src": "s/camera", "rect": [120.3, 0, 360, 360], "dst": [10.4, 90.2, 80, 80],
                    "shape": "circle", "border": [3, "#f1e4d9"]}]
         print(self.compare(self.plan(layers), label="video"))
+
+    def test_matte_behind(self):
+        # behind: the camera over the screen, its alpha the matte's luma, cropped and scaled as the colour
+        layers = [{"type": "video", "src": "s/screen", "rect": [0, 0, 1280, 720], "dst": [0, 0, W, H]},
+                  {"type": "video", "src": "s/camera", "rect": [80.6, 10.2, 480.5, 270.3], "dst": [0, 0, W, H],
+                   "matte": "s/matte"},
+                  {"type": "video", "src": "s/camera", "rect": [0, 0, 640, 360], "dst": [200.3, 100.6, 100, 56],
+                   "matte": "s/matte", "shape": "round", "radius": 8, "opacity": 0.9}]
+        print(self.compare(self.plan(layers), label="video matte"))
 
     def test_zoom_blur_dim_round(self):
         layers = [{"type": "video", "src": "s/screen", "rect": [-40, -20, 1360, 760], "dst": [0, 0, W, H],
