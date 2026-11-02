@@ -164,6 +164,12 @@ class State:
                     self.media[url] = info["file"]
                     info["url"] = url
                     del info["file"]
+                mix = p.get("mix") or {}
+                for k, m in enumerate(([mix["music"]] if mix.get("music") else []) + mix.get("sfx", [])):
+                    url = f"/media/mix/{k}{os.path.splitext(m['file'])[1]}"
+                    self.media[url] = m["file"]
+                    m["url"] = url
+                    del m["file"]
                 p["edit"] = os.path.relpath(self.edit_path, os.path.expanduser("~"))
                 plans[out["name"]] = json.dumps(p, separators=(",", ":")).encode()
             with self.lock:

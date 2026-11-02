@@ -503,9 +503,17 @@ def parse(data, base_dir="."):
     outro = card(data["outro"] if "outro" in data else tc.get("outro"), "outro", style)
 
     audio = data.get("audio") or {}
-    _keys(audio, "audio", ["source"])
+    _keys(audio, "audio", ["source", "music", "sfx", "loudness"])
     if audio.get("source", "mic-clean") not in ("mic-clean", "raw", "none"):
         _err("audio.source", "mic-clean, raw or none")
+    mix = {}   # music bed, sound effects, final loudness: only edits that use them carry the key
+    if audio.get("music") is not None:
+        mix["music"] = music(audio["music"], "audio.music", base_dir)
+    if audio.get("loudness") is not None:
+        mix["loudness"] = _num(audio["loudness"], "audio.loudness", -30, -5)
+    raw_sfx = audio.get("sfx") or []
+    if not isinstance(raw_sfx, list):
+        _err("audio.sfx", "expected a list of {at, file, volume}")
 
     cuts, auto_cuts = parse_cuts(data.get("cuts"))
 
@@ -548,8 +556,16 @@ def parse(data, base_dir="."):
         if c["sparkle"] and c["look"] != "section":
             _err(f"callouts[{i}].sparkle", "only a section's wipe can sparkle")
 
+    sfx = [sound(x, f"audio.sfx[{i}]", sources, base_dir) for i, x in enumerate(raw_sfx)]
+    for kind, items in (("callouts", raw_callouts), ("overlays", raw_overlays)):   # their `sfx: file` shorthand
+        for i, (raw, parsed) in enumerate(zip(items, callouts if kind == "callouts" else overlays)):
+            if isinstance(raw, dict) and raw.get("sfx") is not None:
+                sfx.append(sound({"at": parsed["at"], "source": parsed["source"], "file": raw["sfx"]},
+                                 f"{kind}[{i}].sfx", sources, base_dir))
+    if sfx:
+        mix["sfx"] = sorted(sfx, key=lambda x: x["at"])
     return {"version": 1, "outputs": outs, "sources": sources, "style": style,
-            "audio": {"source": audio.get("source", "mic-clean")}, "cuts": cuts, "auto_cuts": auto_cuts,
+            "audio": dict({"source": audio.get("source", "mic-clean")}, **mix), "cuts": cuts, "auto_cuts": auto_cuts,
             "timeline": timeline, "scenes": scenes, "intro": intro, "outro": outro, "callouts": callouts,
             **({"overlays": overlays} if overlays else {}), **({"images": images} if images else {})}   # only when used: old scripts parse as before
 
@@ -854,6 +870,48 @@ def _background(v, path):
 PANE_KEYS = ("fit", "inset", "background", "cutout")  # allowed on a split pane, next to its shot
 
 
+AUDIO_EXT = (".wav", ".flac", ".mp3", ".ogg", ".opus", ".m4a", ".aac")
+
+
+def _audio_file(v, path, base_dir):
+    f = os.path.expanduser(str(v))
+    f = f if os.path.isabs(f) else os.path.normpath(os.path.join(base_dir, f))
+    if not os.path.isfile(f):
+        _err(path, f"no such file: {f}")
+    if not f.lower().endswith(AUDIO_EXT):
+        _err(path, f"an audio file ({', '.join(AUDIO_EXT)})")
+    return f
+
+
+def music(v, path, base_dir):
+    """audio.music: a bed under the voice on the output clock. "file" or {file, volume, duck, ...}."""
+    if isinstance(v, str):
+        v = {"file": v}
+    _keys(v, path, ["file", "volume", "duck", "start", "fade_in", "fade_out", "loop"], ["file"])
+    if not isinstance(v.get("loop", True), bool):
+        _err(f"{path}.loop", "true or false")
+    return {"file": _audio_file(v["file"], f"{path}.file", base_dir),
+            "volume": _num(v.get("volume", -22), f"{path}.volume", -60, 6),   # dB relative to the voice
+            "duck": _num(v.get("duck", 8), f"{path}.duck", 0, 40),           # dB further down under speech
+            "start": _num(v.get("start", 0), f"{path}.start", 0),
+            "fade_in": _num(v.get("fade_in", 1.0), f"{path}.fade_in", 0, 30),
+            "fade_out": _num(v.get("fade_out", 2.0), f"{path}.fade_out", 0, 30),
+            "loop": v.get("loop", True)}
+
+
+def sound(v, path, sources, base_dir):
+    """One sound effect: {at (source s), file, volume (dB, 0 = as recorded), source}."""
+    if not isinstance(v, dict):
+        _err(path, "expected {at, file, volume}")
+    _keys(v, path, ["at", "file", "volume", "source"], ["at", "file"])
+    src = v.get("source", next(iter(sources)))
+    if src not in sources:
+        _err(f"{path}.source", f"unknown source {src!r} (have: {', '.join(sources)})")
+    return {"at": _num(v["at"], f"{path}.at", 0), "source": src,
+            "file": _audio_file(v["file"], f"{path}.file", base_dir),
+            "volume": _num(v.get("volume", 0), f"{path}.volume", -60, 12)}
+
+
 def _image_file(v, path, base_dir):
     f = os.path.expanduser(str(v))
     f = f if os.path.isabs(f) else os.path.normpath(os.path.join(base_dir, f))
@@ -916,8 +974,8 @@ def callout(v, path, style, sources):
     """One callout: {at, title, text, duration, source} plus any style.callout key for this one."""
     if not isinstance(v, dict):
         _err(path, "expected {at, title, text}")
-    own = {k: val for k, val in v.items() if k not in ("at", "title", "text", "source")}
-    _keys(v, path, ["at", "title", "text", "source"] + list(style["callout"]), ["at", "title"])
+    own = {k: val for k, val in v.items() if k not in ("at", "title", "text", "source", "sfx")}
+    _keys(v, path, ["at", "title", "text", "source", "sfx"] + list(style["callout"]), ["at", "title"])
     c = callout_style(own, path, style["callout"])
     c["at"] = _num(v["at"], f"{path}.at", 0)
     c["source"] = v.get("source", next(iter(sources)))
@@ -955,7 +1013,7 @@ OVERLAY_DEFAULTS = {
 }
 OVERLAY_LOOK_KEYS = ["place", "corner", "size", "text_size", "crop", "in", "out", "radius", "shadow", "scroll",
                      "duration", "credit"]
-OVERLAY_KEYS = ["at", "source", "image", "text", "pause"] + OVERLAY_LOOK_KEYS
+OVERLAY_KEYS = ["at", "source", "image", "text", "pause", "sfx"] + OVERLAY_LOOK_KEYS
 
 
 def motion(v, path, default):

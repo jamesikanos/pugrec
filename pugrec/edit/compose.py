@@ -501,7 +501,8 @@ def audio_args(plan, frames, first_input):
     # A hold is silence: a piece with no source file (like a title card).
     pieces = [("hold" if frames[i0].get("hold") else src, st, st + (i1 - i0) / fps)
               for i0, i1, src, st in runs(frames, fps)]
-    if not any(p[0] in files for p in pieces):
+    mix = plan.get("mix")
+    if not any(p[0] in files for p in pieces) and not mix:
         return [], None
     inputs, idx = [], {}
     for src in dict.fromkeys(p[0] for p in pieces if p[0] in files):
@@ -518,8 +519,67 @@ def audio_args(plan, frames, first_input):
             parts.append(f"[{idx[src]}:a:0]atrim=start={a:.4f}:end={b:.4f},asetpts=PTS-STARTPTS,"
                          f"afade=t=in:d={fade:.3f},afade=t=out:st={max(0, d - fade):.4f}:d={fade:.3f},{same}[a{i}]")
         labels.append(f"[a{i}]")
-    parts.append("".join(labels) + f"concat=n={len(labels)}:v=0:a=1[aout]")
+    parts.append("".join(labels) + f"concat=n={len(labels)}:v=0:a=1[{'voice' if mix else 'aout'}]")
+    if mix:
+        inputs, parts = mix_args(mix, frames, fps, first_input + len(inputs) // 2, inputs, parts)
     return inputs, ";".join(parts)
+
+
+def gain_expr(keys, t0):
+    """ffmpeg expression of a piecewise-linear curve [[t, g], ...] (t shifted by -t0), as a balanced
+    tree of if()s so a long edit's hundreds of points don't nest hundreds deep."""
+    pts = [(t - t0, g) for t, g in keys]
+
+    def seg(i):
+        (a, ga), (b, gb) = pts[i], pts[i + 1]
+        return f"{ga:.5f}" if abs(gb - ga) < 1e-7 or b - a < 1e-6 else f"({ga:.5f}+{gb - ga:.5f}*(t-{a:.4f})/{b - a:.4f})"
+
+    def tree(lo, hi):   # segments lo .. hi-1
+        if hi - lo == 1:
+            return seg(lo)
+        mid = (lo + hi) // 2
+        return f"if(lt(t,{pts[mid][0]:.4f}),{tree(lo, mid)},{tree(mid, hi)})"
+
+    if len(pts) == 1:
+        return f"{pts[0][1]:.5f}"
+    return tree(0, len(pts) - 1)
+
+
+def mix_args(mix, frames, fps, k, inputs, parts):
+    """The music bed (its gain curve from resolve), the sound effects and the final loudness, mixed
+    under the voice ([voice] -> [aout]). The music runs on the output clock from the first frame."""
+    t0 = frames[0]["t"]
+    dur = len(frames) / fps
+    st = "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo"
+    labels = ["[v2]"]
+    parts.append(f"[voice]{st}[v2]")
+    m = mix.get("music")
+    if m:
+        pos = m["start"] + t0
+        if m["loop"] and m["dur"] > 0:
+            pos %= m["dur"]
+        if m["loop"] or pos < m["dur"]:
+            inputs += (["-stream_loop", "-1"] if m["loop"] else []) + ["-ss", f"{pos:.4f}", "-i", m["file"]]
+            parts.append(f"[{k}:a:0]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,{st},asetnsamples=n=240,"
+                         f"volume=volume='{gain_expr(m['gain'], t0)}':eval=frame[mus]")
+            labels.append("[mus]")
+            k += 1
+    for i, x in enumerate(mix.get("sfx") or []):
+        at = x["t"] - t0
+        if at < 0 or at >= dur:
+            continue
+        inputs += ["-i", x["file"]]
+        parts.append(f"[{k}:a:0]{st},volume={x['gain']:.5f},adelay=delays={int(round(at * 1000))}:all=1[fx{i}]")
+        labels.append(f"[fx{i}]")
+        k += 1
+    out = "[mixed]" if mix.get("loudness") is not None else "[aout]"
+    if len(labels) > 1:
+        parts.append("".join(labels) + f"amix=inputs={len(labels)}:duration=first:normalize=0{out}")
+    else:
+        parts.append(f"[v2]anull{out}")
+    if mix.get("loudness") is not None:
+        parts.append(f"[mixed]loudnorm=I={mix['loudness']:g}:TP=-1.5:LRA=11,aresample=48000[aout]")
+    return inputs, parts
 
 
 _PLAN = None     # set before forking workers (fork shares it copy-on-write)
@@ -650,7 +710,12 @@ def build(plan, out_path, crf=18, preset="medium", progress=True, jobs=4, compos
                 f.write(f"file '{p}'\nduration {k / fps:.6f}\n")
         a_inputs, a_filter = audio_args(plan, frames, 1)
         cmd = ["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst, *a_inputs]
-        if a_filter:
+        if a_filter and len(a_filter) > 100000:   # a long gain curve: past one argument's size limit
+            with open(os.path.join(tmp, "audio.graph"), "w") as f:
+                f.write(a_filter)
+            cmd += ["-/filter_complex", os.path.join(tmp, "audio.graph"), "-map", "0:v", "-map", "[aout]",
+                    "-c:a", "aac", "-b:a", "192k"]
+        elif a_filter:
             cmd += ["-filter_complex", a_filter, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "192k"]
         cmd += ["-c:v", "copy", "-movflags", "+faststart", "-shortest", out_path]
         rc = subprocess.run(cmd).returncode
