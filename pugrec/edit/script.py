@@ -173,13 +173,19 @@ def shot(v, path):
         _keys(v, path, ["screen"])
         return {"kind": "screen"}
     if kind == "camera":
-        _keys(v, path, ["camera", "follow"])
+        _keys(v, path, ["camera", "follow", "behind"])
         opt = v["camera"] or {}
         _keys(opt, p, ["zoom"])
         # Held still by default (James, 2026-10-21): a camera that tracks every lean looks nervous;
         # the push gives a long camera shot its movement. Following is for the bubble.
-        return {"kind": "camera", "zoom": _num(opt.get("zoom", 1.0), f"{p}.zoom", 1, 4),
-                "follow": bool(v.get("follow", False))}
+        out = {"kind": "camera", "zoom": _num(opt.get("zoom", 1.0), f"{p}.zoom", 1, 4),
+               "follow": bool(v.get("follow", False))}
+        if v.get("behind") is not None:   # the speaker cut out, standing over another shot
+            b = shot(v["behind"], f"{path}.behind")
+            if b["kind"] in ("camera", "split"):
+                _err(f"{path}.behind", "the speaker stands over a screen, window or image shot")
+            out["behind"] = b
+        return out
     if kind == "auto":
         _keys(v, path, ["auto"])
         opt = v["auto"] or {}
@@ -348,6 +354,8 @@ def spotlight(v, path, base):
 def image_shots(sh, path, images):
     """Give each image shot (a split's panes too) its file; an unknown image source is an error."""
     for i, s in enumerate(sh["panes"] if sh["kind"] == "split" else [sh]):
+        if s.get("behind"):
+            image_shots(s["behind"], path + (f".split[{i}]" if sh["kind"] == "split" else "") + ".behind", images)
         if s["kind"] == "image":
             if s["source"] not in images:
                 where = f"{path}.split[{i}]" if sh["kind"] == "split" else path
@@ -372,6 +380,9 @@ def _scene(v, path, out_names, style, sources, images=None):
     sc["fit"] = fit
     sc["background"] = _background(v["background"], f"{path}.background") if "background" in v else None
     sc["cutout"] = cutout(v["cutout"], f"{path}.cutout", sc["shot"]) if "cutout" in v else None
+    behind = [p for p in (sc["shot"].get("panes") or [sc["shot"]]) if p.get("behind")]
+    if behind and (sc["cutout"] or any(p.get("cutout") for p in behind)):
+        _err(f"{path}.cutout", "the speaker is already cut out over `behind:` - drop cutout here")
     sc["push_raw"] = v.get("push", "style")
     if sc["push_raw"] != "style":
         push(sc["push_raw"], f"{path}.push")  # validate now

@@ -499,6 +499,13 @@ static void draw_video(const cJSON *l) {
     glUniform4i(U(P_VIDEO, "uBoxI"), box[0], box[1], box[2], box[3]);
     if (!blur) set_crop(cJSON_GetObjectItemCaseSensitive(l, "crop"));
     bind_mask(P_VIDEO, l, "mask", "uMask", "uHasMask", 1, box[2], box[3]);
+    int ms = inum(l, "matte", -1);   /* a matte stream: its luma is this layer's alpha (behind:) */
+    int has_matte = !blur && ms >= 0 && ms < g_nstreams && g_streams[ms].has;
+    glUniform1i(U(P_VIDEO, "uHasMatte"), has_matte);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, has_matte ? g_streams[ms].rgb.tex : src);
+    glUniform1i(U(P_VIDEO, "uMatte"), 3);
+    glActiveTexture(GL_TEXTURE0);
     glUniform1f(U(P_VIDEO, "uDim"), (float)num(l, "dim", 0));
     glUniform1f(U(P_VIDEO, "uOp"), (float)num(l, "op", 1));
     const cJSON *b = cJSON_GetObjectItemCaseSensitive(l, "border");

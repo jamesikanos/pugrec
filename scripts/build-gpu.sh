@@ -7,7 +7,7 @@
 #   distrobox rm -f pugrec-build       remove the box afterwards (the binary stays)
 set -euo pipefail
 
-VERSION=1                           # bump with pugrec/edit/gpu.py's GPU_VERSION
+VERSION=2                           # bump with pugrec/edit/gpu.py's GPU_VERSION
 BOX=pugrec-build
 IMAGE=registry.fedoraproject.org/fedora-toolbox:44
 here="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"

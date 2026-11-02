@@ -135,7 +135,7 @@ def solid(w, h, color):
     return s
 
 
-def draw_video(canvas, frame, l):
+def draw_video(canvas, frame, l, matte=None):
     dx, dy, dw, dh = l["dst"]
     x, y = int(round(dx)), int(round(dy))
     w, h = max(1, int(round(dx + dw)) - x), max(1, int(round(dy + dh)) - y)
@@ -151,6 +151,9 @@ def draw_video(canvas, frame, l):
         img = cv2.convertScaleAbs(img, alpha=1 - l["dim"])
     shape = l.get("shape", "rect")
     a = None if shape == "rect" and not l.get("radius") else mask(w, h, shape, l.get("radius", 0))
+    if matte is not None and not l.get("blur"):   # behind: the speaker's matte (luma) as alpha, cropped as the colour
+        m = crop_scaled(matte, l["rect"], w, h)[..., 2:3].astype(np.float32) / 255
+        a = m if a is None else a * m
     op = l.get("opacity", 1.0)
     blit(canvas, img, x, y, a, op)
     if l.get("border"):
@@ -459,7 +462,7 @@ def paint(canvas, layers, frames, images=None):
         if l["type"] == "video":
             f = frames.get(l["src"])
             if f is not None:
-                draw_video(canvas, f, l)
+                draw_video(canvas, f, l, frames.get(l["matte"]) if l.get("matte") else None)
         elif l["type"] == "fill":
             draw_fill(canvas, l)
         elif l["type"] == "gradient":
@@ -600,7 +603,7 @@ def _render_range(args):
     try:
         for r0, r1, _src, st in runs(frames, fps):
             run = frames[r0:r1]
-            used = {l["src"] for f in run for l in f["layers"] if l["type"] == "video"}
+            used = {s for f in run for l in f["layers"] if l["type"] == "video" for s in (l["src"], l.get("matte")) if s}
             held = bool(run[0].get("hold"))   # one picture, decoded once, under every frame of the hold
             decs = {s: Decoder(plan["streams"][s], st, fps, 1 if held else len(run)) for s in used}
             still = {s: d.next() for s, d in decs.items()} if held else None

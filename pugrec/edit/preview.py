@@ -153,6 +153,14 @@ class State:
                     _proxy(r["file"], proxy, 960)
                     self.media[url] = proxy
                     self.sizes.setdefault(url, probe_size(proxy))
+                for sid, st in p["streams"].items():   # behind:'s matte (made with its camera stream above)
+                    src, kind = sid.split("/")
+                    if kind.startswith("matte-") and os.path.exists(st["file"]):
+                        url = f"/media/{src}/{kind}"
+                        proxy = os.path.join(os.path.dirname(os.path.dirname(st["file"])), "proxy", kind + ".mp4")
+                        _proxy(st["file"], proxy, 960)
+                        self.media[url] = proxy
+                        self.sizes.setdefault(url, probe_size(proxy))
                 for sid, st in p["streams"].items():
                     src, kind = sid.split("/")
                     url = f"/media/{src}/{kind}"

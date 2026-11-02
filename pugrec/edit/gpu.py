@@ -21,7 +21,7 @@ import numpy as np
 
 from . import compose
 
-GPU_VERSION = "1"   # bump with scripts/build-gpu.sh's VERSION
+GPU_VERSION = "2"   # bump with scripts/build-gpu.sh's VERSION
 RENDER_NODE = "/dev/dri/renderD128"
 VRAM_LIMIT_MB = 2048   # over the baseline at start; pugrec-gpu stops (exit 99) above it
 
@@ -149,6 +149,8 @@ class Job:
             x, y = int(round(dx)), int(round(dy))
             w, h = max(1, int(round(dx + dw)) - x), max(1, int(round(dy + dh)) - y)
             out = self._masked({"k": "video", "s": s, "box": [x, y, w, h], "op": op, "dim": l.get("dim") or 0}, l, w, h)
+            if l.get("matte") in self.ids:   # behind: its luma is the alpha, cropped as the colour (same size)
+                out["matte"] = self.ids[l["matte"]]
             if l.get("blur"):
                 sw, sh = max(1, w // 4), max(1, h // 4)
                 out["blur"] = {"size": [sw, sh], "k": max(3, int(l["blur"] / 4) | 1),
@@ -246,8 +248,8 @@ class Job:
         yield json.dumps(self.header())
         for r0, r1, _src, st in compose.runs(frames, fps):
             run = frames[r0:r1]
-            used = sorted({self.ids[l["src"]] for f in run for l in f["layers"]
-                           if l["type"] == "video" and l["src"] in self.ids})
+            used = sorted({self.ids[s] for f in run for l in f["layers"] if l["type"] == "video"
+                           for s in (l["src"], l.get("matte")) if s in self.ids})   # a matte is decoded too
             yield json.dumps({"run": {"streams": used, "start": st, "hold": bool(run[0].get("hold"))}})
             for f in run:
                 out = [x for x in (self.layer(l) for l in f["layers"]) if x is not None]
