@@ -2387,6 +2387,400 @@
    }
   }
  },
+ "overlays": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.5s, 3 segment(s)\n  [0] source   0.00s ->   0.00s  camera\n  warning: [main] overlays[3]: place: face, but no face is on screen at 8s - shown top-right\nvertical 1080x1920: 10.5s, 3 segment(s)\n  [0] source   0.00s ->   0.00s  camera\n  warning: [vertical] overlays[3]: place: face, but no face is on screen at 8s - shown top-right\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=3.5000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=3.4900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];anullsrc=r=48000:cl=mono,atrim=duration=0.5000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];[1:a:0]atrim=start=3.5000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=6.4900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a2];[a0][a1][a2]concat=n=3:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "aab892a2769297da",
+     "4c10360e5f5a3bb6",
+     "3876519c595455dc",
+     "7dba6cb7ecdacdc6",
+     "5b049df5e8d95f98",
+     "65b928ba8f300ad1",
+     "82ee90def75f0f24",
+     "2e6c07e2f1d8d7de",
+     "777a5f0991317800",
+     "9dad932d7c7bc55f",
+     "36ae9788c8a731d3",
+     "1af350c61ca02936",
+     "d4247f4416a3d391",
+     "edbacacfe4c32634",
+     "e6155b2da51a9cec",
+     "eb1e3fb1dff766a9",
+     "4d2b0f0844ab2372",
+     "388f6fc6af854bd4",
+     "11817de69fd8fdb4",
+     "941e99d9fe484338",
+     "a49f8a17484d3b7b",
+     "37e19ca78fd53e1f",
+     "4bc6abef0dbfe9f8",
+     "fccb0ecf9a0067be",
+     "2ec5a47c3899744b",
+     "c5c7407c0fd0beb2",
+     "3cd153df3b4c5bad",
+     "974460d688a3cb21",
+     "7838ddaf98b0b3a4",
+     "a57b8b29585f0fc7",
+     "9a0803995413cf9f",
+     "92c2ccf609e5627b",
+     "5f03fd3534df5f53",
+     "68158047adfd0505",
+     "6b3d68b95bd172e5",
+     "bc7a6e3e9819097d",
+     "41fe8da38787329d",
+     "8e05e91532c76952",
+     "b513d0125dec8951",
+     "d7ea484b1cc7b065",
+     "79948d881f23259c",
+     "f88b3e6ff86269bd",
+     "3a07cd78a38919ba",
+     "cf771f47b7090768",
+     "d0c7aa6ccf808d42",
+     "6eb8243647f060f2",
+     "b92de8f5b7006525",
+     "dd9c02e73a181f06",
+     "5abda1b11357a20a",
+     "27ee07f6f1b3176f",
+     "5e8aaed6b53d78f6",
+     "b22fb8bf8b472df5",
+     "ef131cde4f56b21e",
+     "0dc0313f5758be2e",
+     "04b6796f872a47de",
+     "179081bf34006dcc",
+     "a5b46d8fdafd4acf",
+     "ca3e2ac072a8c163",
+     "ce49b6cbd012dae2",
+     "23b9b7da297a4714",
+     "3aa1a75c4310de1e",
+     "5987eb8bce49216e",
+     "715fb3f0c9873b61",
+     "b6c237eb11595b2f",
+     "76bb7883637d3a43",
+     "f176cd7fdc0a8910",
+     "4add99eea4c2a976",
+     "49c662187d7765d5",
+     "fc2798fc1ecdfaf2",
+     "b16e55820d52552b",
+     "52a3479fe30fd1ec",
+     "f429f9c26ec770b5",
+     "10d7271d55ebf1ed",
+     "042a8bba2fec384d",
+     "6d301371cd2d410a",
+     "0fc3c89ab65d9925",
+     "fb3f23950fc903ce",
+     "717e6862537aa8ba",
+     "0703f6dca5dc7464",
+     "15eab918bbac1f46",
+     "83c577cde405a33e",
+     "0adceb9b201533aa",
+     "2640fe6029bdd616",
+     "1614a93bd190cbf3",
+     "064ba88d6105966f",
+     "a49707f94dfd9d62",
+     "cb361a168dfdd9a7",
+     "278cb3042716effe",
+     "5533c9f285371533",
+     "f81644fa644cb66d",
+     "fcf7cdff5cb78599",
+     "311766584b97001e",
+     "7d80267d54733862",
+     "18f3fd6cce23176f",
+     "2dbbd1a30de93a61",
+     "ee566559787a4722",
+     "31b5af3d886a4d3c",
+     "ba7aceafb21a5425",
+     "874b02d9357cd6d6",
+     "a09bb6cf96e1916a",
+     "5e164c2a23c50ccc",
+     "acd7a576c909aae0",
+     "2185a8a4723e10b5",
+     "4ee00bf6eaebd2fe",
+     "6cc07106172335ad"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.5,
+     "images": {
+      "<S>/shot.png": {
+       "file": "<S>/shot.png",
+       "size": [
+        400,
+        1200
+       ]
+      }
+     },
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "camera",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 3.5
+      },
+      {
+       "from": 3.5,
+       "out": 3.5,
+       "source": "hold:main",
+       "to": 4.0
+      },
+      {
+       "from": 3.5,
+       "out": 4.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[main] overlays[3]: place: face, but no face is on screen at 8s - shown top-right"
+     ]
+    }
+   },
+   "vertical": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=3.5000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=3.4900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];anullsrc=r=48000:cl=mono,atrim=duration=0.5000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];[1:a:0]atrim=start=3.5000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=6.4900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a2];[a0][a1][a2]concat=n=3:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "6437262798ce88b3",
+     "eba3cc323223a0f9",
+     "ab24600b8570390a",
+     "3b45bc609a256e65",
+     "2766ac9524ae10e4",
+     "ea184a3bbacb3f40",
+     "ba2de3ab4fb28803",
+     "34e5a74ca004b88c",
+     "75de1b33115dd110",
+     "ad7af746027590cb",
+     "d2e16f1e6f03cebf",
+     "502e84cf874d32f0",
+     "f6852ca2c58208ab",
+     "b03a3bca621e5055",
+     "895f1732d38a0254",
+     "287801a0fbce9d25",
+     "cf3e4826ad3bff38",
+     "ae7e61ac13fc4037",
+     "9c48f851f99e773d",
+     "e5cf23f775fe3a2c",
+     "86b302a2313b40ed",
+     "2898e198ad1aec41",
+     "2690026afdd7dc26",
+     "67172305daead84c",
+     "f8dace9bfeef4fd2",
+     "dab82d86e9a4c14d",
+     "701800a7a8645707",
+     "af0d8df2676a3368",
+     "a42cce7bc82230d1",
+     "c25339d558347f3f",
+     "f85bd4924c24f5c9",
+     "ee84479c3098e1f3",
+     "7c839950f6eaf1b1",
+     "e5f3776c45805e44",
+     "95339b06af5b5bd0",
+     "770f010302f68eb1",
+     "7b0b045e7ce6564d",
+     "9cedd601877a2d69",
+     "a57e2202a3788b68",
+     "f292bbd9ce5f0199",
+     "3057b4d3387e770f",
+     "2613589c9a1fa2b1",
+     "ced027c727d23b0f",
+     "220d2c5624e2de72",
+     "4500b7d91d950b76",
+     "a4f539794ca6f442",
+     "7f65696621477263",
+     "145444023426423c",
+     "fcc1f25f112c75fa",
+     "6cad4ccdbc7ec7a5",
+     "6989976a8388d54a",
+     "a26d419d1f55faf4",
+     "52245551d630393a",
+     "7f1e75b1ea6a27f7",
+     "c70c0d52c24a1d78",
+     "19e959b80cb26210",
+     "d28bbb2f6834c410",
+     "7c667ae4c88ef2e4",
+     "714dfc2dc31e832b",
+     "44f4e6e3d195baa4",
+     "73a195eae3fa2529",
+     "96c19ca9f6771d57",
+     "acd3460123b0142f",
+     "05a8baba0df36422",
+     "03d00e1b6c3e6646",
+     "56a7dcff1d05f6b3",
+     "6ba42538a79c8d14",
+     "b2421799a68e2a6e",
+     "3b683e7019b900cf",
+     "e071b9914d04e0cc",
+     "06565cd84432362f",
+     "fc949f30f983e06a",
+     "31691c98c3a0efd2",
+     "d74283a5c598f9f0",
+     "d652bf103fc7a68a",
+     "1f99e26d89318dcf",
+     "e7bc42bfcfe77b66",
+     "8ebf291eb6c0d898",
+     "f0210d02c93d77b1",
+     "bbbfce27e22680f1",
+     "92b2c0ca592bd4c4",
+     "7539b2827f69d8f6",
+     "c7a166d7fc3bfae4",
+     "136e0af3a1c0252e",
+     "4b71785a10add6ad",
+     "fc9899321db37e36",
+     "8483bff6365f990e",
+     "2dca3fcc7d295c63",
+     "888962bb82545038",
+     "cddb9dca1120634c",
+     "bd4a4b20139acabc",
+     "c68bfa55ffbf7de4",
+     "272bfafcd2e43ebf",
+     "12b9af5316554b42",
+     "b76d76596fd789ce",
+     "9f856ff875ba36fb",
+     "569b38925a5a4e6b",
+     "22863d050c0c5ad9",
+     "b4b4a169f16e1f31",
+     "c9ab984ccc1ee9ee",
+     "d8b9c646da087617",
+     "089256e7b4fc10c7",
+     "da68e445912b9ee4",
+     "e4b12c29c7a8baf0",
+     "7069db8f974294c7"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.5,
+     "images": {
+      "<S>/shot.png": {
+       "file": "<S>/shot.png",
+       "size": [
+        400,
+        1200
+       ]
+      }
+     },
+     "output": {
+      "fps": 10,
+      "name": "vertical",
+      "size": [
+       1080,
+       1920
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "camera",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 3.5
+      },
+      {
+       "from": 3.5,
+       "out": 3.5,
+       "source": "hold:main",
+       "to": 4.0
+      },
+      {
+       "from": 3.5,
+       "out": 4.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[vertical] overlays[3]: place: face, but no face is on screen at 8s - shown top-right"
+     ]
+    }
+   }
+  }
+ },
  "punch": {
   "check": {
    "rc": 0,
