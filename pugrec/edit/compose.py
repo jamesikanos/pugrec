@@ -555,7 +555,11 @@ def mix_args(mix, frames, fps, k, inputs, parts):
     dur = len(frames) / fps
     st = "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo"
     labels = ["[v2]"]
-    parts.append(f"[voice]{st}[v2]")
+    if mix.get("voice"):   # audio.breaths: the voice's own gain curve (breaths between words lowered)
+        parts.append(f"[voice]{st},asetnsamples=n=240,volume=volume='{gain_expr(mix['voice']['gain'], t0)}'"
+                     ":eval=frame[v2]")
+    else:
+        parts.append(f"[voice]{st}[v2]")
     m = mix.get("music")
     if m:
         pos = m["start"] + t0

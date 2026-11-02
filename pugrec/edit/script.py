@@ -514,7 +514,7 @@ def parse(data, base_dir="."):
     outro = card(data["outro"] if "outro" in data else tc.get("outro"), "outro", style)
 
     audio = data.get("audio") or {}
-    _keys(audio, "audio", ["source", "music", "sfx", "loudness"])
+    _keys(audio, "audio", ["source", "music", "sfx", "loudness", "breaths"])
     if audio.get("source", "mic-clean") not in ("mic-clean", "raw", "none"):
         _err("audio.source", "mic-clean, raw or none")
     mix = {}   # music bed, sound effects, final loudness: only edits that use them carry the key
@@ -522,6 +522,10 @@ def parse(data, base_dir="."):
         mix["music"] = music(audio["music"], "audio.music", base_dir)
     if audio.get("loudness") is not None:
         mix["loudness"] = _num(audio["loudness"], "audio.loudness", -30, -5)
+    if audio.get("breaths") not in (None, False):
+        b = breaths(audio["breaths"], "audio.breaths")
+        if b:
+            mix["breaths"] = b
     raw_sfx = audio.get("sfx") or []
     if not isinstance(raw_sfx, list):
         _err("audio.sfx", "expected a list of {at, file, volume}")
@@ -908,6 +912,20 @@ def music(v, path, base_dir):
             "fade_in": _num(v.get("fade_in", 1.0), f"{path}.fade_in", 0, 30),
             "fade_out": _num(v.get("fade_out", 2.0), f"{path}.fade_out", 0, 30),
             "loop": v.get("loop", True)}
+
+
+def breaths(v, path):
+    """audio.breaths: lower the breaths between words (found from the sound + the transcript's
+    words) at build time. `true` or {between_words, lower (dB), min (s)}; None = off."""
+    if v is True:
+        v = {}
+    _keys(v, path, ["between_words", "lower", "min"])
+    if not isinstance(v.get("between_words", True), bool):
+        _err(f"{path}.between_words", "true or false")
+    if not v.get("between_words", True):
+        return None
+    return {"lower": _num(v.get("lower", -16), f"{path}.lower", -40, -1),
+            "min": _num(v.get("min", 0.12), f"{path}.min", 0.06, 2)}
 
 
 def sound(v, path, sources, base_dir):

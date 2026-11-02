@@ -63,7 +63,7 @@ scenes:
 | `cuts` | a list `[[from, to], ...]`, or `{pauses: s, fillers: bool, ranges: [...]}` (pauses/fillers need `transcript.jsonl`) |
 | `timeline` | instead of cuts: explicit segments `[{source, from, to}]` in order (splicing; reordering) |
 | `sources` | `{main: {session: .}}` (default). Image sources: `{page: {image: shots/page.png}}` - a still shown with `shot: {source: page}` (Shots, below). The first session times the edit; videos are planned. |
-| `audio` | `{source: mic-clean | raw | none, music, sfx, loudness}` - source: mic-clean (from `pugrec audio`) if it exists, else raw; a music bed, sound effects and final loudness (Music and sound effects, below) |
+| `audio` | `{source: mic-clean | raw | none, music, sfx, loudness, breaths}` - source: mic-clean (from `pugrec audio`) if it exists, else raw; a music bed, sound effects, final loudness and breaths between words lowered (Music and sound effects, below) |
 | `style` | defaults, below |
 | `scenes` | the list of scenes, by `at` |
 | `intro` / `outro` | title cards before/after the video: `"Title"` or `{title, subtitle, duration}` |
@@ -375,6 +375,7 @@ audio:
   sfx:
     - {at: 12.4, file: sfx/whoosh.wav, volume: -6}   # source seconds; dB, 0 = as recorded
   loudness: -14                  # optional: the build's final integrated loudness (LUFS)
+  breaths: {between_words: true, lower: -16, min: 0.12}   # optional (or `breaths: true`)
 callouts:
   - {at: 40.6, title: Next, sfx: sfx/whoosh.wav}    # callouts and overlays take `sfx: file` too
 ```
@@ -389,7 +390,14 @@ callouts:
   same `sfx` list whether written there or as a callout's / overlay's `sfx:`.
 - **`loudness`**: loudnorm on the final mix (-14 for social platforms). Without it, the voice
   stays at -16 LUFS and the mix is as set.
-- With music or sfx the build's audio is stereo (the voice in the middle); without, it's mono
+- **`breaths`**: lowers the breaths between words by `lower` dB (fades of 30 ms inside the
+  breath, so the words either side keep their edges). A breath is an unvoiced, non-silent run
+  at least `min` seconds long that lies less than half inside the transcript's words and isn't
+  as bright as an s/sh; a word lying whole inside a run splits it. This catches the inhales
+  between phrases that `pugrec audio` leaves (it can't tell them from consonants without the
+  words). Needs a transcript: without one `check` warns and nothing is lowered. `check` prints
+  how many were lowered. Off (`false`, or no key) = the audio exactly as before.
+- With music, sfx or breaths the build's audio is stereo (the voice in the middle); without, it's mono
   as before.
 - Resolve decides the levels (the plan's `mix`: the music's gain curve and each effect's time);
   the build's audio graph and the preview both play exactly that.

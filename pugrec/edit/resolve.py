@@ -1847,8 +1847,8 @@ def resolve(sc, output_name=None, sessions=None, fps=None, t_from=0.0, t_to=None
     }
     if res.derived:   # only edits with a cut-out carry it (old plans stay byte-identical)
         plan["derive"] = res.derived
-    if any(k in sc["audio"] for k in ("music", "sfx", "loudness")):   # likewise: only edits with a mix
-        plan["mix"] = mix_plan(sc, sessions, frames, fps, total, warnings)
+    if any(k in sc["audio"] for k in ("music", "sfx", "loudness", "breaths")):   # likewise: only edits with a mix
+        plan["mix"] = mix_plan(sc, sessions, frames, fps, total, warnings, audio)
     return plan
 
 
@@ -1910,7 +1910,78 @@ def keyframes(ts, gs):
     return [[round(ts[i], 4), round(gs[i], 5)] for i in dict.fromkeys(keep)]
 
 
-def mix_plan(sc, sessions, frames, fps, total, warnings):
+def voicing(path):
+    """audio.breath_features of a voice file (level, voicing, centroid per 20 ms), computed once
+    (cached on disk by path, size and mtime: a 10-minute take takes a few seconds)."""
+    import hashlib
+    import numpy as np
+    from .. import audio as audio_mod
+    st = os.stat(path)
+    key = f"{os.path.abspath(path)}|{st.st_size}|{int(st.st_mtime)}"
+    cache = os.path.expanduser(f"~/.cache/pugrec/voicing/{hashlib.sha1(key.encode()).hexdigest()}.npz")
+    try:
+        with np.load(cache) as z:
+            return z["rms"], z["voi"], z["cen"]
+    except (OSError, ValueError, KeyError):
+        pass
+    rms, voi, cen = audio_mod.breath_features(audio_mod.read_f32(path, audio_mod.BREATH_SR))
+    try:
+        os.makedirs(os.path.dirname(cache), exist_ok=True)
+        np.savez(cache + ".part.npz", rms=rms, voi=voi, cen=cen)
+        os.replace(cache + ".part.npz", cache)
+    except OSError:
+        pass
+    return rms, voi, cen
+
+
+VOICE_BLOCK = 240 / 48000   # s: compose's asetnsamples block, over which the gain is held
+BREATH_FADE = 0.03   # s: = audio.BREATH_FADE, ramps inside the breath so the words either side keep their edges
+
+
+def breath_mix(cfg, sessions, audio, frames, fps, warnings):
+    """audio.breaths: the voice's gain curve (linear, output seconds) lowering each breath between
+    words, and the breaths themselves [source, from, to] (source seconds) for `check`."""
+    from .. import audio as audio_mod
+    files = {a["source"]: a["file"] for a in audio}
+    found = {}
+    for name, sess in sessions.items():
+        words = [(w["t"] / 1e9, w["end"] / 1e9) for sg in sess.transcript or [] for w in sg["words"]]
+        if not words:
+            warnings.append(f"audio.breaths: source {name!r} has no transcript, so no breaths are lowered "
+                            "(pugrec transcript)")
+        elif name not in files:
+            warnings.append(f"audio.breaths: source {name!r} has no voice to lower (audio.source none, or no mic)")
+        else:
+            found[name] = audio_mod.between_word_breaths(*voicing(files[name]), words, cfg["min"])
+    dt = 1 / fps
+    floor = 10 ** (cfg["lower"] / 20)
+    dips, used = [], []
+    i = 0
+    while i < len(frames):   # runs of frames playing one stretch of one source's audio
+        f0 = frames[i]
+        j = i + 1
+        while (j < len(frames) and frames[j]["src"] == f0["src"] and not frames[j].get("hold")
+               and not f0.get("hold") and abs(frames[j]["st"] - frames[j - 1]["st"] - dt) < dt / 2):
+            j += 1
+        if not f0.get("hold") and f0["src"] in found:
+            s0, s1 = f0["st"], f0["st"] + (j - i) * dt
+            for a, b in found[f0["src"]]:
+                a, b = max(a, s0), min(b, s1)
+                if b - a >= 2 * BREATH_FADE + VOICE_BLOCK + 0.02:
+                    dips.append((f0["t"] + a - s0, f0["t"] + b - s0))
+                    used.append([f0["src"], round(a, 3), round(b, 3)])
+        i = j
+    t_end = frames[-1]["t"] + dt if frames else 0.0
+    keys = [[round(frames[0]["t"], 4), 1.0]] if frames else []
+    for a, b in sorted(dips):
+        b -= VOICE_BLOCK   # the build applies the gain per 240-sample block: back at 1 before the next word
+        keys += [[round(a, 4), 1.0], [round(a + BREATH_FADE, 4), round(floor, 5)],
+                 [round(b - BREATH_FADE, 4), round(floor, 5)], [round(b, 4), 1.0]]
+    keys.append([round(t_end, 4), 1.0])
+    return {"gain": keys, "breaths": used}
+
+
+def mix_plan(sc, sessions, frames, fps, total, warnings, audio=()):
     """The music's gain curve (linear amplitude, output seconds) and when each sound effect fires.
     Decided here once, so the build's audio graph and the preview's Web Audio play the same mix."""
     au, mix = sc["audio"], {}
@@ -1958,6 +2029,8 @@ def mix_plan(sc, sessions, frames, fps, total, warnings):
         mix["sfx"] = sfx
     if "loudness" in au:
         mix["loudness"] = au["loudness"]
+    if "breaths" in au and frames:
+        mix["voice"] = breath_mix(au["breaths"], sessions, audio, frames, fps, warnings)
     return mix
 
 

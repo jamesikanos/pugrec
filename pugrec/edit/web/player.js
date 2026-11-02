@@ -96,7 +96,10 @@ function sync(frame) {
       if (!want.has(st.url)) want.set(st.url, Math.max(0, l.t - st.offset));
     }
   }
-  if (!frame.hold) for (const a of p.audio) if (a.source === frame.src) want.set(a.url, frame.st);  // a hold is silent
+  if (!frame.hold) for (const a of p.audio) if (a.source === frame.src) {   // a hold is silent
+    want.set(a.url, frame.st);
+    if (p.mix && p.mix.voice) el("audio", a.url).volume = Math.min(1, gainAt(p.mix.voice.gain, state.t));   // audio.breaths
+  }
   // The mix (audio.music / sfx) runs on the output clock, through holds and cards too. Its levels
   // come from the plan (resolve's gain curve), as in the build - nothing is decided here.
   const free = new Set();

@@ -219,6 +219,48 @@ def dip_curve(n, runs, sr=SR, floor_db=BREATH_IN_SPEECH_DB, fade=BREATH_FADE):
     return g
 
 
+# Breaths between words (edit audio.breaths, at build time): the transcript tells breath from
+# consonant, so the colour/level/length limits above can be dropped.
+BETWEEN_INSIDE_MAX = 0.5    # share of a run inside words above which it's (unvoiced) speech
+BETWEEN_WORD_MIN = 0.05     # s: shorter word stamps (Whisper gives some 0 s) don't say where the word is
+BETWEEN_PAD = 0.03          # s kept clear round a word that lies inside a run
+
+
+def between_word_breaths(rms, voi, cen, words, min_s, hop=BREATH_HOP / BREATH_SR, frame=BREATH_FRAME / BREATH_SR):
+    """[(start_s, end_s)] of breaths between words: unvoiced, non-silent runs of at least min_s,
+    less than half inside the transcript's words [(t, end)], below the hiss of s/sh. A word that
+    lies whole inside a run splits it (with BETWEEN_PAD either side): the run was partly speech."""
+    import numpy as np
+    c = (voi < BREATH_VOICED_MAX) & (rms > BREATH_RMS[0])
+    filled = c.copy()
+    filled[1:-1] |= c[:-2] & c[2:]
+    words = sorted((a, b) for a, b in words)
+    c0 = frame / 2 - hop / 2            # frame i stands for [i*hop + c0, (i+1)*hop + c0]
+    out, i, n = [], 0, len(filled)
+    while i < n:
+        if not filled[i]:
+            i += 1
+            continue
+        j = i
+        while j < n and filled[j]:
+            j += 1
+        a, b = i * hop + c0, j * hop + c0
+        pieces = [(a, b)]
+        for wa, wb in words:
+            if wb - wa >= BETWEEN_WORD_MIN and wa >= a and wb <= b:
+                pieces = [q for pa, pb in pieces
+                          for q in ((pa, min(pb, wa - BETWEEN_PAD)), (max(pa, wb + BETWEEN_PAD), pb)) if q[1] > q[0]]
+        for pa, pb in pieces:
+            if pb - pa < min_s - 1e-9:
+                continue
+            inside = sum(max(0.0, min(pb, wb) - max(pa, wa)) for wa, wb in words if wb > pa and wa < pb)
+            k0, k1 = int(round((pa - c0) / hop)), max(int(round((pa - c0) / hop)) + 1, int(round((pb - c0) / hop)))
+            if inside / (pb - pa) < BETWEEN_INSIDE_MAX and float(np.median(cen[k0:k1])) < BREATH_CENTROID[1]:
+                out.append((round(pa, 3), round(pb, 3)))
+        i = j
+    return out
+
+
 # ------------------------------------------------------------------- clean --
 def clean(session_dir, out_name="mic-clean.flac"):
     import numpy as np
