@@ -1,0 +1,4299 @@
+{
+ "bubble-corner": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "b119c6842f708962",
+     "d2c3dd37827a5b5e",
+     "ebe97711b169fa89",
+     "5729fd0d75beb97c",
+     "d2f6f53b867f57fd",
+     "bbb05e129c423d32",
+     "7ad930a39494ca67",
+     "ad2c4fe13105392d",
+     "5e634dcc759e54a8",
+     "80ca9606bc312bfb",
+     "5730a7daf6d7e902",
+     "8c2f5c74f4dedd0c",
+     "758689f305d681d9",
+     "10ba0fd642f03018",
+     "3b676c0ee0a61f5d",
+     "0dcf725032dfb176",
+     "449d4535c2190ad9",
+     "cdcb6f4ed4667d58",
+     "0bf59092a3ee12e1",
+     "ec1e6b1489cf35a3",
+     "5532d84ee7a3f51b",
+     "da30d8c4f8065831",
+     "a6d10be87add545c",
+     "ea606985d595711f",
+     "7b0767a98bff06bc",
+     "b93cb9cb0b6c46aa",
+     "fbc5d4bec0aa6b00",
+     "a91ba8c028f880af",
+     "2aefa5acab71ddef",
+     "7ea4dd3f87188274",
+     "2b32f9781a5c27ea",
+     "5b0c2e25e7cffe22",
+     "92bd7d92ae000938",
+     "2f5af7726dc616af",
+     "f54793a6d75d700a",
+     "4ad34fada499e1fa",
+     "38f38a85fe3c3b11",
+     "318b34fd67e942fc",
+     "2a0ea1c375a0a1de",
+     "0c8ad6f72340694d",
+     "276a30bccd07d908",
+     "69b74e82ad623ec8",
+     "5bdc6b4ed8ac483a",
+     "16e43c825b69049e",
+     "5d1ab51edfdc955d",
+     "9cd1e9768266b344",
+     "edd2fbac9aae785c",
+     "b542969efd2f4c19",
+     "8e0116b681718d60",
+     "e3a30adcdd9b09b8",
+     "e561415f6b907c76",
+     "80ea593dc0df42c4",
+     "53b48d75e62f1ddd",
+     "e0c91dc7e62a686e",
+     "ffaef69693a9f195",
+     "1ff1a0f9e1dfea4c",
+     "b612ea3dacc8234f",
+     "5b2994d4514d13f5",
+     "ef552d4d9ac49eec",
+     "72c72e36e58f777c",
+     "8126b156bad51f7e",
+     "f42fd491d0378cdd",
+     "1e4f24d28ae4d3e2",
+     "7db58d9e046b8c6d",
+     "0758db4339410559",
+     "e5cdd8b7c6ebeb98",
+     "87d6d4174a758907",
+     "312ffe92453bbf60",
+     "88da2829f153deea",
+     "049437d468248329",
+     "0a46ccc40bf631c7",
+     "995effd99a318cd3",
+     "f086f76fc40d66f9",
+     "918e9ad77eb32ae6",
+     "9505a43bf9c098ec",
+     "db3b7c99e0ce8a5a",
+     "9147f4b42c9e7873",
+     "f3edffcb9ea0e820",
+     "947fd691ccd3214e",
+     "407b597773592282",
+     "5a877a201a7695ca",
+     "1f3f35acf2cd8671",
+     "48ce5e2dc21a9a95",
+     "b07d513207f66e6d",
+     "2dcb18f7cfa1a18b",
+     "6203018a4f173aeb",
+     "5b3c6d45f495889f",
+     "77a261fae2d28cf9",
+     "fb58b522a7e250ae",
+     "1c56e0c648808623",
+     "80791a996b0f5594",
+     "30205e41c148d80a",
+     "5cab227005ca891d",
+     "57046efa98198c36",
+     "b8d12bf5742978c4",
+     "3a5cad1a8dc3a796",
+     "9317e5a2609cd56f",
+     "131a56cef08d0aa1",
+     "a07e6a6dba314c63",
+     "01ad27b5c716f416"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "callouts": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 11.0s, 3 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n  warning: callouts[1] ('Status') starts while callouts[0] ('Owner') is still up in the same corner: they overlap\n  warning: callouts[2] ('Next') starts while callouts[0] ('Owner') is still up in the same corner: they overlap\n  warning: callouts[2] ('Next') starts while callouts[1] ('Status') is still up in the same corner: they overlap\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=5.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=4.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];anullsrc=r=48000:cl=mono,atrim=duration=1.0000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];[1:a:0]atrim=start=5.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=4.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a2];[a0][a1][a2]concat=n=3:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "22a20ac937184c14",
+     "1231d066a37eaf03",
+     "617ca09e38eea891",
+     "980b639fd39ca1d4",
+     "b80e46e2cd61136f",
+     "75ba44b42b2b8867",
+     "7c4fb01b28509961",
+     "709b2a9407196a18",
+     "5f828cd875ab0a31",
+     "4184948c2e88f87c",
+     "53e6ca0b817bae08",
+     "9f366a7543b772c4",
+     "b4fd4145a2231fb0",
+     "29a2dcbfbe582408",
+     "0b21e6201698b7ff",
+     "c04013622196deb1",
+     "40f9bec8e6ab9001",
+     "69845b262d2b0069",
+     "a995f3664ca1e96c",
+     "3d62f43a5620d041",
+     "d3da4ade5a6a6943",
+     "80680a6108fa6585",
+     "7d9e41198de34c79",
+     "e20ebe6f31688c47",
+     "943bb80eb95c6334",
+     "ac5c1e5ebeb97c78",
+     "75876f203a835574",
+     "0a9c494ba092301f",
+     "614c04e90080d3dd",
+     "4c2a06c74d4e0bfb",
+     "7e593a12dd6f3406",
+     "476d34395082c6c6",
+     "e5733accb8a59f6b",
+     "a38c10852e298ea3",
+     "6d53200f842f26dc",
+     "11bbc57b35c02450",
+     "9232f1286c040f91",
+     "affbebe99284ace0",
+     "24a1ec7a5bdd224f",
+     "312a66f1eabf2649",
+     "0ccccb9ed32dd0ae",
+     "98c0164cc59c1cac",
+     "ddd0b05341732bdc",
+     "61d30c57e3bb9407",
+     "040b6e95628cf8f4",
+     "76756929ef0adc0b",
+     "0b601518e894e677",
+     "fd93d7ce45461dfc",
+     "8b42000a80ca9678",
+     "f83d699c6141c3d8",
+     "a69ef2d7814410e5",
+     "9f3931a53ef22a59",
+     "7e6675dfd76c88dc",
+     "f26504e6ba53a704",
+     "c30d2e2939c166f2",
+     "37391057610de37d",
+     "ea1892ce142a5d59",
+     "0808a5a47d959af1",
+     "6b3616615221e291",
+     "5e8c933cd2ff4891",
+     "fe39552369262175",
+     "d023ea03a62b8e57",
+     "288af8b791eda364",
+     "4a2f617531527f08",
+     "452d8353f965b2d0",
+     "36578a2f1919569c",
+     "9e34142666166af6",
+     "d07a2c57cc5036c8",
+     "8bc63a94869f5d4c",
+     "bf4ec9224598f109",
+     "72d300c5565a7e72",
+     "d98ddf9a5269bc23",
+     "8687f48b16db2e36",
+     "6d854c5dc6d9af62",
+     "6a0ff6c3f311b84a",
+     "e442f4689b8d67c2",
+     "cd26936a6805a177",
+     "46d397174e387836",
+     "39f3b370aa7c5007",
+     "45b33a10966b30ce",
+     "56c7c95c1e6734e1",
+     "d592e1f961f40af5",
+     "957e8fb30b50c8fb",
+     "3182a7c6e787cbca",
+     "e308380671e0fa4a",
+     "eec82c5a9519f679",
+     "ec7a990000777ff5",
+     "34bf0a343026f8f1",
+     "086086e6019efa9c",
+     "fd15b75e872a625b",
+     "18e32a8301d70b7f",
+     "56c333157367f540",
+     "22dc346974486b86",
+     "410ba7e84e72cac2",
+     "e03c87f327a03ec7",
+     "038eb191007b90d2",
+     "d15de8dad1aa9982",
+     "438da474e0e71c27",
+     "6df5a6e1516b8d45",
+     "a8e7ca54ce80cdba",
+     "2472debf54352032",
+     "8903cd9ca37d8a4b",
+     "7c32a80cc99f836a",
+     "585c6d46b2442eb2",
+     "2ba8151b6a66df8c",
+     "5c7e177050056359",
+     "aec8ded444e43c83",
+     "0468e73e2ab93f64",
+     "a03777d13d454704",
+     "7df1d207820d4c67"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 11.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 5.0
+      },
+      {
+       "from": 5.0,
+       "out": 5.0,
+       "source": "hold:main",
+       "to": 6.0
+      },
+      {
+       "from": 5.0,
+       "out": 6.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "callouts[1] ('Status') starts while callouts[0] ('Owner') is still up in the same corner: they overlap",
+      "callouts[2] ('Next') starts while callouts[0] ('Owner') is still up in the same corner: they overlap",
+      "callouts[2] ('Next') starts while callouts[1] ('Status') is still up in the same corner: they overlap"
+     ]
+    }
+   }
+  }
+ },
+ "camera-default": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  camera\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "aab892a2769297da",
+     "4c10360e5f5a3bb6",
+     "3876519c595455dc",
+     "7dba6cb7ecdacdc6",
+     "5b049df5e8d95f98",
+     "65b928ba8f300ad1",
+     "82ee90def75f0f24",
+     "2e6c07e2f1d8d7de",
+     "777a5f0991317800",
+     "9dad932d7c7bc55f",
+     "36ae9788c8a731d3",
+     "fc061c7426aa5a8a",
+     "0bb4e4b872593cb8",
+     "4a9d88e453936bdc",
+     "cff55f34295741a0",
+     "5c3a9069e861c3e9",
+     "46b1ddd19c367b15",
+     "8454497bf28586b1",
+     "236734152fa34ef5",
+     "9fb93451f4b6697d",
+     "01624d797f364eaf",
+     "35e28fbb1497a940",
+     "aef8c58299f490d7",
+     "c57d58465758eeb4",
+     "86774c5cb436576f",
+     "9ca9350314ff1a00",
+     "2644a5c7e4000eb0",
+     "28cb3561a9b94cf1",
+     "dfbdd94fcd674868",
+     "d6e0fc03df6d803a",
+     "9a0803995413cf9f",
+     "92c2ccf609e5627b",
+     "5f03fd3534df5f53",
+     "68158047adfd0505",
+     "6b3d68b95bd172e5",
+     "fc5ccbe2f39801be",
+     "467c3e4f54ab66c9",
+     "6ab4fd976e6ff49b",
+     "309eff0b10015c14",
+     "7707e715e8328637",
+     "0cd33024307c4085",
+     "0a4668f14c7c526b",
+     "53b9cea35aa4172f",
+     "350f94db8af12323",
+     "e81d8aa8b299d41a",
+     "c6d9cfac67875ece",
+     "840391603cea0d27",
+     "25375a40e204af94",
+     "df0eb19585f0c61f",
+     "91095176e7ffd49b",
+     "dac12b08969811df",
+     "077b659a3336ee34",
+     "db81c3d722754485",
+     "795fef871c7dc343",
+     "0a776f1da05579bd",
+     "33635e1b2f929ce6",
+     "1449a9878f4fadbc",
+     "66896beaadc449cc",
+     "68c474b35cb7109a",
+     "e0ad0a44ac3ef76f",
+     "244a7ecdd55e1038",
+     "fd2ea6a5ca38a28f",
+     "8c89941bfa34a990",
+     "7287b32a9dd9f283",
+     "64a0a679054f1df1",
+     "39bba0470cffdeab",
+     "b098ba84d1a12f6f",
+     "86aff22c20b90bd6",
+     "c662da0d14354bd5",
+     "dfd9cc640877a8b9",
+     "f07dba9f688e2e7b",
+     "f78b6192f255d5a7",
+     "093fe32a4a123385",
+     "c17a76f9c4946401",
+     "d3fade5f711935d2",
+     "4bd2cbb1aa2db86e",
+     "dbe8d1863f95f8e8",
+     "b66b7144fe3de923",
+     "e94f421d1bc695e3",
+     "0b1535965dbecf53",
+     "38f8e3b4b816721c",
+     "e037d5cc152d54ad",
+     "03f698eceb796bd5",
+     "312be7f982eded90",
+     "dde90fd742959e85",
+     "ad0b7cf08d214208",
+     "9169bbcf5477f011",
+     "dccd139f86131620",
+     "339451fb12f5e02b",
+     "e0da6143ee85bc58",
+     "6369fb708aeb916e",
+     "1ff029da33ceb45c",
+     "cfd18f1725dac83c",
+     "a773a154500e168c",
+     "c070186a51080674",
+     "3cbc4d41f45315e7",
+     "7f892ec7b3f304a8",
+     "ddfcdb7f08632f0e",
+     "bad6549da67457cb",
+     "c855b9d853460e04"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "camera",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "camera-follow": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  camera\n  warning: [main] scenes[0]: follow: true on a camera shot tracks every lean (looks nervous): camera shots hold and push by default, only the bubble follows - drop follow\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "aab892a2769297da",
+     "26fcd0383f93147e",
+     "96ea4e858f830cfe",
+     "30952b1d43c5a85a",
+     "3e3c289ae37e5c00",
+     "d51976a67f8bfea9",
+     "d3b97939ed71691b",
+     "e2fa570adfa39694",
+     "1a628599a4265cc8",
+     "d0bff26eaf70995a",
+     "98fe5457b58653f2",
+     "09a77c8466ffdd06",
+     "540e3d9c74134db2",
+     "582c664efc197bb1",
+     "f5cab9f26c777c91",
+     "5b1265b260b5803b",
+     "e8a125795973a0fd",
+     "071184be00d4feb3",
+     "6fb49d5ddfba5d00",
+     "49b4e0961858169d",
+     "4717e7da51fc5662",
+     "b0386689a8cbb57e",
+     "cfab76a9d571e4e3",
+     "25e482e64e8a19e7",
+     "71bda4829112a281",
+     "4ac0dc5026993948",
+     "cdc3553d4f432599",
+     "4b845c8a7ab485e7",
+     "2a36293a20f0f2a4",
+     "66f67a6d00bc7bd2",
+     "753caa81426f1813",
+     "5a2aabdb5ee8872c",
+     "c8c01f9a67e6555f",
+     "64155d7c498691c9",
+     "8e8052a97b90cd30",
+     "d9d7f797094cb6a5",
+     "e30a70fb60d24b1f",
+     "b6edab601b2effc8",
+     "a88a6eb2deb12f91",
+     "7c42b3224d77ab96",
+     "6100001599d27159",
+     "a6c52ad74f75fe89",
+     "362a9d1732cfed1c",
+     "69f25bde9ed40b88",
+     "1743fa957e2e428c",
+     "e027e305f419fcf9",
+     "c2525c5bf42547f0",
+     "b546070c43d9e379",
+     "45f80eb337959a56",
+     "9e6b3644033a034c",
+     "ca3de8c28b2fd128",
+     "07f3187c0b2145c6",
+     "555aec423130326b",
+     "d6e6a3b5bdeb93d9",
+     "2102fa2132a232f3",
+     "befcac5a2232ffee",
+     "096ad510bbb56de3",
+     "0b320e8daf1ac7f6",
+     "c5955b3927d64877",
+     "ca43e7b91b667cea",
+     "6e79b205cf10b0a2",
+     "60ba4352482fb891",
+     "c37c8c47e8563f6c",
+     "123ff13282a18535",
+     "05844abef66778bc",
+     "035e770a5d482de7",
+     "f3aed17ad6369e8c",
+     "863a6ff392455693",
+     "34900771e8ca9b54",
+     "cccc0f4dee7bc7d6",
+     "cb89abeedd8a1732",
+     "1daedf63ba437716",
+     "33d72f062b5e906d",
+     "153f5bfb31df3790",
+     "3ec507c583a10b17",
+     "a7d76a1cdc1b5e40",
+     "5cf9b77bb89664a5",
+     "9ec2bba0f7d82aaa",
+     "a3658b1dce6a9249",
+     "e286d980fd2e53e4",
+     "4955317a0bd305d5",
+     "cf1351408faccf65",
+     "b5355a4fa906694f",
+     "e9ec4ddaaa301b48",
+     "703540fc47045ac6",
+     "ed3fa3859d2c006d",
+     "1ee3a3f7d4da3529",
+     "b8d233aa768ef426",
+     "762642ac7c1b1a09",
+     "e137a23bb7ce4615",
+     "ad1a447091f4ddd5",
+     "eac5b497d27470da",
+     "1a05c604593ee617",
+     "c60935648033d780",
+     "74bca0b8dca6cb2f",
+     "7a68d60aa072e8b4",
+     "c44f6b413029efdb",
+     "6237490894d777d1",
+     "59f719f304cffc1a",
+     "94462d6dfc74875f"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "camera",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[main] scenes[0]: follow: true on a camera shot tracks every lean (looks nervous): camera shots hold and push by default, only the bubble follows - drop follow"
+     ]
+    }
+   }
+  }
+ },
+ "captions": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\nvertical 1080x1920: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "b573aadcf292a173",
+     "d1943c60cac1ac1c",
+     "4882eea2c7267c4f",
+     "a60f0cd415cbfeee",
+     "576427e5b38ec4b8",
+     "f1a96340c0cc51bc",
+     "30b77fdd039a0be9",
+     "1daf10ded18fad34",
+     "2717e060e8e37814",
+     "a077aa3b44c59ff3",
+     "15dcb8d664ff6d1e",
+     "ad75e2328fb78229",
+     "7c9db7ec5977022d",
+     "464d06e89bae3846",
+     "185961a830ed9435",
+     "0ac93d73fee868c8",
+     "74b4a956d683ede7",
+     "18e86c9120fb36a2",
+     "03582f9e9e27325c",
+     "5648f8976e618afd",
+     "159fcbab46e37701",
+     "b1c8d0326f52cf27",
+     "8626b02c25ea76ea",
+     "eb93a3608e2deae5",
+     "921bf23dcb653c68",
+     "a1b4dab366244b74",
+     "eb4279682b2586b4",
+     "53b5445379ccf470",
+     "54d5b2797d949557",
+     "86fcf9c5280b7414",
+     "e8f6752f060da929",
+     "a91b0dad2a3780fd",
+     "c44f83a0a0d21cc4",
+     "9bb85555fbc982e8",
+     "1b395011fe92dfef",
+     "14d789a28286986a",
+     "bcb1feafcf739020",
+     "35c944395cc047c4",
+     "e4ebe7b56e240174",
+     "ebd952b7d291ac68",
+     "e3ebcf07507deee3",
+     "6339ca075137e750",
+     "b1291f91dd4a3a0f",
+     "9405cbed8a21585c",
+     "1a2c9e6c0fa1236f",
+     "3413ff277bf0e93a",
+     "739124b00e09fcc0",
+     "bafff45bd3a5b3d2",
+     "0e56011fc52cadf3",
+     "7f5dddd7f68d64dc",
+     "1d3ea139ab756cc3",
+     "00f3e871093f7c31",
+     "f246f7262b452d34",
+     "c03e0a84322786e3",
+     "d52cb6393f668b0a",
+     "c46a916c10d8db88",
+     "ac75cd19fb4056ad",
+     "2628e0a37b59f597",
+     "c292d9922803fc9b",
+     "c18e1ab112076a83",
+     "22f0bf20ffef39e1",
+     "1959f9e7397f052d",
+     "8f7047800eb9e1aa",
+     "ce25551be4dddcdd",
+     "6f71c64e1efdd858",
+     "407dedb4c6f2a8f7",
+     "b82045357add9ee6",
+     "a84152314f097c91",
+     "f770c9b35e7bc55e",
+     "91cdc3074b4f2485",
+     "6afd4a4046babfa3",
+     "7a89187f9fe09d28",
+     "f7ea8ff868cfee21",
+     "4a6f9d6c1155f2e6",
+     "f8de1050bc2e167c",
+     "2eeb834a8c47d6d4",
+     "e00e7ae46e7410ef",
+     "13699e8038922ff7",
+     "695518349b946fd6",
+     "f6f643f5904479d1",
+     "3aeab942069ebcef",
+     "690926363d8a86d1",
+     "a67d364383067971",
+     "21b28c3bc3bd90e2",
+     "dcd253f8438f47d9",
+     "d9ee4571fb368d5c",
+     "9f1d5a68fa35f0d1",
+     "022c2c10738c0be1",
+     "8c139b95942b866d",
+     "145e0b4577b4b382",
+     "4bbc5c9cf68876c8",
+     "2fe63a9c73eeba60",
+     "9759ecdc10c28578",
+     "1afbc3b73a2d608b",
+     "3b0e3511f9e5cd53",
+     "7a94aa2c1d152c20",
+     "c95bf35179173ed0",
+     "0ac226272e3c98ac",
+     "fc789fc76660f93b",
+     "c6697fea861eead8"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   },
+   "vertical": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "f1d8593b80fb4aab",
+     "6b35a39b12e052b4",
+     "7ae8d490f6e16edb",
+     "51ae3fd996ddba1b",
+     "914c8a399ddefc96",
+     "1f531acc003bb563",
+     "dc72ab45a086d329",
+     "503072b4eeb2166f",
+     "7083d0db6e5de654",
+     "961802195b5d1bb2",
+     "6973feb22dbe1188",
+     "8061f07b70fffd3c",
+     "a6aeb9adcdf2f27b",
+     "15c937afa7dada64",
+     "0f2a0795d38479aa",
+     "dc281dc353ae7d45",
+     "56404daa9ff756e0",
+     "69af9396b4567421",
+     "eb42ae875c8628d5",
+     "2d826a2bc24bae02",
+     "b8b9ede5904ad8c0",
+     "cc5a6f161f5becb1",
+     "2afc6c833fa663b2",
+     "8f3742d504c505d3",
+     "1eb8c5ecd015b148",
+     "5eca953929dbfe93",
+     "a482887eebfab3bc",
+     "baabd65cdb1d836a",
+     "99f13b8e65c65ddd",
+     "6cab6e31236de853",
+     "2f04134c8dade0a4",
+     "86ba67c7be1b33fc",
+     "c68c47892b662026",
+     "a12fd3a47c32dec0",
+     "689fe3c90f1b0e16",
+     "d53dffdf5f5082b8",
+     "15f05af1681e102d",
+     "83ed63c12ae9845a",
+     "6aa1fed4392907d1",
+     "90e5308de0670efe",
+     "2debac42a6855316",
+     "af3cac70164b4f2f",
+     "b1562bd02bffba49",
+     "123a099bef3b7f32",
+     "3fabaed481a24142",
+     "01f4073cff115eb5",
+     "6e9b6cdb354b6241",
+     "94b8ea979aa97687",
+     "817151b08edb6ae3",
+     "d87b537ad6cd2148",
+     "4f1e28c3884a553c",
+     "e8a27f4b73af6dba",
+     "fb539cdb7805cac2",
+     "24b5456f4c1c3376",
+     "2ba1aa74332f9c36",
+     "d9bd7963c3bb74c3",
+     "019d93d66c760c89",
+     "cf6f308c389d555e",
+     "8dbdc411599fde29",
+     "a34dafafc869825f",
+     "4c9d57baa68a4716",
+     "296a91e55eb363d6",
+     "303009e6eb570b19",
+     "935fea6eab129dbc",
+     "9cfe82b6e98dd5b7",
+     "2a3e74f484619b6f",
+     "d759d9e2ed514efd",
+     "a2440e97be4b06ea",
+     "1db5bd492ecceb59",
+     "a5d6e31ba38ff359",
+     "02a37db51977f0f8",
+     "490a572ca7872cd2",
+     "53fcfac27bd6ab2e",
+     "0ce217a68d29db9a",
+     "ef01d113c6949e21",
+     "c14b3ce30e366180",
+     "aa98c4568477a0d3",
+     "e159a932156d6395",
+     "b4a0e247e9a07001",
+     "9b77ceef802e5d93",
+     "52924f6bf861d173",
+     "1e0b5276813ef4f0",
+     "bcc817435a159799",
+     "06a7ae7c9a561dcf",
+     "f7a76542a7c6e644",
+     "927f90a0372870fa",
+     "03fc594590c32254",
+     "6d1c818671aea009",
+     "3c4850e8f854e3d9",
+     "cda2a1f30b399179",
+     "e1b681277c8e9288",
+     "9cdc3029989fad95",
+     "f71c25dd83d90264",
+     "5750963e0c8d55d1",
+     "41e663fe3cfdfac9",
+     "7b76ea80e9e2dd69",
+     "e47bc4a000a1e677",
+     "7f20c878d0068f81",
+     "9dd6f1b2332daf69",
+     "6548ffd3cdc5a416"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "vertical",
+      "size": [
+       1080,
+       1920
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "captions-off": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "b573aadcf292a173",
+     "d1943c60cac1ac1c",
+     "4882eea2c7267c4f",
+     "a60f0cd415cbfeee",
+     "576427e5b38ec4b8",
+     "f1a96340c0cc51bc",
+     "30b77fdd039a0be9",
+     "1daf10ded18fad34",
+     "2717e060e8e37814",
+     "a6747bda24c5599e",
+     "ad27bae91fe1a0f8",
+     "51a339828417c6e7",
+     "bea15310ae1f9240",
+     "2ff0db5cb00c9ff6",
+     "a0406fec9047f9f8",
+     "990a9953b237b707",
+     "ad989f9ef1c1f890",
+     "7fa178e7c22fda85",
+     "9eeca9abffe8e367",
+     "14c61b7647ae2881",
+     "814ab256d57f91b3",
+     "4a7478dc8f4118bf",
+     "9d2ee6e2698161ce",
+     "8d07003713f5f821",
+     "f7f593cb1f1f8a5c",
+     "054ac91ab84d2c15",
+     "4eb5641b3bec19ba",
+     "dec2f404fdc13d0f",
+     "fa0f6a59a1acabf3",
+     "86fcf9c5280b7414",
+     "e8f6752f060da929",
+     "a91b0dad2a3780fd",
+     "c44f83a0a0d21cc4",
+     "9bb85555fbc982e8",
+     "1b395011fe92dfef",
+     "14d789a28286986a",
+     "bcb1feafcf739020",
+     "35c944395cc047c4",
+     "e4ebe7b56e240174",
+     "ebd952b7d291ac68",
+     "e3ebcf07507deee3",
+     "6339ca075137e750",
+     "b1291f91dd4a3a0f",
+     "9405cbed8a21585c",
+     "1a2c9e6c0fa1236f",
+     "3413ff277bf0e93a",
+     "739124b00e09fcc0",
+     "bafff45bd3a5b3d2",
+     "0e56011fc52cadf3",
+     "7f5dddd7f68d64dc",
+     "1d3ea139ab756cc3",
+     "00f3e871093f7c31",
+     "f246f7262b452d34",
+     "c03e0a84322786e3",
+     "92d1895ab7d5573d",
+     "68b9f8349bec9edc",
+     "2d550efa6ae09130",
+     "825d3a52cc0a7771",
+     "e7a58ae41e2117a9",
+     "66e92b4f102fcd60",
+     "ea6d9cd9ecd56f60",
+     "fb99d80b524afc56",
+     "e2ceb81cf68ea827",
+     "ac5557f920b0152c",
+     "04112d9b770515dc",
+     "abd61e3fd19aca93",
+     "ec82b7af83c3d9c9",
+     "9f9d8e2d2a239ba9",
+     "79bf65098c542e63",
+     "cb9fb9bea2c6e819",
+     "63b3c938f6c18baa",
+     "241c6ea3b9761c06",
+     "ed22e5a76577fcd6",
+     "17cba83462b3695b",
+     "5e448a22f3722cd5",
+     "2eeb834a8c47d6d4",
+     "e00e7ae46e7410ef",
+     "13699e8038922ff7",
+     "695518349b946fd6",
+     "f6f643f5904479d1",
+     "3aeab942069ebcef",
+     "690926363d8a86d1",
+     "a67d364383067971",
+     "21b28c3bc3bd90e2",
+     "dcd253f8438f47d9",
+     "d9ee4571fb368d5c",
+     "9f1d5a68fa35f0d1",
+     "022c2c10738c0be1",
+     "8c139b95942b866d",
+     "145e0b4577b4b382",
+     "4bbc5c9cf68876c8",
+     "2fe63a9c73eeba60",
+     "9759ecdc10c28578",
+     "1afbc3b73a2d608b",
+     "3b0e3511f9e5cd53",
+     "7a94aa2c1d152c20",
+     "c95bf35179173ed0",
+     "0ac226272e3c98ac",
+     "fc789fc76660f93b",
+     "c6697fea861eead8"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "cards": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 14.0s, 3 segment(s)\n  [0] source   0.00s ->   3.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "anullsrc=r=48000:cl=mono,atrim=duration=3.0000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];anullsrc=r=48000:cl=mono,atrim=duration=1.0000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a2];[a0][a1][a2]concat=n=3:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "cbba224d362f36b0",
+     "873aa38f27a27ff5",
+     "f937652a740b49cc",
+     "854265ec88f993dd",
+     "b9a7f1a95fe20db4",
+     "20cdeeae42ccf61a",
+     "441458d9ee9719ff",
+     "04cfa9a3f6d7d843",
+     "28b843a96309c188",
+     "28fbb624c6df22e0",
+     "473061f8373e298e",
+     "4fd7158d63e834d7",
+     "a7feadcbdb24249a",
+     "20fb8ab0a6927854",
+     "3f6d69cbf2ed07cb",
+     "4e8ff10884834745",
+     "199e03f76362b528",
+     "11eb21b6788ec9d0",
+     "908d60500bb03f85",
+     "5b16e92cc4d5be37",
+     "c04227531d5c14fa",
+     "b91bcf6387a8f28e",
+     "9cdaff68b405ff8f",
+     "ef6d0dc5cccfd8db",
+     "9519fbc3e0720f3d",
+     "2856d8a1d00d7a92",
+     "a63c2fa0d7cfbb92",
+     "82bd861e4629acc9",
+     "31038479d71050e3",
+     "b7d4475c2050cc8e",
+     "9433dff6388a4198",
+     "1bf2d43ed5e6f33b",
+     "a047dc4e0aa775ac",
+     "0097a28956436edb",
+     "05bd2882681180ed",
+     "970d05c076011ff7",
+     "a6e0998914b1738c",
+     "98b7e35c2303eda9",
+     "491610913a3451e4",
+     "12360718c462de0d",
+     "f4c6fa69bb4d5eae",
+     "88bc6640a8e0bdbb",
+     "cbf7f5e50a390fbe",
+     "55e5cd2b9a030d0e",
+     "8b0d3eb8c0dc689a",
+     "019234fc9ce118f4",
+     "7f14590c32101e27",
+     "fc6b88362b0b6bfe",
+     "82264aadb9725c85",
+     "4444e81ca894f6d1",
+     "5f7130b8e3668522",
+     "7ce6af7461170a82",
+     "6c5c72ebd4ef1430",
+     "019accdd0e2f720f",
+     "1d0467086c96a03a",
+     "12ea3d856ced35bf",
+     "2fe91a6fc9fde982",
+     "242dfcc7521e7eef",
+     "004730fbebeabea3",
+     "4e0e2699b0e97427",
+     "5ff4fb0e3193f36d",
+     "72ce593ba1e7e7d4",
+     "aa009eab17f30047",
+     "7bb6c0e84bcebde8",
+     "dc3d4ca6e8dc9315",
+     "5ae508b038bb24a2",
+     "8384b767d35e5453",
+     "d36191030997f715",
+     "1f5d62ab56f44934",
+     "dc422480e9293ce2",
+     "f6560c5ab636b40f",
+     "15bdd3e8c0a01be5",
+     "79037c7af7d09fba",
+     "b5c2bd98faa061ce",
+     "bf0332f17440b9bb",
+     "9c5353e45d4455a3",
+     "7fdc0829d4bbc424",
+     "9c3b7e38b94425c9",
+     "de125acf97cd87d6",
+     "c05dfeea670c3f16",
+     "3e99598c7acc62ac",
+     "54011609a3499c8f",
+     "72d97b41bd0ebae6",
+     "9d5a7b806086dbf8",
+     "296e039fdda24f7f",
+     "818ed926468593b7",
+     "b3b32950e1238922",
+     "e8246c926fdfae64",
+     "b0f0ba8ce6166295",
+     "30673827d7548b76",
+     "132ab30929ec962a",
+     "bae53c4d29a530bd",
+     "e10ebc18bc6b2777",
+     "17a0f2e3f68c5f52",
+     "bfe00ba683646a8c",
+     "c76a1f4ab6ada898",
+     "eb202318ea836480",
+     "5a15b5d9db3a6936",
+     "d2a7199cc4294559",
+     "dd421159c2ac3db3",
+     "8bbe5a4ee6b1af82",
+     "42b8b9f4a0f63692",
+     "b414c7325d1c4855",
+     "938359d8042b7c9e",
+     "a37d8bca3c60d13e",
+     "83cebd842961572d",
+     "32685ba31529ad09",
+     "dda59340bd5a7520",
+     "b127d6d35852a1e9",
+     "f6d6ac099ad11980",
+     "a9654dc32fbfce48",
+     "e19cad904a0b19e4",
+     "2a84b519e21e6b64",
+     "d3a08b3181ad8136",
+     "ee501ef59e719489",
+     "d1ade5500cb737aa",
+     "ee4bc064ec3e161d",
+     "01eec4be88bce3e8",
+     "1323bab3d4b4138b",
+     "ce0370ed6cad8603",
+     "1f3dae21f43b0e5f",
+     "a4537cd06494bb87",
+     "cb90084ba87e8f82",
+     "e0da3513301049bd",
+     "36fa094c32f9d51c",
+     "276b28a2cb79a34f",
+     "220e04c1d2704c6d",
+     "83c7c7aadcbe2c8b",
+     "a822fd84dc5bcc11",
+     "aa9b5081505cd8ac",
+     "775d4f6c894bb43a",
+     "74563d24695db379",
+     "1e95ba64d47b3e56",
+     "96597d483f9e911d",
+     "148503039769e762",
+     "a073727c3eb36db5",
+     "6e3386ae2364c0bc",
+     "1d9d01e2bd96c864",
+     "5aa08a89d07a6005",
+     "fad44f3dc2ceb24b"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 14.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 3.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "card:intro",
+       "to": 3.0
+      },
+      {
+       "from": 0.0,
+       "out": 3.0,
+       "source": "main",
+       "to": 10.0
+      },
+      {
+       "from": 0.0,
+       "out": 13.0,
+       "source": "card:outro",
+       "to": 1.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "cuts-timeline": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 3.0s, 2 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=6.0000:end=8.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=1.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[1:a:0]atrim=start=1.0000:end=2.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=0.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];[a0][a1]concat=n=2:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "fbbbf585df370553",
+     "64439937abf0c8d5",
+     "c1e32b409ac42332",
+     "584d8ca0a854177b",
+     "5038f16b723ffb45",
+     "0589e86ef5408095",
+     "afc3818f0cdf786f",
+     "581a0cd82f3ffb23",
+     "9bfc450acf133808",
+     "01c824728129bd9c",
+     "78a7ff63934cddef",
+     "4fab47ce978892d0",
+     "76866f6d6087e4d2",
+     "341f152439bc27c1",
+     "9b76c89c3f317ed0",
+     "1ec87283d32a3487",
+     "8ed96c5df174bf51",
+     "a78286099b993eb8",
+     "14cd3dce3f1cf121",
+     "ca3dfe6e5c5c8fee",
+     "55e54e15ccacf2cc",
+     "15134c154bdccd2f",
+     "3148e628019f2bb6",
+     "fce662a4666e83e1",
+     "aa097ae472b1949f",
+     "ae540d07baa073c6",
+     "fc4b6472eb843124",
+     "5c01415e84968d31",
+     "27dfdbc43675ec95",
+     "b0d291bb6158d316"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 3.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 6.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 8.0
+      },
+      {
+       "from": 1.0,
+       "out": 2.0,
+       "source": "main",
+       "to": 2.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "inset": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  window title=left follow\n  [1] source   5.00s ->   5.00s  camera\n  warning: [main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "a0e05dca1f6e731b",
+     "b8dc975f197b7ecd",
+     "b2dee469e848b200",
+     "ab944753e97a14c3",
+     "77e8be7f0b126611",
+     "092a059837baa913",
+     "a213f4d366bff087",
+     "5acd5baf4938580a",
+     "e9738463783f4ab8",
+     "4b63582b2f87c896",
+     "95e8d84fce86dfec",
+     "d7a3bac671625281",
+     "2176c0431a901913",
+     "7fc90a2b3e458842",
+     "34469fc99f2f27bd",
+     "b188ac6beead3621",
+     "7a9e8303c6e80324",
+     "c41a6fbf22ff3d1c",
+     "7d340b9a078e6fcc",
+     "d11aa6e4b90e29d6",
+     "cdafc895ce1cdf27",
+     "018f8e1965ad6b9c",
+     "febb64566e847dbc",
+     "b8755225d569f8c8",
+     "52bae2c118464454",
+     "ffe92289324daa6a",
+     "d734d53e8b3408cc",
+     "f9b66afb8f3c5182",
+     "6502901da4367ce7",
+     "fa34894533479e7c",
+     "7d511a2228c45080",
+     "72cdcc282b692219",
+     "a2ac6c230c05ae1c",
+     "db46e137d3ca95b2",
+     "3f1fb4b0655cf1a3",
+     "466b265aef118a13",
+     "d49a80c1d245d73d",
+     "77e91778aa0052d9",
+     "fe87377e390a04c4",
+     "c97c7398beb96815",
+     "10d8c4fc6fd4ebc0",
+     "1749f96d4bba263f",
+     "291ecd5a2f6b77cd",
+     "cf6267200563aaf0",
+     "331fd0609801a167",
+     "9710f6912d464804",
+     "ee4998fcd734c83e",
+     "fb70efcdc1c66308",
+     "e13c61efba8ea872",
+     "19a2f7b9c46a1c7f",
+     "1b5bf768882ff994",
+     "328f80b7a215ebbe",
+     "7b91a700da36310e",
+     "affdcba0debb2911",
+     "7056165efcf04709",
+     "d291600db8385855",
+     "cf55406bb50a5693",
+     "9b0328c2cf7150fb",
+     "d3a922c48970e5a2",
+     "c6a9112e582df907",
+     "8b4f67080b442aba",
+     "8d6531b887cc5ccd",
+     "bef9768a384b9ce2",
+     "a34d54257e98a507",
+     "712e37ae389219f0",
+     "f3f6542f13d98667",
+     "c3715d226c15d96d",
+     "d20748b5461db66d",
+     "a9711b5f49f19dc1",
+     "be4216e0a16ea457",
+     "6d2492e2687913b7",
+     "3cb9d4454d52ab36",
+     "cad3f66b4d500546",
+     "bd7c969475b76680",
+     "ca7a42a33b289045",
+     "675d659dc461963a",
+     "72118069004e695f",
+     "02c3a0da19ceaced",
+     "f2b3e38dfea5f233",
+     "f1830c280c6593a0",
+     "aa396f86581e029e",
+     "95e03fc3c5c8ad3a",
+     "8cd5556125083830",
+     "ad386ee2abef11ed",
+     "ed4d8a7d13bd3b66",
+     "bee58bd24b21a539",
+     "121d96574426053c",
+     "d03417f1eba5c977",
+     "1f643e100f92c038",
+     "408a179db3c15b35",
+     "ffa09ece9773c510",
+     "792ff197fe0a1bf9",
+     "c1caff5a4566bec8",
+     "70d04d4cb19fe1d4",
+     "e497fe42b270ad08",
+     "c30e27eadddf913e",
+     "8760f0ebecda4ecd",
+     "44f10d435f061286",
+     "06d70a2accdee445",
+     "1151a7a0a3356886"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "window title=left follow",
+       "out": 0.0,
+       "source": "main"
+      },
+      {
+       "at": 5.0,
+       "index": 1,
+       "label": "camera",
+       "out": 5.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade"
+     ]
+    }
+   }
+  }
+ },
+ "mixed-vertical": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 12.5s, 3 segment(s)\n  [0] source   0.00s ->   3.00s  camera\n  [1] source   2.00s ->   5.00s  window title=right follow\n  [2] source   6.00s ->   8.60s  split: screen | camera\n  warning: [main] scenes[1]: push: only on the camera (a pushed app or screen looks weird); ignored\n  warning: [main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\n  warning: [main] scenes[2]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\nvertical 1080x1920: 12.5s, 3 segment(s)\n  [0] source   0.00s ->   3.00s  camera\n  [1] source   2.00s ->   5.00s  window title=right follow\n  [2] source   6.00s ->   8.60s  split: screen | camera\n  warning: [vertical] scenes[1]: push: only on the camera (a pushed app or screen looks weird); ignored\n  warning: [vertical] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\n  warning: [vertical] scenes[2]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "anullsrc=r=48000:cl=mono,atrim=duration=3.0000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[1:a:0]atrim=start=0.0000:end=5.3000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=5.2900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];[1:a:0]atrim=start=5.8000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=4.1900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a2];[a0][a1][a2]concat=n=3:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "10dc40fc4e346af7",
+     "00b5a4d62da9d930",
+     "da14a8778bb0a7e8",
+     "054120a9349049e7",
+     "ef3e92c0f7b02891",
+     "7ec164cf02dfda3e",
+     "7bffe3371178bd06",
+     "c3349411c3990116",
+     "5c8470083e975545",
+     "9796d7cf2fddda2e",
+     "e0fb4d68a23e5354",
+     "e5a6cd34b459d0ec",
+     "13c82248616184ad",
+     "989c9a525ed9d271",
+     "2bbb435293711996",
+     "2ecee0a5d6df8f30",
+     "12bdc9d2fb8659e3",
+     "412782d73d8391a8",
+     "b51b663cd4d2264c",
+     "bcce76429265d2c5",
+     "234f13c6a4bc454a",
+     "852fb68eacbd736d",
+     "06810a7784298883",
+     "67b3467383ffb6c6",
+     "d4725b72507e392e",
+     "b6d756f93bc2737e",
+     "502caead593a1d9b",
+     "1c3ad9e95cd69a02",
+     "94c6b336315c5a99",
+     "1ed1ab19cfc8ce52",
+     "acc2013dee772c64",
+     "00e44054e8a12114",
+     "9ab1066a9398f65f",
+     "54c84a8562d94518",
+     "1027f997240097b2",
+     "358c139fc5d9c0a2",
+     "9c7e01e2434e1d53",
+     "1c32289982eb076b",
+     "ad7dce7ead9ad16d",
+     "464c86888f8c318a",
+     "d45fa73a2eb0cca1",
+     "394cd39f322489bf",
+     "216d346ca15e3d20",
+     "cdb138d718d7f400",
+     "3acaddc7a0a70a71",
+     "ec03b607ff298a6b",
+     "631cecc593a6316d",
+     "31ebd2819a09e6a5",
+     "bffa0099c5b294c2",
+     "ae938aedb4b3bed3",
+     "424c0aa46a726395",
+     "dcfde75e762ea1f9",
+     "f243901aaae1e67e",
+     "4651e6511f4901bd",
+     "32db37f9501f9504",
+     "31b1355573f479d1",
+     "503429a7c28f4012",
+     "989b68d46ee6c132",
+     "3945ca09b8dcc429",
+     "87c676fc3c4cc987",
+     "a6435c0183614775",
+     "ae850226339bef76",
+     "fff0b6028ea7ff70",
+     "97a300b165455c12",
+     "e7af00083beb706d",
+     "7be933bd472665d2",
+     "1927b6b7098d94b6",
+     "b0ed8e168940e668",
+     "c53f2eda8357a51c",
+     "00ddc2c3b36aaf91",
+     "2fadc9c83edc5a61",
+     "ff631036b924c724",
+     "c0de3f61c0f3ff26",
+     "5dc7d31bdc8244bc",
+     "4f83134de5fa1103",
+     "a76c92c515428e64",
+     "2b656e1eb10a7d82",
+     "cfca8b54605c8c08",
+     "b7be92130b7c4388",
+     "bcfb58c37d2829c8",
+     "e64e57fc447c1f7b",
+     "e8de5d7e5aea321b",
+     "517167517b349032",
+     "99cb0748f84728b5",
+     "8d0b49d8ec04078a",
+     "e9c766b601eeee2c",
+     "7974afab080fe8f2",
+     "f57d92f1df25f129",
+     "1a1da209d1e3ecda",
+     "65171fbad1af6c33",
+     "652f4e0eeca76489",
+     "e1d3339b8647df73",
+     "d924076e411804ef",
+     "e5a0115acc09324d",
+     "8a7667a26ba1d8ad",
+     "21b2e1c73f42972c",
+     "937eb74ab01c48b2",
+     "bdd5a4475dc7c7c8",
+     "6c0c22370046c3ad",
+     "6e94064eedb0495a",
+     "fcf95d262cc34895",
+     "6ba1bd13cb9f85dc",
+     "3066b699677cb91c",
+     "3bee82c29708f87a",
+     "91597f6782f00725",
+     "d5ff0463f273c7ab",
+     "458d78461f22796d",
+     "18d297317c43aa72",
+     "8243495249c7cc3e",
+     "e79b5d0e4505771e",
+     "3c5c468733f353cf",
+     "b12cdf53585c1439",
+     "7d5b71b9a148a423",
+     "0e643702df898c42",
+     "52c0d873383de0d6",
+     "1023fc473ac5ac42",
+     "21a5b480f63e0908",
+     "088f6be8ff391944",
+     "de8d12e769a8368f",
+     "b9918954e1c81146",
+     "18e66e25b0ecc1cc",
+     "c038dd3ea376ad6d",
+     "b87f2f4025c605b7",
+     "d479b83fd43902c4",
+     "10d84179c1182b88"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 12.5,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "camera",
+       "out": 3.0,
+       "source": "main"
+      },
+      {
+       "at": 2.0,
+       "index": 1,
+       "label": "window title=right follow",
+       "out": 5.0,
+       "source": "main"
+      },
+      {
+       "at": 6.0,
+       "index": 2,
+       "label": "split: screen | camera",
+       "out": 8.6,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "card:intro",
+       "to": 3.0
+      },
+      {
+       "from": 0.0,
+       "out": 3.0,
+       "source": "main",
+       "to": 5.3
+      },
+      {
+       "from": 5.8,
+       "out": 8.3,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[main] scenes[1]: push: only on the camera (a pushed app or screen looks weird); ignored",
+      "[main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade",
+      "[main] scenes[2]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade"
+     ]
+    }
+   },
+   "vertical": {
+    "audio": {
+     "graph": "anullsrc=r=48000:cl=mono,atrim=duration=3.0000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[1:a:0]atrim=start=0.0000:end=5.3000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=5.2900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];[1:a:0]atrim=start=5.8000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=4.1900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a2];[a0][a1][a2]concat=n=3:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "11b976942c44c51c",
+     "4746c7a5013ebf97",
+     "c23385ae5a3668d8",
+     "d375b5b17ce7b395",
+     "4454bfcbb4e4e866",
+     "6565e4d73f12d5b0",
+     "ebb88f54957a7143",
+     "453e89d5f883d64c",
+     "84769157c854d612",
+     "e4e4d9e35c285bb8",
+     "7f27daceded5cdd8",
+     "06ed233659134762",
+     "90ea91e4771f3093",
+     "acdf7d7cdad3f084",
+     "d4ccf15bf2c37043",
+     "fadd02f3d24fd0b1",
+     "55b82f4b28b4639d",
+     "169b460a55be0987",
+     "de66f70cffa2cd17",
+     "794cb9032e6d133e",
+     "19ed973f10b017f0",
+     "2e62faa6e39f19c8",
+     "7f6b3c00731a5d63",
+     "f061acb53093423c",
+     "64a82c3860cc29c7",
+     "5500adb051e8339b",
+     "da0011df7a434293",
+     "cd805d0c57b6da41",
+     "37664643401d8264",
+     "a6f96c9bae9dbae3",
+     "9bc7facb2cc7f115",
+     "e70ebe0f51d80dce",
+     "5f96b8d62455a92d",
+     "c7d1c0796659a099",
+     "74cc57332ce2666e",
+     "ffcddc0791047f71",
+     "2e73707c484e59a2",
+     "d246ad7788390d55",
+     "7bc447bdc20cab82",
+     "39ce6391bae9ff2d",
+     "d2cb7b4967f83a0e",
+     "0ac70f1b16b782e2",
+     "0f3348c2690d0f5d",
+     "0eb3f5e6f1361470",
+     "abd706e7cd16923e",
+     "31ecb2b43e641ca5",
+     "653d238499439e9c",
+     "8039a572cbb6580c",
+     "ed70e988a3861a7c",
+     "fe1303942a77054b",
+     "716658292158688c",
+     "acbd03c231553e7d",
+     "bcc1ce496db202f2",
+     "a87151c672f588bb",
+     "3fc571c412d3b798",
+     "f3cd17bcec9400a6",
+     "d7a41c4cc81bf02f",
+     "30f78599eb37a9e8",
+     "edebec318dd40b26",
+     "a2d8c3b6f9cca7a0",
+     "ae96b1a29fb4b1d1",
+     "f0699fb89528bb0b",
+     "b610c9187505a87a",
+     "46762cfd43fd5a29",
+     "bf328eae42808ae8",
+     "23df04b531859363",
+     "fb1855f5fa1c07f4",
+     "11000bb51cafdf68",
+     "3bbe0cee85d8f8bf",
+     "37e6471919fa9e4f",
+     "8a62c53dc047416a",
+     "20ac9e299ff6d1dc",
+     "abeaa5a7e4f7c385",
+     "eb407106037d1934",
+     "873960c1e0090669",
+     "e47645864f8e81a6",
+     "b13d849d288947d5",
+     "ef7ac071e4a37e81",
+     "8dae9a7b8d469daa",
+     "b4ea76028cef80ae",
+     "3fe5587addcceb64",
+     "5bd0a9371f7ea95a",
+     "250b61cf0cbfe346",
+     "e0c6dc2b1af806c2",
+     "074043b960e7b56a",
+     "86632fb06da7940a",
+     "8fd495f27dcda660",
+     "ebce07b5009043ab",
+     "176cccd1f2a6e4d0",
+     "f60e0f515467979f",
+     "0caa52adaf89430f",
+     "fcdde30e5c0f33e5",
+     "a59c28655e573ae1",
+     "2cb4a8b738b000d6",
+     "7fc1e5ac1933aae2",
+     "543ac8584012d680",
+     "dc0c18cf5308ebc0",
+     "3cae2f16a8babd35",
+     "83b567a601a5edf2",
+     "2b94726876547909",
+     "3a7534da126a9993",
+     "dd4d179336650058",
+     "62ab09fdd893acdd",
+     "03f38cf77ff685b0",
+     "006d844829db3306",
+     "a72c004199db0736",
+     "f0133a6161e99120",
+     "5fda87748de534d9",
+     "90645dded9e32e29",
+     "ed918eb3a00d6a65",
+     "10defedca7d4a401",
+     "733564af6fae5835",
+     "caeae9daf62963bf",
+     "a6303febabc3366e",
+     "1dc129a40bb791a8",
+     "abbf13c18db722ce",
+     "fb035d782c869902",
+     "933f83d354dd8eb8",
+     "b16b74ca43cd2b0b",
+     "431a12e6dd703b11",
+     "16fb2259a8297fc0",
+     "e92a93c306f0a95d",
+     "4c089bd39314e4f2",
+     "06117a42e132bd24",
+     "57ceba17faf18aa2"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 12.5,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "vertical",
+      "size": [
+       1080,
+       1920
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "camera",
+       "out": 3.0,
+       "source": "main"
+      },
+      {
+       "at": 2.0,
+       "index": 1,
+       "label": "window title=right follow",
+       "out": 5.0,
+       "source": "main"
+      },
+      {
+       "at": 6.0,
+       "index": 2,
+       "label": "split: screen | camera",
+       "out": 8.6,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "card:intro",
+       "to": 3.0
+      },
+      {
+       "from": 0.0,
+       "out": 3.0,
+       "source": "main",
+       "to": 5.3
+      },
+      {
+       "from": 5.8,
+       "out": 8.3,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[vertical] scenes[1]: push: only on the camera (a pushed app or screen looks weird); ignored",
+      "[vertical] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade",
+      "[vertical] scenes[2]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade"
+     ]
+    }
+   }
+  }
+ },
+ "move-transition": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n  [1] source   5.00s ->   5.00s  cursor x2\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "190b77be0066b3a6",
+     "0f84124c51982374",
+     "6777d7f064b0c997",
+     "a45e4917c027300e",
+     "1af4408c0ead1e8d",
+     "eaede4fab9e5b516",
+     "e1db50e0af6ac028",
+     "e460d305381973ec",
+     "7a5b6780c9db2946",
+     "25b16ca5547e5269",
+     "bd8545c3eb6e3bd5",
+     "4529767e8cf42584",
+     "76b6e6f0c5606afb",
+     "e88bc865acc4d534",
+     "677b18ff12d07148",
+     "d4b36eb033b60bc4",
+     "b337281a97e32699",
+     "17160b9cbcd61aca",
+     "e6b3abf09974a6e3",
+     "b8907902cedbbfe9",
+     "ab7e14a1837d9345",
+     "107f9229642b03c9",
+     "a5f7de3b7dfe1aad",
+     "7112c639a68f462f",
+     "20c44df1a69675c5",
+     "14f00cbc74dbc80d",
+     "d45317f82320fdaf",
+     "1924a928473d2bf8",
+     "b0751ec5cd2174bf",
+     "cc5db95dae845ea9",
+     "ccaa09f0e3ed6cf0",
+     "9507c74ad3625ff9",
+     "dce9044cdcc3a8d6",
+     "3e17a56b001c8425",
+     "3ffbb36a5edcb933",
+     "2255f56adac75c97",
+     "d4166ef58f60331f",
+     "d72073867c28bf24",
+     "dbbe173809e8326b",
+     "509b4842e2f3fe33",
+     "2711e215a7a992ed",
+     "0d0a0e67559fb6e3",
+     "5054675dd2a08de2",
+     "eec2f6c04dce6221",
+     "0231da0580825157",
+     "abf08c42b628f51b",
+     "fe7bf17665be79dc",
+     "f160b3c614730c29",
+     "e2652b404c284ade",
+     "7a73a0d9e212f274",
+     "1d8141bc3be8a428",
+     "e407c50393d19154",
+     "e98df5065489c766",
+     "32eb8d4e9b00addc",
+     "74b1ab9df8d4d47f",
+     "3817557aab0cfe96",
+     "1e3a93aefffd2e7f",
+     "0e09527930676dcc",
+     "3c88efdc6da88266",
+     "cd5b386fbdd7f3ba",
+     "b7d9d48a2bddc4da",
+     "d87e95545fd8bd22",
+     "2d36e5d1dd7e764f",
+     "0f7afaa6000fc054",
+     "18d2667613a5c972",
+     "78f9c7112c6e1cc5",
+     "74a990ed3e20fa11",
+     "a7864d2b520d01b3",
+     "1bdd0a88ec47154a",
+     "d3f03c8ee37fdbe7",
+     "1de44d3309c011bf",
+     "e47acbac940a89e4",
+     "18366555a5700852",
+     "2151e45eb367572a",
+     "50bcedd45031d2aa",
+     "8ac3779223f85cb7",
+     "120ed56bb61d767f",
+     "632a670571e29c27",
+     "230d8dfb2cb128a7",
+     "bd09189a22cc2689",
+     "6ce9ee524e5e56c6",
+     "7c9f3e8ae10bd3d7",
+     "55e2ee74fae02a7e",
+     "9bf979ba1fae05c8",
+     "84b0867ba6e74ce6",
+     "272ce36928bab0c0",
+     "2e1a928f02f71838",
+     "60df490770346496",
+     "07f8a3ff951f8974",
+     "1574fd38718b2ca5",
+     "b7e715fa6b08e464",
+     "35cf9bea559a3d2e",
+     "09d674f8655ed084",
+     "118b1f7819ce770c",
+     "611978af85e7f5fd",
+     "c40326babdf6fb2f",
+     "cff9640afc834d1d",
+     "7b3704f659e4f066",
+     "c762029a9449d0aa",
+     "8339a59d8dd5540b"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      },
+      {
+       "at": 5.0,
+       "index": 1,
+       "label": "cursor x2",
+       "out": 5.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "punch": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n  [1] source   5.00s ->   5.00s  camera\n  warning: [main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "190b77be0066b3a6",
+     "0f84124c51982374",
+     "6777d7f064b0c997",
+     "a45e4917c027300e",
+     "1af4408c0ead1e8d",
+     "eaede4fab9e5b516",
+     "e1db50e0af6ac028",
+     "e460d305381973ec",
+     "7a5b6780c9db2946",
+     "25b16ca5547e5269",
+     "bd8545c3eb6e3bd5",
+     "4529767e8cf42584",
+     "76b6e6f0c5606afb",
+     "e88bc865acc4d534",
+     "677b18ff12d07148",
+     "d4b36eb033b60bc4",
+     "b337281a97e32699",
+     "17160b9cbcd61aca",
+     "e6b3abf09974a6e3",
+     "b8907902cedbbfe9",
+     "ab7e14a1837d9345",
+     "107f9229642b03c9",
+     "a5f7de3b7dfe1aad",
+     "7112c639a68f462f",
+     "20c44df1a69675c5",
+     "14f00cbc74dbc80d",
+     "d45317f82320fdaf",
+     "1924a928473d2bf8",
+     "5eeb7eb5669919c8",
+     "08695e721ac8b51c",
+     "4bc5476c9c170b60",
+     "5efafde2ec8bb27e",
+     "0fec0777e6793273",
+     "8433245755a43f4e",
+     "dd0100c83394253e",
+     "06630a4799c92c45",
+     "bc49197675bbecb9",
+     "889c1567b8a68241",
+     "c7d89c260bff4654",
+     "4cb2c9f24d6a82e7",
+     "def58ab79f4c8427",
+     "53743dd79250dc97",
+     "831cf78887ce0969",
+     "3cf7a9266429faf9",
+     "1a56b57f67945dc2",
+     "0568f6e832cecba9",
+     "6c99e3be058ba421",
+     "b3b106b22196e76d",
+     "64fb71f2d1a27257",
+     "7a73a0d9e212f274",
+     "2afb560963e780fc",
+     "abd804c78b756e9b",
+     "ce3dc99b293670c9",
+     "dcf437285920f348",
+     "33d2a93bd5616fd6",
+     "9a0863147e62bce6",
+     "1394bbb1f577a3ad",
+     "81b857d56d54d98b",
+     "80d9956108ebc67c",
+     "320910d92a886767",
+     "1d1ec23bf0826349",
+     "2e2ce7704ea677c3",
+     "ca3b6dbd4764f68e",
+     "e80d1e0493bcaaa4",
+     "4190724fe4b0fbed",
+     "7fa45f0b1328431f",
+     "32d3b5b40028cd5e",
+     "8db657df7c5b5555",
+     "de18d612e2f83c8e",
+     "2c5645b9dc8e9fc2",
+     "545a2f141bacfb1c",
+     "f939298214d3997a",
+     "6f8fd76364e81748",
+     "836750166c4f0701",
+     "70f2d26bfc984c51",
+     "659f26bee7b8decc",
+     "e5e5017041479f29",
+     "601fa9a6a0a11292",
+     "a53a985f3fa3b827",
+     "03af8a4290512dd8",
+     "23ae696f0f2aae62",
+     "e0e049a0f87402b0",
+     "097fb51e0dcf6428",
+     "b62abc257e759494",
+     "2b8e2e3d2a43a6f2",
+     "7edda666632e478b",
+     "10f11994b525cd38",
+     "15066021b55cb639",
+     "2dd9798f0eb15144",
+     "b232afce27705171",
+     "33c0be0ca3a86d06",
+     "e8b8f4646f62f364",
+     "7b0f83b1c02f2bbd",
+     "80ec0e9c5e9935ea",
+     "066b9e2a7284f5be",
+     "c44b8448fca0a464",
+     "f98ebdb16c8fdf99",
+     "e166013a7d876b66",
+     "3e99a10969f2c99a",
+     "5c6803b24ec7d23c"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      },
+      {
+       "at": 5.0,
+       "index": 1,
+       "label": "camera",
+       "out": 5.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade"
+     ]
+    }
+   }
+  }
+ },
+ "push": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  camera\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "aab892a2769297da",
+     "349c46c087690ad1",
+     "b12eba56a4697c62",
+     "8b633b54c5156b05",
+     "3e6b59c8438b1ced",
+     "4c712726fecccabf",
+     "c339a5b06f0e5328",
+     "0320d2ed92bc0240",
+     "ca8056e49e3f4ce0",
+     "2ba646e01a12d040",
+     "07d7d43547a797ef",
+     "92ad7b88c6b7cde8",
+     "57e2aeaf13cad01e",
+     "963d1b6ceb0ccf21",
+     "3bc50e8594e9c6de",
+     "209026041841350e",
+     "4431ac0f5e9b067f",
+     "7596d8b3fdc32788",
+     "13698a602673a2a9",
+     "75cd1edb1581f4ab",
+     "1c43e66201979450",
+     "0ff2e7976aa2d862",
+     "3914067b2e825e86",
+     "54728481c614fcca",
+     "34565f88727cbfb6",
+     "6e51b2a8b37e43ef",
+     "ed143944fcb9e101",
+     "4b351c9f5d530a7e",
+     "d29b36a41d49257b",
+     "0e28c5c385869c98",
+     "6271e523203292c4",
+     "66c900047f2289ab",
+     "d488cc1eebcfddde",
+     "de56f31f9d4ccc9e",
+     "f1927ef069dd015b",
+     "9aebcde05ac8fbb1",
+     "011fdc28a4e32645",
+     "825599e1e4c7d76f",
+     "634cb8f3b06c76b6",
+     "fe6a3818b7df1cd7",
+     "8134edeab23560da",
+     "9177091837751997",
+     "a003f95d292661ed",
+     "8ec83cb29f4c27ce",
+     "5350d9b6bb71c33d",
+     "79bdc0001e71ccf9",
+     "2249824bf2883dca",
+     "8431ca0cd491853b",
+     "cf6f9e5396b09fa3",
+     "697ae41058a5314f",
+     "dac12b08969811df",
+     "5f3e538989cd89f0",
+     "6bd70ece21918535",
+     "70b1d67384943e62",
+     "e24a7bb49b3b407f",
+     "21c8fb87938c78b9",
+     "e7f38c6759d4e13b",
+     "5c86e6bd81e26027",
+     "2090c82c5b49ea21",
+     "3ecc27b69177b4c9",
+     "ab03ebdcea3095d9",
+     "e7f4563af1cca386",
+     "9d743acc233ebad0",
+     "3b5ccb0f494ef588",
+     "b5c6f8e0c8b43205",
+     "d7cc1911df99b768",
+     "9a040ff2bf83334a",
+     "5e42a9e23776c831",
+     "dcb4aea241385e53",
+     "d26a6a00934d459e",
+     "98cca73609290257",
+     "193b8bd8b4e2920c",
+     "7c06e6e3545d4d46",
+     "0d5df31e3b3efdea",
+     "0469d08e7d5e707d",
+     "9894c5d3094df333",
+     "a48c728dddb50f1d",
+     "56909440d4dfdb07",
+     "ce81452a3f8cb687",
+     "9c09cc72c0159254",
+     "fceaad2cfac3bab7",
+     "3c3ba341ee92c0b1",
+     "846169453b3e60b5",
+     "7966360ca7e518fc",
+     "b4296f3ba4140279",
+     "e71028589d43d527",
+     "cf4600afc15bdc18",
+     "36e5fde551ebf98e",
+     "344fb583580f5b61",
+     "b23467767f170cad",
+     "f6a5621390e6788c",
+     "47683d10c7eb0585",
+     "cc62ab8154643f88",
+     "6fa8a508a5720134",
+     "81b2583311937dfa",
+     "cb00c7b0436d6eba",
+     "59ca9a80a53034de",
+     "a6428a1b2243ecde",
+     "7554a21a657bb628",
+     "6458a4f613eb3a5e"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "camera",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "region-contain": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  window title=left (region) follow\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "c2afc344313e806d",
+     "052698b84e7ab5d1",
+     "bd233442a932eaf5",
+     "4f287e95384ee284",
+     "f7332026d25a4984",
+     "64102baf0681d9eb",
+     "6fa91dec56c6e157",
+     "04242fe69e410a59",
+     "cb490c457d5ed1a1",
+     "359aea6bcf745c83",
+     "778e52da7565b65e",
+     "9221161e9b7036f7",
+     "3a65ce201cf22716",
+     "1a47124d4a31b5a2",
+     "2a9316317b21f802",
+     "987b373fe2cad9a7",
+     "aad83ea3449729da",
+     "6690cae861e981d6",
+     "14464e6f67cf6b18",
+     "cb9efd17a592400b",
+     "982c44cf5fcf448f",
+     "9ca7f99469083be2",
+     "eb97c28dea96a6fe",
+     "2fadc3431a49d0a8",
+     "7ec1437bb8fb3d53",
+     "ef4b9c09cadfa1df",
+     "8b2703399bfea274",
+     "e01d7c83ba17d8f0",
+     "653ba81c0d1f4d97",
+     "d9c6edf9270b844e",
+     "ea81479a7889c3ea",
+     "516d188e0aa2bb52",
+     "9df39c1a182f6b9e",
+     "31193e708ea8268b",
+     "7b0ea07a50193164",
+     "97e4ead5d450890e",
+     "595476a429857024",
+     "2b6778dcedb1d24c",
+     "4e6d882e9a53cd69",
+     "5e1ceae4a2157cfe",
+     "a3a0e841e60c2f55",
+     "306b4f196d098959",
+     "d18bab5414bf471c",
+     "e62cda55dd5d7ab2",
+     "b942a7fdb4cebeca",
+     "76033792a59ff7d8",
+     "cda5d848041227be",
+     "63f9bdf162e37db8",
+     "5570f4e8ecc0e085",
+     "1550883194a4121d",
+     "e3c32ec41588ad47",
+     "2001383d2cb8cd19",
+     "c66f0c93d03950de",
+     "bb1a8eb51346d05d",
+     "eba34a25e2acbf94",
+     "84a98f92728f6702",
+     "3ed9e151ff8f8501",
+     "3c2b3b2780b94078",
+     "49f5dc536b8a63e5",
+     "7937a7c79e5677fc",
+     "d4c1a179cbc8ffaa",
+     "5cd92e2eb192f79e",
+     "19de65851293ed27",
+     "fb16020fd3921a03",
+     "f82d1fc529795090",
+     "e598dae8f3d30b17",
+     "7c9b664b0bf952ec",
+     "735f5ee21ed9b484",
+     "7adc8e3bbecbd2c5",
+     "3801ec8286d3189b",
+     "7b1d2787170e8af1",
+     "1ce21d6350a90346",
+     "a20a9d98ab9ba3ba",
+     "4cac5578cd00f5a2",
+     "b64bf1d86591775f",
+     "1407ef3870c3eb1f",
+     "68f4a00796933fdf",
+     "a4347a05908ec520",
+     "0d6b47f6e7da38d5",
+     "a6475e9cc8a4660d",
+     "b5db8ff6cd4190ef",
+     "5b431e95788746ef",
+     "460b7124d667c0b1",
+     "414a2c55783d259d",
+     "ade10790539c9585",
+     "e6fc2e27ecabf720",
+     "f95170d6b5053ced",
+     "94e01d82fe310828",
+     "f741c8c312e68887",
+     "67665f30b75f3057",
+     "7e4c5e3687297e3d",
+     "57f057585d9fa427",
+     "dcdf9b53fe4da662",
+     "9161a04784109cf3",
+     "6a1f62b56e7341ae",
+     "ff293f0f97e6112c",
+     "2623fa56814dd09b",
+     "789e4356ea87ead6",
+     "146950e7593ea156",
+     "b1cf73d2585ea996"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "window title=left (region) follow",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "screen": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "b573aadcf292a173",
+     "d1943c60cac1ac1c",
+     "4882eea2c7267c4f",
+     "a60f0cd415cbfeee",
+     "576427e5b38ec4b8",
+     "f1a96340c0cc51bc",
+     "30b77fdd039a0be9",
+     "1daf10ded18fad34",
+     "2717e060e8e37814",
+     "52bc2f0923e55e59",
+     "9fa4c8344d4a03cd",
+     "4004fd52e8f8da3c",
+     "f7c9881695c46e2b",
+     "24b7acbb8a233b01",
+     "d7c29a0e6629c92a",
+     "6fb60ab41e8f4780",
+     "ba2c5f3dc789129a",
+     "924be16a8831b7b7",
+     "f6aa2bc770ab63f0",
+     "e0cd8eb5a784a062",
+     "e2905b50a2425f9c",
+     "849f24b79ebdad1c",
+     "4a3836175de51f7b",
+     "fe6e96ec382f5080",
+     "18352096b6de0946",
+     "600879e4f7628fdc",
+     "596eac56c65730aa",
+     "860a7b17d2e64694",
+     "eeca472bef2d77f6",
+     "86fcf9c5280b7414",
+     "e8f6752f060da929",
+     "a91b0dad2a3780fd",
+     "c44f83a0a0d21cc4",
+     "9bb85555fbc982e8",
+     "1b395011fe92dfef",
+     "14d789a28286986a",
+     "bcb1feafcf739020",
+     "35c944395cc047c4",
+     "e4ebe7b56e240174",
+     "ebd952b7d291ac68",
+     "e3ebcf07507deee3",
+     "6339ca075137e750",
+     "b1291f91dd4a3a0f",
+     "9405cbed8a21585c",
+     "1a2c9e6c0fa1236f",
+     "3413ff277bf0e93a",
+     "739124b00e09fcc0",
+     "bafff45bd3a5b3d2",
+     "0e56011fc52cadf3",
+     "7f5dddd7f68d64dc",
+     "1d3ea139ab756cc3",
+     "00f3e871093f7c31",
+     "f246f7262b452d34",
+     "c03e0a84322786e3",
+     "cd98b06e4bac541b",
+     "d7c59b545c96149e",
+     "45d5d165c616b283",
+     "afeb4b52b43f6e8d",
+     "9ad024e777fb89d7",
+     "a6caf6ed5d8316bb",
+     "6b95dd5816bee841",
+     "1d920276e3c9b480",
+     "fd085095e62089a6",
+     "946820f685b9d704",
+     "4703be3d65b5331c",
+     "9d83ffd343e5b240",
+     "bf6ecb27bbefc7f6",
+     "a3a0e3fea135b3a3",
+     "5983ea2578ad7860",
+     "c182040eb0985b36",
+     "7995e32c2dd30b5e",
+     "8ba175d1a9523e3e",
+     "98ef51b57ff6a7ae",
+     "8dff86e3cb611aaf",
+     "4234e52a925ed1a9",
+     "2eeb834a8c47d6d4",
+     "e00e7ae46e7410ef",
+     "13699e8038922ff7",
+     "695518349b946fd6",
+     "f6f643f5904479d1",
+     "3aeab942069ebcef",
+     "690926363d8a86d1",
+     "a67d364383067971",
+     "21b28c3bc3bd90e2",
+     "dcd253f8438f47d9",
+     "d9ee4571fb368d5c",
+     "9f1d5a68fa35f0d1",
+     "022c2c10738c0be1",
+     "8c139b95942b866d",
+     "145e0b4577b4b382",
+     "4bbc5c9cf68876c8",
+     "2fe63a9c73eeba60",
+     "9759ecdc10c28578",
+     "1afbc3b73a2d608b",
+     "3b0e3511f9e5cd53",
+     "7a94aa2c1d152c20",
+     "c95bf35179173ed0",
+     "0ac226272e3c98ac",
+     "fc789fc76660f93b",
+     "c6697fea861eead8"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "split": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  split: screen | camera\nvertical 1080x1920: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  split: screen | camera\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "554a0006605553d8",
+     "75edee047d624f6d",
+     "836ea43db2ed65fb",
+     "4b1a5c347d8cfa62",
+     "c41fd3ac1cf79284",
+     "15f5c0ab812fcbee",
+     "7f853fcc3e6b1d0f",
+     "a1a4c49ae48a6a85",
+     "25f36ac6f6d366f1",
+     "fd383366a30a0374",
+     "aa4235d765d2e1d2",
+     "22c4c73c7ecf9cd5",
+     "c6746e513a80389f",
+     "e9c5f5859ac389da",
+     "738a9b82c58fa1cd",
+     "ab4e0e7d419f78fc",
+     "159563677ea5559a",
+     "4bffa28934182557",
+     "2300a0d3ca0e84dd",
+     "c9df50b3e65a7e19",
+     "50274e83600267c1",
+     "8c035e7d670e73f9",
+     "12787f43739f521f",
+     "dfe54cb7785abca5",
+     "0beea2eb16d16a6c",
+     "f4bf1c608a88fb2d",
+     "78920f1396b9eeae",
+     "8a943b2c87ac6db4",
+     "5da705fccc61c5d4",
+     "23afe3de2d0a1aa7",
+     "a66867c766aa37eb",
+     "0d3c7fdc24cbb42c",
+     "34021a0ea3154aed",
+     "6ead1001e31ae2ef",
+     "079a60e2de3c20c3",
+     "bdcbbde75e9de882",
+     "b351b7217793f8e9",
+     "eea3255072e8484c",
+     "e1dcaa0f86db5829",
+     "e1cf1b5cfc6272b1",
+     "1c26f61922b25635",
+     "72fba30eba8d8090",
+     "31f73683b4192c3d",
+     "8488736d6e9868bc",
+     "0fee6099555a4064",
+     "9488a742dabff231",
+     "86d8be23d4230836",
+     "35ca9344c9f81025",
+     "ddd4c13e9edf3743",
+     "7971beac64724477",
+     "26f95b7bce5b564b",
+     "31d846e84ca01ce4",
+     "e21f2ab33adb9c98",
+     "4a4db124729a2fa5",
+     "413801f3fd6d1ca0",
+     "aa73ec57e7aebdb9",
+     "000c56ed835eb232",
+     "161178630895b3b8",
+     "48d450612541399d",
+     "bfe4a346811172d0",
+     "abe498cdd678f876",
+     "eaf99b498a88d3e1",
+     "9bcce18ad99fc015",
+     "72cf5cc1e27fc0e1",
+     "74e555d8aadd2cf9",
+     "786bb413db53ca57",
+     "494f1480d51062c8",
+     "2975bec5621d5018",
+     "6e4bba54eef15cdf",
+     "81488eb036acfe68",
+     "2aa88d0995b08a9e",
+     "9db5b0846bf34074",
+     "661e392e8be9c25f",
+     "f6e4991bcae803c6",
+     "1e0ef088a0624a81",
+     "066ab5259360add7",
+     "9d7ebd9506d578f0",
+     "a011504d54c647df",
+     "4b73dbfc23543c31",
+     "15da64e5f97952d7",
+     "0bab3e533f3baaab",
+     "6ce57631931a955a",
+     "978386aee8a8b301",
+     "57be9043923ff678",
+     "a2d5af787635c322",
+     "b634e419939cb5fd",
+     "ab527d5254085b0e",
+     "670a0025fb0577db",
+     "6ba38bec23acc616",
+     "760e710e682c2243",
+     "37301632ec5cea8c",
+     "268f5387eb875b12",
+     "4aa9158316aafabe",
+     "ffbcdc5b7cd209bc",
+     "14009c4603d0a754",
+     "3385847b45b6f043",
+     "a554e51ac9cca7d1",
+     "d028d7a6eae2bbb9",
+     "1f85384407abe74e",
+     "a0801175c994750c"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "split: screen | camera",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   },
+   "vertical": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "dbcfdfba99f5b2be",
+     "62ed9390e844297f",
+     "12c2b16aadcbe8e4",
+     "5fc1562f173565de",
+     "25234897ed4d94ad",
+     "27f9c57bf41dca60",
+     "ce01181d8efdec3f",
+     "900093a692c33973",
+     "e294033a0cf6d0f7",
+     "5a4059933f1dad2b",
+     "fbd1516cfc1968ee",
+     "f1a9601fd476b880",
+     "b03da6895a3993b2",
+     "284014f578db8bdd",
+     "298c772e51bfc15b",
+     "242fbd643367514c",
+     "7f9c9dcd93e904d2",
+     "7a13c003cb95726e",
+     "7a41c83b7201377e",
+     "45b70262867e1abf",
+     "34213a6a9c302c93",
+     "c8534582a2305a4a",
+     "f43159eeff6a4d9d",
+     "625b209ab23fc692",
+     "ccaf4b48a4a6e2ab",
+     "aca8a66b8d510d40",
+     "8a63a9a72ba299ac",
+     "d68d46a061a8ce32",
+     "98d1bc320b2d4f1d",
+     "2671815d38c0872f",
+     "215e1cd5abff9d37",
+     "619a5e007925fb73",
+     "5b233d0118b78979",
+     "e1655b484af2e0f8",
+     "43a4cc1a4f0177a2",
+     "0529c0f0867a0c29",
+     "42fa67d275feb2ef",
+     "69281d2aa818db8f",
+     "357c3d5e170622c7",
+     "abc86c6ae15a6da0",
+     "1a435205c31dc289",
+     "70f7429999b839be",
+     "b82e30e686620f09",
+     "87f6a4a948bcd444",
+     "273e901c64ae4086",
+     "cd0836407a5f1ea3",
+     "213a82d432e13710",
+     "74b882d87dc63a60",
+     "38a520e662b02e56",
+     "7e46fb6163bc8433",
+     "3a140075b215bec1",
+     "93c86a16bec8c728",
+     "adce5f5d7660c297",
+     "4d033f75f029196e",
+     "daca116c1b5b9713",
+     "2c149922f198e0fc",
+     "c114b8f6896f452a",
+     "178824dfbcdd3ae0",
+     "779c7839d04cffb0",
+     "a25a1ceea8e47099",
+     "b7fa63ae98f4cb9b",
+     "6b2208597657b27e",
+     "3161ee125d5b4c72",
+     "79646ae5000bb94e",
+     "42a8d1cd43bb104f",
+     "793f5963791b3e06",
+     "91429523a627be4f",
+     "f53b171475471206",
+     "1d6bae70c2399828",
+     "740798542f4c951b",
+     "22cf125057a0a167",
+     "e413a01721d2878a",
+     "92c5b11508243d63",
+     "e584f645e9b56dc5",
+     "1886ff9c0941c0c6",
+     "d2d34b761f411da9",
+     "7de5c78e36dc4759",
+     "6915638c1bf4557b",
+     "64a113b92bf978a9",
+     "e9bfac55aa6a32e5",
+     "87a4ec10f33c87cb",
+     "658d4cd22e6cf70e",
+     "609d16e722e39781",
+     "fed4dfbde37ec622",
+     "7fbee281596ad83f",
+     "8e9a0bc82723d4dc",
+     "5d308014fb025e58",
+     "e268e6108bc25ca2",
+     "dd03a1314d10868d",
+     "0f2a0fa136ffb07c",
+     "3ce7b9b1c194b929",
+     "8934e3d7e5c7f5e6",
+     "d0c5a071c013c181",
+     "832dc4fd7bfefaec",
+     "dfedf052b97e65ac",
+     "5404db6c4107e19d",
+     "b7f7c580c72f49dd",
+     "5472c6951f2f02c0",
+     "5bc22c490fc5e63c",
+     "ead422f96ce20aab"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "vertical",
+      "size": [
+       1080,
+       1920
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "split: screen | camera",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "spotlight": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "be4a6fd3b341a9c0",
+     "d8d7a70200b4ff09",
+     "e5eedff393cb1207",
+     "2b7da48d06e44222",
+     "9c8c5e8b221f2fba",
+     "ed4db7c3aba183f6",
+     "443d23fc551292e7",
+     "e5f616c940a51fb5",
+     "f22d40d9a09390e6",
+     "8ddd5c246c60497b",
+     "6bbc4c979a2e9025",
+     "b263d379c12a717e",
+     "7d4a52c4ffe03f7a",
+     "19bd69844a31afb6",
+     "2258b9ed3df0574e",
+     "ee9ba1d66c1bb4f0",
+     "070959394f107cb8",
+     "aad92e5bb6803e6b",
+     "671dc7f780b263a1",
+     "429e6b8383ee8709",
+     "f9c06f0c2c8db84d",
+     "634d718a2eaea98f",
+     "518f2a6824eeadc5",
+     "bbff75ed7dcd9da7",
+     "98f6999640236940",
+     "73ddc0506be64c42",
+     "223c3145b5e49c91",
+     "793306b0a794443a",
+     "7ad102eae5be7489",
+     "740fad36d2deb4fa",
+     "77eefb99d58da619",
+     "ac89af613382a548",
+     "78f482c1cb12a593",
+     "4ec79eaaf3ce7953",
+     "c6699d40adf8f319",
+     "6b991452f7a4652b",
+     "4c05e0df626b28c7",
+     "ed3adc0bbecbb940",
+     "fb6fe8d7c9a91b34",
+     "8e81497116c3c9f6",
+     "dd84c1e71a507a55",
+     "596324d31686419f",
+     "fadbbe9883a89e6d",
+     "df9ac65e24753fb4",
+     "af71a0fe7e3c11e8",
+     "54023e3bde3d95f9",
+     "ac8ce123d38623b2",
+     "392db2e38bd371d6",
+     "641af0885e4e9deb",
+     "9fdc5cc4cd12136f",
+     "18cc7fc64472e6df",
+     "7063fcdefe9f5836",
+     "ecd71c8783093909",
+     "8a53015b893dfeed",
+     "ac4a47f429c151c4",
+     "8ff9b15d8139eac2",
+     "c7803fd99e4c4c5e",
+     "7a422b9c61ad79e6",
+     "ff0d1917b7ab690b",
+     "a6db8732dbd01b0f",
+     "b4dd1666e8c02589",
+     "ec5c140586602d65",
+     "bad3d5b9a6e8242d",
+     "3e9fa5cace616744",
+     "fa4f31f9da6faa7d",
+     "296a8303478eeb42",
+     "66afc76b3989ca57",
+     "1e52eee72124257f",
+     "fb2092d48b4b4f56",
+     "081df42476deec5c",
+     "52bfabe1afd88154",
+     "763f664adf3201bf",
+     "18e5ee1b1d9ea613",
+     "6a0531c35bd47ab9",
+     "cd290883a87a97a3",
+     "22d6d258c8328778",
+     "8b24883e6ae86be8",
+     "992d7dbea399483c",
+     "f942486b1cfbc23b",
+     "43aeb932a3c22a7c",
+     "493e52692b4c837a",
+     "192261ebbc8410ae",
+     "07f38d2479c18841",
+     "873cac05290551ea",
+     "f32431dea5dbc984",
+     "c219ff3586a17a66",
+     "a33cd55b4439e85a",
+     "9121dd178161010d",
+     "068926fbe38f8dc6",
+     "0b2fec4b9a485195",
+     "d6c7875c18d3be00",
+     "0606baee248bad25",
+     "a1696fc3cdeb1053",
+     "461361e3fb4f9f2e",
+     "8c37ff8ab6d09d1f",
+     "2cac0f1de6f83af4",
+     "581ac664ab52c566",
+     "e3cc36ea9840fab5",
+     "851ee5cefd7168af",
+     "39518a601ef50649"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "transcript-cuts": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 7.2s, 3 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=2.8000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=2.7900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[1:a:0]atrim=start=5.2000:end=5.8000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=0.5900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a1];[1:a:0]atrim=start=6.1500:end=9.9500,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=3.7900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a2];[a0][a1][a2]concat=n=3:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "b573aadcf292a173",
+     "d1943c60cac1ac1c",
+     "4882eea2c7267c4f",
+     "a60f0cd415cbfeee",
+     "576427e5b38ec4b8",
+     "f1a96340c0cc51bc",
+     "30b77fdd039a0be9",
+     "1daf10ded18fad34",
+     "2717e060e8e37814",
+     "52bc2f0923e55e59",
+     "9fa4c8344d4a03cd",
+     "4004fd52e8f8da3c",
+     "f7c9881695c46e2b",
+     "24b7acbb8a233b01",
+     "d7c29a0e6629c92a",
+     "6fb60ab41e8f4780",
+     "ba2c5f3dc789129a",
+     "924be16a8831b7b7",
+     "f6aa2bc770ab63f0",
+     "e0cd8eb5a784a062",
+     "e2905b50a2425f9c",
+     "849f24b79ebdad1c",
+     "4a3836175de51f7b",
+     "fe6e96ec382f5080",
+     "18352096b6de0946",
+     "600879e4f7628fdc",
+     "596eac56c65730aa",
+     "860a7b17d2e64694",
+     "252d42a1511aa1b9",
+     "77134c12cf8c2863",
+     "5a8d823f5d79b598",
+     "968d045423ea5bb1",
+     "0fc49bb6cc956dc5",
+     "2097740db5b63255",
+     "9c539b86930450b9",
+     "e1a1e85823541aff",
+     "59e5a68d86479486",
+     "23e725c85c992d19",
+     "1eb015c39d432278",
+     "fe067c954dcb9e0c",
+     "56dc2e66a86c9750",
+     "b0d149476da41203",
+     "8e5a6b0dc62bfcba",
+     "38dc53d9c6b26a1c",
+     "5be8dc94ac677a3a",
+     "3502ce7271f6f379",
+     "5bf39cc389d506e4",
+     "b6cc39154db525a4",
+     "a2fc8942c491b891",
+     "8bcdbcf6d587c89c",
+     "c4e3d77ddc7ef0a3",
+     "ecbba44729995e0d",
+     "38ac18973e1cf324",
+     "97a8d8733d58fd21",
+     "a3ae8a010b016148",
+     "1a5b3005df03ad9c",
+     "33a6b56a323d4f09",
+     "100da83a99bd552b",
+     "36e6aa78d579bae6",
+     "e2c9920e946fb653",
+     "fecdc3ac0b117318",
+     "736816d0a85942da",
+     "4a289f64ef1b5a99",
+     "ea55302a287c3b7a",
+     "829d871733674d7f",
+     "88da725661dec40e",
+     "47556a84ba60bbe6",
+     "147fed6099206f9d",
+     "f0a6e843b12c8f88",
+     "ccf59f914bda294d",
+     "7870f1a63224b6ac",
+     "b8b0be77c773ead5"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 7.25,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 2.8
+      },
+      {
+       "from": 5.2,
+       "out": 2.8,
+       "source": "main",
+       "to": 5.8
+      },
+      {
+       "from": 6.15,
+       "out": 3.4,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ },
+ "two-outputs": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n  [1] source   4.00s ->   4.00s  camera\n  warning: [main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\nvertical 1080x1920: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  screen\n  [1] source   4.00s ->   4.00s  camera\n  warning: [vertical] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "b573aadcf292a173",
+     "d1943c60cac1ac1c",
+     "4882eea2c7267c4f",
+     "a60f0cd415cbfeee",
+     "576427e5b38ec4b8",
+     "f1a96340c0cc51bc",
+     "30b77fdd039a0be9",
+     "1daf10ded18fad34",
+     "2717e060e8e37814",
+     "52bc2f0923e55e59",
+     "9fa4c8344d4a03cd",
+     "4004fd52e8f8da3c",
+     "f7c9881695c46e2b",
+     "24b7acbb8a233b01",
+     "d7c29a0e6629c92a",
+     "6fb60ab41e8f4780",
+     "ba2c5f3dc789129a",
+     "924be16a8831b7b7",
+     "f6aa2bc770ab63f0",
+     "e0cd8eb5a784a062",
+     "e2905b50a2425f9c",
+     "849f24b79ebdad1c",
+     "4a3836175de51f7b",
+     "fe6e96ec382f5080",
+     "18352096b6de0946",
+     "600879e4f7628fdc",
+     "596eac56c65730aa",
+     "860a7b17d2e64694",
+     "eeca472bef2d77f6",
+     "86fcf9c5280b7414",
+     "e8f6752f060da929",
+     "a91b0dad2a3780fd",
+     "c44f83a0a0d21cc4",
+     "9bb85555fbc982e8",
+     "1b395011fe92dfef",
+     "14d789a28286986a",
+     "bcb1feafcf739020",
+     "35c944395cc047c4",
+     "e4ebe7b56e240174",
+     "ebd952b7d291ac68",
+     "101e180d5b4eb820",
+     "9264def09923f914",
+     "e25e4a3e209b24eb",
+     "4534d32f5f2ac5c8",
+     "bf5c03d3e50ba549",
+     "b2161bb0088a9708",
+     "f8f3ac67d75db6c3",
+     "b28911a3e630bf71",
+     "c32e5246e43b58c5",
+     "bbe0f074179ba888",
+     "5a96440b65cc4c53",
+     "4f35a7d157ab1441",
+     "eeab3216afb1c343",
+     "6d29a6ccd6ed5058",
+     "00dadefce734c9cd",
+     "a1883d9860fe80a5",
+     "ab125b8ad6967975",
+     "af3bb2b37b0bb620",
+     "3f05706640ac5cc3",
+     "51c00fd811c01468",
+     "4cf74ef45552626e",
+     "4ec3b83b5bc63fd6",
+     "3d79703a0242b94d",
+     "249d41f7fead28ac",
+     "1883dcaa862b37ff",
+     "bfe4087d2d5a29e2",
+     "2d14882966af1e28",
+     "db51e08951648b6b",
+     "aee2f4e3fa2b0d25",
+     "e2c077a199d8ad01",
+     "e9e7466cfad0c3a5",
+     "87e1685edba1c8e5",
+     "6f8fd76364e81748",
+     "d055bd690ce64692",
+     "4b31590dac714852",
+     "183ea4c7f73a8390",
+     "0b29f7261d0efaa6",
+     "764ce6fac69ac55d",
+     "1fada622dcac8e53",
+     "86ba59b162800c50",
+     "b2d6faea9ddb1694",
+     "384a6a98b9b0ce4e",
+     "87c1ab2ca3251f1b",
+     "c237ec350e75f3a3",
+     "1313ac68e62c93cf",
+     "4bb791949443b07a",
+     "9582178159d7481e",
+     "d4eccd3717aeec89",
+     "ec4686c40fec6e55",
+     "56951f42e15baaec",
+     "1dd76049ba29e3f5",
+     "e6e0399d487f9888",
+     "1692bfe03ac35e78",
+     "7d71938cfa35e526",
+     "a451eb9c37cbd3ee",
+     "4b89dc06651aa30b",
+     "24bde6c427a2163e",
+     "2964ee892c328929",
+     "5bb2309a1e69e352",
+     "096ab7f9d63359b8"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      },
+      {
+       "at": 4.0,
+       "index": 1,
+       "label": "camera",
+       "out": 4.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[main] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade"
+     ]
+    }
+   },
+   "vertical": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "f1d8593b80fb4aab",
+     "6b35a39b12e052b4",
+     "7ae8d490f6e16edb",
+     "51ae3fd996ddba1b",
+     "914c8a399ddefc96",
+     "1f531acc003bb563",
+     "dc72ab45a086d329",
+     "503072b4eeb2166f",
+     "7083d0db6e5de654",
+     "29dbbd615e708360",
+     "705eba284a6294da",
+     "3b511e67cb2933e6",
+     "5fb0d69c48bac603",
+     "fdf86257edcd70ce",
+     "1989c6ac3b33da24",
+     "4e2c00912df9d4f1",
+     "1e1e38cfdc598e9f",
+     "1862effb1601c05d",
+     "f23c3715be519100",
+     "7e261de4392cec4f",
+     "93cf6ff0c97d9e72",
+     "18aa9a5701e0feba",
+     "95e34e023901e4b8",
+     "143d0103f25f5139",
+     "c63342d219d2b2ac",
+     "b41c9878cd5da98a",
+     "962920913ae115c3",
+     "b42e5e241891e021",
+     "33426d208b323357",
+     "6cab6e31236de853",
+     "2f04134c8dade0a4",
+     "86ba67c7be1b33fc",
+     "c68c47892b662026",
+     "a12fd3a47c32dec0",
+     "689fe3c90f1b0e16",
+     "d53dffdf5f5082b8",
+     "15f05af1681e102d",
+     "83ed63c12ae9845a",
+     "6aa1fed4392907d1",
+     "90e5308de0670efe",
+     "0413d0e52ff8a0ce",
+     "1d5c7e878497025c",
+     "850427cf393fc187",
+     "5c06aeee2af4b30a",
+     "8fa091f2803f3490",
+     "33089b7d97d6d5be",
+     "b8aeebaa75eadbe0",
+     "2390db732812b821",
+     "74eac23db4068af3",
+     "c46940767a6e9eb4",
+     "537d37ccb4bf3608",
+     "028c791fca95ccd1",
+     "4a9e7f791748591f",
+     "659d094dc7f12fb7",
+     "87340e66c280e5e7",
+     "f3c759f0b44f7944",
+     "afaa5d4a2482ee31",
+     "d49824eaf3003448",
+     "495e18f0a3a69b25",
+     "c0078f3195699993",
+     "1adff1902a3faf69",
+     "8493d750d34edc64",
+     "cbf97a96ae9efa63",
+     "b367cd4f35e8bc2b",
+     "ab5229251b4c1e9d",
+     "f5c7068406b5af2a",
+     "f8a58f2cbe917333",
+     "3a8afeeb31d755fe",
+     "bbd97c2b837ad5e1",
+     "7e1edf3d8847b4dc",
+     "1d9f7d6e3dbf737e",
+     "a0d970ff202446d9",
+     "0f91170a1c24abcc",
+     "a40f5895fcfead7e",
+     "5afb6d3f0d37a81c",
+     "116abb090a812559",
+     "09b81f003be5c65c",
+     "26e5a002377f080f",
+     "2fb562dc5913d400",
+     "1f37b33baaf0aff5",
+     "76221b666e5e5000",
+     "ad410d5a7c8ea1b3",
+     "9c927ec5babe0ccf",
+     "9a0e820c807d439a",
+     "9f0788b2b51c7644",
+     "b033c5b911f89580",
+     "0303c2c4f70ed8d6",
+     "1417fd501715ee15",
+     "383ea992692b9ba4",
+     "dce979fdeb86a2f5",
+     "213e58a1b3f06d3c",
+     "3a55dc02c18acfb9",
+     "9ec96273812604b5",
+     "5553d4986c353811",
+     "bc7680f8cab85b27",
+     "7a040ee163329215",
+     "3d0aad2f0baeffb2",
+     "e5d65321833838b4",
+     "9c34038ebc3653ad",
+     "bcf8fcb47b386015"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "vertical",
+      "size": [
+       1080,
+       1920
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "screen",
+       "out": 0.0,
+       "source": "main"
+      },
+      {
+       "at": 4.0,
+       "index": 1,
+       "label": "camera",
+       "out": 4.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": [
+      "[vertical] scenes[1]: move needs one view of the same source before and after (not a split, not screen <-> camera); using fade"
+     ]
+    }
+   }
+  }
+ },
+ "window-cover-follow": {
+  "check": {
+   "rc": 0,
+   "text": "main 1920x1080: 10.0s, 1 segment(s)\n  [0] source   0.00s ->   0.00s  window title=right follow\n"
+  },
+  "outputs": {
+   "main": {
+    "audio": {
+     "graph": "[1:a:0]atrim=start=0.0000:end=10.0000,asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st=9.9900:d=0.010,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=mono[a0];[a0]concat=n=1:v=0:a=1[aout]",
+     "inputs": [
+      "-i",
+      "<S>/mic-clean.flac"
+     ]
+    },
+    "frames": [
+     "3dea4b8a83995946",
+     "ffd0b30ba46c86f9",
+     "7f11619e7c7ecb10",
+     "f68003325c258f35",
+     "96d8d93d6b2eb807",
+     "58cf11d7344ff5b0",
+     "a2e4d4b212c34952",
+     "60bed2ed4d23529a",
+     "7a58dfe816f74894",
+     "dca5a44349485398",
+     "6e3b6e881f5b624e",
+     "f139e2983f355db8",
+     "86d83a6413dd896f",
+     "2bd11296a7fb0bb9",
+     "19f09bbf488dd539",
+     "b912be3d2a00f576",
+     "94067b708c866cfc",
+     "d889269dff615188",
+     "071b75d17fb9783e",
+     "67165e580b33d35f",
+     "6e413e26436d4b0e",
+     "413d782f4df87e33",
+     "467cba5f05e555a6",
+     "9d71c1873779ab1a",
+     "80ff17277320132b",
+     "2c2f8a922e18675a",
+     "2111b147214d7457",
+     "9bd2772343d3ea5a",
+     "9b4ed8e11a8bd0a3",
+     "9b9b915741263744",
+     "d41a5b6587f828f4",
+     "5a8cc09faf13e4b3",
+     "da6a21f3a03b9e5e",
+     "0bc8948c17687466",
+     "3911d098c39c1bb7",
+     "cbf97d75b7746641",
+     "65daf1037bf6c576",
+     "b44680f72c06a7b0",
+     "918e4b7da8c5b6d7",
+     "79f3958c08306378",
+     "8a5d15ce50f16126",
+     "dae7ab44418f0597",
+     "bf54f66176732efd",
+     "a5f3e2dcfcc03536",
+     "e18515ac13dc7aea",
+     "683cca290325960a",
+     "cb2ed2ddc4d37f18",
+     "86e58b3d1ef769c2",
+     "6e421bd7b32e1f89",
+     "f8cb6214dcab3e62",
+     "71568bb67420b6ee",
+     "c03abca4d7cbb8c4",
+     "1ff4aeec48f2f8df",
+     "82ff2614bd797a7f",
+     "eca0a09d597eb5c7",
+     "00416ac960b4bf4c",
+     "e7288441e611e469",
+     "abc62971d9267039",
+     "09b176e336ed7c41",
+     "242b219637a9afa9",
+     "61087232bf53de89",
+     "202e4bf2f45b2e11",
+     "3f8d7f4320abfcdd",
+     "e0524b9037c57b66",
+     "61473a5ca912504c",
+     "2e1294a3e098c707",
+     "a69d94fdf3ada9fa",
+     "9fd84fa78fddf5a9",
+     "b9a7e581a7a3abd0",
+     "766baa5e2a60c5b3",
+     "2e212762b8f002cd",
+     "80e972cde2c16bc2",
+     "553bc65f6ad9a6dd",
+     "46aabbeefadc114a",
+     "371b54a53d79c43c",
+     "43478a8fc9eb28cd",
+     "5e855469ea7bb382",
+     "d43284dc6062a3f8",
+     "09a027ef5da0cbd7",
+     "1e25ceb5a2507b1b",
+     "791c37ffc4772205",
+     "aa89e1d26ced426c",
+     "d02570cff729b667",
+     "9a802bcc64d59df7",
+     "da37c64c40772676",
+     "7f4838b953bf4341",
+     "41ec4ce5abf46344",
+     "1085a4b73b6ed8bb",
+     "3d89ed6fa17f53da",
+     "add3b71ca135c18f",
+     "9dbd10f4d8c43bb4",
+     "d2b21f99e030afd3",
+     "e61dbd26c030e1de",
+     "642dc58b68ecb32f",
+     "3c3dea49c2d95ee4",
+     "780a921231f31b05",
+     "d7b0650efed2ecaf",
+     "592e6c6e520c8876",
+     "032070b9f11791ed",
+     "33b61f42aaaf1f88"
+    ],
+    "plan": {
+     "audio": [
+      {
+       "file": "<S>/mic-clean.flac",
+       "source": "main"
+      }
+     ],
+     "duration": 10.0,
+     "images": {},
+     "output": {
+      "fps": 10,
+      "name": "main",
+      "size": [
+       1920,
+       1080
+      ]
+     },
+     "scenes": [
+      {
+       "at": 0.0,
+       "index": 0,
+       "label": "window title=right follow",
+       "out": 0.0,
+       "source": "main"
+      }
+     ],
+     "segments": [
+      {
+       "from": 0.0,
+       "out": 0.0,
+       "source": "main",
+       "to": 10.0
+      }
+     ],
+     "streams": {
+      "main/camera": {
+       "file": "<S>/camera.mkv",
+       "offset": 0.5,
+       "size": [
+        1920,
+        1080
+       ]
+      },
+      "main/screen": {
+       "file": "<S>/screen.mkv",
+       "offset": 0.0,
+       "size": [
+        5120,
+        2160
+       ]
+      }
+     },
+     "version": 1,
+     "warnings": []
+    }
+   }
+  }
+ }
+}

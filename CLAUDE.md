@@ -21,6 +21,7 @@ pugrec/edit/resolve.py THE evaluator: script + sessions -> plan (per-frame layer
 pugrec/edit/compose.py build compositor: paints plan layers (uint8, OpenCV), chunk-parallel, audio cut
 pugrec/edit/gpu.py     GPU build compositor, Python half: layers snapped as compose does -> JSON lines
 native/pugrec-gpu/     GPU build compositor, C: VAAPI decode -> dmabuf -> GLES layers -> NV12 out
+pugrec/edit/regress.py   snapshots of what edits resolve to (plan, audio graph, check) - the additions-only gate
 pugrec/edit/preview.py proxies + local server (Range, SSE reload); web/ = canvas player of the plan
 pugrec/edit/draft.py   starting edit.yaml from focus changes, click bursts, transcript
 pugrec/render.py       old auto-zoom harness; its Camera is reused by `shot: auto`
@@ -41,6 +42,10 @@ tests/                 unittest; fake_session.py makes a synthetic 5K session
 - **New looks are options, not new defaults** (James, 2026-10-14, about `fit: inset`): adding
   one must leave every existing edit resolving to the same plan and must not change what `auto`
   or `draft` pick. Check by resolving all of ~/Videos/PugRec before and after.
+  **Additions only (James, 2026-11-02)**: no existing key renamed, re-typed or given a new
+  default; old edits keep identical plans, audio graphs and `check` output. Gate:
+  tests/test_regress.py (fixture edits vs tests/regress.json) + `python -m pugrec.edit.regress
+  save` before / `compare` after over the real edits (snapshots in ~/.cache/pugrec/regress).
 - **GPU build compositor (2026-11-01)**: pugrec-gpu paints the same plan; compose.py is the
   reference (not player.js) and the CPU fallback. Default `--compositor auto` + `--encoder gpu`
   (h264_vaapi, qp = crf + 4) - James's choice. Parity rule: anything OpenCV/PIL draws
