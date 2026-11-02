@@ -38,6 +38,7 @@ one-time GPU build of whisper.cpp (in a distrobox; the host stays untouched):
 ```bash
 bin/pugrec setup                  # .venv (only when requirements changed) + the whisper model; idempotent
 scripts/build-whisper.sh          # only if no whisper-cli on PATH (the PugPal image ships one)
+scripts/build-gpu.sh              # the GPU build compositor (~5x faster builds); optional
 ```
 
 Models and the DeepFilterNet binary are fetched into `~/.cache/pugrec` and checked against
@@ -66,8 +67,19 @@ The session format is in [FORMAT.md](FORMAT.md); the edit script in [EDIT.md](ED
 
 ## Output
 
-H.264 (yuv420p, CRF 18) + AAC in MP4 with faststart: plays everywhere (browsers, WhatsApp,
-Slack, YouTube). Builds run in parallel chunks (`--jobs`, default 4).
+H.264 (yuv420p) + AAC in MP4 with faststart: plays everywhere (browsers, WhatsApp, Slack,
+YouTube).
+
+Builds paint on the GPU when `scripts/build-gpu.sh` has built `pugrec-gpu`: the 5K recording is
+decoded, composited and encoded without leaving the GPU, about 2x real time (a 4-minute demo in
+~2 minutes; the CPU compositor takes ~10). It paints the same plan as the CPU compositor, to
+within a few levels per pixel. Options:
+
+- `--encoder x264` (also implied by `--hq` or `--preset`): x264 instead of the GPU's H.264
+  encoder - ~15% smaller files for the same quality, ~40% slower. The GPU encoder uses
+  qp = `--crf` + 4 (CRF 18 by default).
+- `--compositor cpu`: the old CPU compositor, in parallel chunks (`--jobs`, default 4), x264.
+  A GPU build that fails falls back to it by itself.
 
 ## Tests
 

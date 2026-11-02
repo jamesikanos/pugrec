@@ -19,10 +19,13 @@ pugrec/faces.py audio.py transcript.py   derived: faces.jsonl, mic-clean.flac, t
 pugrec/edit/script.py  edit.yaml: strict validation, normalised shapes, sticky bubble, per-output overrides
 pugrec/edit/resolve.py THE evaluator: script + sessions -> plan (per-frame layers) per output. Pure.
 pugrec/edit/compose.py build compositor: paints plan layers (uint8, OpenCV), chunk-parallel, audio cut
+pugrec/edit/gpu.py     GPU build compositor, Python half: layers snapped as compose does -> JSON lines
+native/pugrec-gpu/     GPU build compositor, C: VAAPI decode -> dmabuf -> GLES layers -> NV12 out
 pugrec/edit/preview.py proxies + local server (Range, SSE reload); web/ = canvas player of the plan
 pugrec/edit/draft.py   starting edit.yaml from focus changes, click bursts, transcript
 pugrec/render.py       old auto-zoom harness; its Camera is reused by `shot: auto`
 scripts/build-whisper.sh  whisper.cpp + Vulkan, built in a distrobox
+scripts/build-gpu.sh   pugrec-gpu, built in the same distrobox (negativo17 ffmpeg headers = the host's)
 tests/                 unittest; fake_session.py makes a synthetic 5K session
 ```
 
@@ -38,6 +41,13 @@ tests/                 unittest; fake_session.py makes a synthetic 5K session
 - **New looks are options, not new defaults** (James, 2026-10-14, about `fit: inset`): adding
   one must leave every existing edit resolving to the same plan and must not change what `auto`
   or `draft` pick. Check by resolving all of ~/Videos/PugRec before and after.
+- **GPU build compositor (2026-11-01)**: pugrec-gpu paints the same plan; compose.py is the
+  reference (not player.js) and the CPU fallback. Default `--compositor auto` + `--encoder gpu`
+  (h264_vaapi, qp = crf + 4) - James's choice. Parity rule: anything OpenCV/PIL draws
+  anti-aliased (masks, rings, stars, strokes, text, images) is drawn by compose's own functions
+  into small textures; gpu.py does all rounding with compose's int()/round() (banker's). A new
+  layer type needs compose.py, player.js AND gpu.py (+ a shader if it isn't a texture).
+  Check with tests/test_gpu.py (raw NV12 vs compose, <= 4 levels) on every change.
 - **Script times are source seconds**; 16:9 + 9:16 from one script; sources / timeline segments /
   overlays are in the schema so splicing and picture-in-picture need no compositor changes later.
 - **Transcription on the GPU**: whisper.cpp Vulkan (AMD), built in a distrobox.
@@ -84,7 +94,15 @@ James's rule (2026-10-13): **commit little and often.**
   (`/sys/class/drm/card*/device/mem_info_vram_used`) with a stop well before it's full.
   Result of that experiment, for the record: no hardware AV1 decode in headless Chrome, and
   reading 1080p frames back costs 20-45 ms each - not worth it as a build compositor.
-- Build speed ~0.35x realtime with 4 jobs (5K decode + x264 share the CPU). A float32 canvas was
+- pugrec-gpu: AV1's first decoder is libdav1d (software) - pick the codec that has a VAAPI
+  hw config. A hardware buffersrc must get hw_frames_ctx before init (alloc_filter + params +
+  init_dict). Texture uploads go on a spare unit (7): an upload on unit 0 replaced the video
+  bound for the next draw (black camera on each run's first frame). swscale details matched by
+  measurement: same-size yuv420p -> rgb repeats chroma (nearest); bgr24 -> yuv420p averages
+  chroma pairs horizontally and uses an 8-tap bicubic (Keys a=-0.6) vertically.
+- Builds lose the last ~0.3 s: the final mux's `-shortest` stops at the audio's end, which is a
+  little short of the plan (both compositors; seen 2026-11-01, not fixed).
+- CPU build speed ~0.35x realtime with 4 jobs (5K decode + x264 share the CPU). A float32 canvas was
   the first bottleneck (48 ms/frame): keep compositing uint8 + OpenCV.
 - Chunked builds: Matroska doesn't store the last frame's duration, so concat parts carry an
   explicit `duration`, or a frame is lost per join.
@@ -133,18 +151,12 @@ James's rule (2026-10-13): **commit little and often.**
 - Done 2026-10-14: `fit: inset` (cards on a backdrop) and `push` (slow push-in, James's pinned idea).
   Transitions, the bubble and push run on the output clock (frame count), never on source time:
   cuts inside a scene used to end fades early (a visible pop).
-- **Pinned (James, 2026-10-14): a native GPU build compositor**, replacing compose.py (kept as the
-  CPU fallback and for tests), reading the same plan. Why: builds are ~0.4x real time, limited by
-  moving 33 MB 5K frames between ffmpeg, Python and x264 (measured: ~50% waiting for decoded
-  frames, ~40% CPU compositing). Shape: VAAPI AV1 decode on the GPU's video chip -> frames into
-  OpenGL/Vulkan without copying (dmabuf) -> shaders draw the layers (same maths as player.js) ->
-  read back only the 1080p result -> x264. A fixed texture pool and a hard VRAM cap (~2 GB): the
-  desktop shares the GPU (see the GPU-experiment gotcha). Estimate 3-5x faster, several days.
-  Start with a small memory-watched prototype (10 s of 5K, one crop, fps + VRAM), James's OK first.
-  Ruled out (measured 2026-10-14): GPU decode alone in today's pipeline (11% slower), GPU
-  downscale (the 16% gain is the downscale itself, CPU does the same), more jobs (slower),
-  GPU H.264 encode (bigger files for little), headless Chrome as compositor (no HW AV1 decode,
-  20-45 ms readback per frame).
+- Done 2026-11-01: **GPU build compositor** (native/pugrec-gpu + gpu.py), default when built.
+  Measured: 30 s of a real demo 72 s -> 15 s; a 4-min demo 116 s, a 9-min one 243 s (~2.1x real
+  time; `--encoder x264` 161 s for the 4-min one, ~17% smaller). VRAM +300-900 MB, flat (no
+  growth over 9 min); guard stops at baseline + 2 GB (exit 99 -> CPU fallback). Raw parity vs
+  compose.py over every edit in ~/Videos/PugRec: max 3 levels, worst 32-px tile 1.9.
+  Possible next: async PBO readback, in-process VAAPI encode (no 3 MB/frame readback).
 - Done 2026-10-17: callouts (`callouts:`) - info boxes in four looks (draw, bar, pill, section),
   styled by `style.callout` (a theme's), with direction of travel in and out; a section can lead
   its wipe with the theme's sparkle sweep. New layer: `stroke` (a part-drawn polyline); text

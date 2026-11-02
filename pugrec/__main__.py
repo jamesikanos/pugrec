@@ -167,9 +167,12 @@ def cmd_build(a):
         for w in p["warnings"]:
             print(f"warning: {w}", file=sys.stderr)
         suffix = "" if a.start == 0 and a.end is None else f"-{a.start:g}-{a.end or p['duration']:g}"
-        crf, preset = (min(a.crf, 14), "slow" if a.preset == "medium" else a.preset) if a.hq else (a.crf, a.preset)
+        preset = a.preset or "medium"
+        crf, preset = (min(a.crf, 14), "slow" if preset == "medium" else preset) if a.hq else (a.crf, preset)
+        # GPU builds encode on the GPU unless asked for x264 (--hq or a --preset mean x264's knobs).
+        encoder = a.encoder or ("x264" if a.hq or a.preset else "gpu")
         out = os.path.join(out_dir, f"build-{name}{suffix}.mp4")
-        r = compose.build(p, out, crf=crf, preset=preset, jobs=a.jobs)
+        r = compose.build(p, out, crf=crf, preset=preset, jobs=a.jobs, compositor=a.compositor, encoder=encoder)
         rc |= r
         if a.whatsapp and not r:
             rc |= cmd_whatsapp(argparse.Namespace(file=out, out=None))
@@ -280,10 +283,16 @@ def main(argv=None):
     b.add_argument("--from", dest="start", type=float, default=0.0, help="output seconds (quick checks)")
     b.add_argument("--to", dest="end", type=float)
     b.add_argument("--fps", type=int, help="override the output fps (e.g. 30 for a quick look)")
-    b.add_argument("--crf", type=int, default=18, help="x264 quality: lower = better/bigger (14 ~ visually lossless)")
-    b.add_argument("--preset", default="medium", help="x264 preset: slower = smaller at the same quality (slow, veryslow)")
-    b.add_argument("--hq", action="store_true", help="high quality: --crf 14 --preset slow")
-    b.add_argument("--jobs", type=int, default=4, help="parallel render processes (default 4)")
+    b.add_argument("--crf", type=int, default=18, help="quality: lower = better/bigger (14 ~ visually lossless; "
+                   "GPU encode uses qp = crf + 4)")
+    b.add_argument("--preset", help="x264 preset: slower = smaller at the same quality (slow, veryslow); implies "
+                   "--encoder x264")
+    b.add_argument("--hq", action="store_true", help="high quality: --crf 14 --preset slow (x264)")
+    b.add_argument("--compositor", choices=["auto", "gpu", "cpu"], default="auto",
+                   help="auto (default): the GPU compositor when scripts/build-gpu.sh has built it, else the CPU")
+    b.add_argument("--encoder", choices=["gpu", "x264"],
+                   help="video encoder for GPU builds (default gpu; x264 with --hq/--preset). CPU builds use x264")
+    b.add_argument("--jobs", type=int, default=4, help="parallel render processes for CPU builds (default 4)")
     b.add_argument("--out-dir", help="default: next to edit.yaml")
     b.add_argument("--whatsapp", action="store_true", help="also write build-<output>-whatsapp.mp4 (plays inline)")
     b.set_defaults(fn=cmd_build)
