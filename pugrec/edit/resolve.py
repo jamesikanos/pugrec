@@ -185,6 +185,9 @@ def apply_fixes(words, fixes):
     return out
 
 
+CAPTION_MARGIN = 0.06   # captions.fit: the room kept free each side, as a fraction of the width
+
+
 def bare_word(w):
     """A caption word without its punctuation, lower case: what `emphasis` matches."""
     return w.strip(".,!?;:\"'()[]\u2018\u2019\u201c\u201d-").lower()
@@ -628,6 +631,13 @@ class OutputResolver:
             if emph and bare_word(w) in emph:
                 ow["c"] = self.style["accent"]     # an emphasis word: the accent colour, spoken or not
             out_words.append(ow)
+        if cap.get("fit"):   # never touch the frame's edges: shrink a line that would (pop included)
+            stroke = cap["outline"]["width"] * self.unit if cap.get("look") == "outline" else 0
+            text = " ".join(w["w"] for w in out_words)
+            wide = (text_width(text, size, cap["font"], cap["weight"]) + 2 * (0.45 * size + stroke)) * scale
+            room = self.W * (1 - 2 * CAPTION_MARGIN) * 0.99   # 1%: sizes are rounded before drawing
+            if wide > room:
+                scale *= room / wide
         fade = 0.12
         op = min(1.0, (t - t0) / fade, (t1 - t) / fade)
         layer = {"type": "text", "x": r1(self.W / 2), "y": r1(y), "size": r1(size * scale), "words": out_words,

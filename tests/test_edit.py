@@ -918,6 +918,20 @@ class SocialCaptions(unittest.TestCase):
         self.assertEqual(line({"break_on_pause": 0.25}, 1.6), "We never ship")
         self.assertEqual(line({"break_on_pause": 0.25}, 2.5), "on Fridays.")
 
+    def test_fit_keeps_lines_inside_the_margin(self):
+        big = {"size": 0.2, "max_words": 6, "case": "upper", "look": "outline"}
+        p = plan({"outputs": [{"name": "vertical", "size": "1080x1920"}], "style": {"captions": dict(big, fit=True)},
+                  "scenes": [{"at": 0, "shot": "screen"}]}, self.d, fps=30)
+        for f in p["frames"]:
+            for l in f["layers"]:
+                if l["type"] == "text":
+                    text = " ".join(w["w"] for w in l["words"])
+                    wide = R.text_width(text, l["size"], l["font"], l["weight"]) + 2 * (l["pad"] + l["stroke"])
+                    self.assertLessEqual(wide, 1080 * 0.88 + 1, text)
+        p2 = plan({"outputs": [{"name": "vertical", "size": "1080x1920"}], "style": {"captions": big},
+                   "scenes": [{"at": 0, "shot": "screen"}]}, self.d, fps=30)
+        self.assertGreater(frame_at(p2, 2.2)["layers"][-1]["size"], frame_at(p, 2.2)["layers"][-1]["size"])  # unfit: as asked
+
     def test_validation(self):
         for cap, needle in (({"animation": "bounce"}, "expected one of none, pop"), ({"look": "boxed"}, "box, outline"),
                             ({"emphasis": "never"}, "list of single words"), ({"emphasis": ["two words"]}, "single"),

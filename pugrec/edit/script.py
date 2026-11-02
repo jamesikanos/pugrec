@@ -84,7 +84,8 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
                  "look": "box",          # outline: no box, letters with a stroke
                  "outline": {"color": "#000000", "width": 6},   # look: outline - px at 1080p
                  "emphasis": [],         # words always drawn in the accent colour
-                 "break_on_pause": None},   # s: a new line at a pause this long (default 0.6)
+                 "break_on_pause": None,    # s: a new line at a pause this long (default 0.6)
+                 "fit": False},          # true: a line too wide is shrunk to stay 6% inside each side
 }
 THEMES_HELP = "~/.config/pugrec/themes/<name>.yaml"
 CALLOUT_LOOKS = ("draw", "bar", "pill", "section")
@@ -546,7 +547,7 @@ def captions(v, path, base):
     _keys(v, path, list(base))
     out = dict(base)
     for k, val in v.items():
-        if k in ("show", "highlight"):
+        if k in ("show", "highlight", "fit"):
             out[k] = bool(val)
         elif k == "size":
             out[k] = _num(val, f"{path}.size", 0.01, 0.2)
