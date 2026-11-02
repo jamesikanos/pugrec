@@ -371,6 +371,7 @@ Each scene lasts until the next scene's `at`.
 | `transition` | into this scene: `cut`, `{move: s}`, `{fade: s}` (default `{move: 0.6}`) |
 | `bubble` | camera bubble: `{corner, size, margin, shape, show}`, `false` to hide, `true` to show. **Sticky**: applies until a later scene changes it |
 | `spotlight` | `false` / `true` / `{window, blur, dim}` for this scene only (default: the style's) |
+| `cutout` | the speaker cut out of the camera, the background restyled: `frost`, `blur`, or `{style, strength, feather}` (default: none) - below |
 | `label` | name in the preview/check (default: described from the shot) |
 | `<output name>` | overrides for one output, e.g. `vertical: {shot: ..., fit: ...}` |
 
@@ -384,7 +385,7 @@ Each scene lasts until the next scene's `at`.
 | `{window: SEL, follow: true, region: [x, y, w, h], padding: 0.04}` | a window. `follow` (default true) tracks it as it moves/resizes; `follow: false` freezes it where it was when the scene started. `region` = part of the window, fractions of its size. |
 | `{cursor: {zoom: 2, dead_zone: 0.2}}` | follows the mouse; the view only moves when the cursor leaves the middle `1 - 2*dead_zone` |
 | `{rect: [x, y, w, h]}` | a fixed screen area, pixels - or fractions of the screen if all values <= 1 |
-| `{split: [SHOT, SHOT], ratio: 0.5, layout: auto}` | two panes; `auto` = side by side on wide outputs, stacked on tall ones (`row`/`column` to force). A pane may carry its own `fit`, `inset` and `background` next to its shot (`{camera: {}, fit: inset}`); they win over the scene's |
+| `{split: [SHOT, SHOT], ratio: 0.5, layout: auto}` | two panes; `auto` = side by side on wide outputs, stacked on tall ones (`row`/`column` to force). A pane may carry its own `fit`, `inset`, `background` and `cutout` next to its shot (`{camera: {}, fit: inset}`); they win over the scene's |
 
 **Window selectors** (`SEL`): `{class: regex}`, `{title: regex}`, both, `{address: "0x..."}` (exact; the draft
 and `session.jsonl` list them), or `focused` / `{focused: true}` (whatever has focus, switching with it).
@@ -481,7 +482,27 @@ in its scene; an explicit `push` with it fights (`check` warns).
 A view already showing the whole source has no room for the dip, so it's skipped there. Not on
 `cursor`/`auto` shots; `check` warns about those and about a punch after its scene ends.
 
-#### Spotlight: one window sharp, the rest of the screen blurred
+#### Cut-out: the speaker sharp, the background frosted
+
+```yaml
+- at: 4.6
+  shot: camera
+  cutout: frost                    # or {style: frost, strength: 0.2, feather: 6}
+```
+On a camera shot (or a split's camera pane), the speaker is matted out of the camera (Robust Video
+Matting, on the CPU) and the room behind restyled - the background effects of a live camera, done
+afterwards per scene, so the recording stays raw. `style`: `frost` (frosted glass: blurred, a soft
+glow, a little less colour, lifted, a fine still grain) or `blur` (the room blurred, without a halo
+of you smeared into it). `strength` 0..1 (default 0.2: noticeable, not loud), `feather` px at 1080p
+(default 6: the outline fades over that much, inside itself).
+
+The matte and the restyled camera are files in `<session>/cutout/`, made once - by `pugrec matte EDIT`,
+or by `build` / `preview` when missing - over the part of the session the cut-out scenes show, plus
+0.5 s each side. Expect about 3.5 s per second of video the first time (a 50 s clip: ~3 min), and a
+third of that after a change of `style`/`strength`/`feather` (the matte is kept). Delete the folder to
+redo it.
+
+### Spotlight: one window sharp, the rest of the screen blurred
 
 ```yaml
 style:

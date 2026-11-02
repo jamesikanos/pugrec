@@ -22,6 +22,7 @@ pugrec/edit/compose.py build compositor: paints plan layers (uint8, OpenCV), chu
 pugrec/edit/gpu.py     GPU build compositor, Python half: layers snapped as compose does -> JSON lines
 native/pugrec-gpu/     GPU build compositor, C: VAAPI decode -> dmabuf -> GLES layers -> NV12 out
 pugrec/edit/regress.py   snapshots of what edits resolve to (plan, audio graph, check) - the additions-only gate
+pugrec/cutout.py       camera cut-out: RVM matte (onnxruntime, CPU) + background styles ported from pugcam -> cutout/
 pugrec/edit/preview.py proxies + local server (Range, SSE reload); web/ = canvas player of the plan
 pugrec/edit/draft.py   starting edit.yaml from focus changes, click bursts, transcript
 pugrec/render.py       old auto-zoom harness; its Camera is reused by `shot: auto`
@@ -105,6 +106,11 @@ James's rule (2026-10-13): **commit little and often.**
   bound for the next draw (black camera on each run's first frame). swscale details matched by
   measurement: same-size yuv420p -> rgb repeats chroma (nearest); bgr24 -> yuv420p averages
   chroma pairs horizontally and uses an 8-tap bicubic (Keys a=-0.6) vertically.
+- Cut-out (`cutout.py`): RVM (GPL-3.0) is fetched at run time with a pinned SHA-256, never vendored;
+  pugcam (dotfiles) is the reference for the style maths, ported, never imported. It's memory-bandwidth
+  bound, not CPU bound: a 3900X tops out at ~9 frames/s for matte + style whatever the process x
+  thread split (1 process: 4 fps; RVM threads 4 -> 8 barely help), so 3 workers. Full-size float32
+  passes were the cost - keep blurry work at the working size and blend in uint8.
 - Builds lose the last ~0.3 s: the final mux's `-shortest` stops at the audio's end, which is a
   little short of the plan (both compositors; seen 2026-11-01, not fixed).
 - CPU build speed ~0.35x realtime with 4 jobs (5K decode + x264 share the CPU). A float32 canvas was

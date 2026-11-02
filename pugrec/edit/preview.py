@@ -142,6 +142,15 @@ class State:
             plans = {}
             for out in sc["outputs"]:
                 p = resolve.resolve(sc, out["name"], sessions=sessions, fps=PREVIEW_FPS)
+                for sid, r in (p.get("derive") or {}).items():   # cut-out camera: made once, then proxied
+                    from .. import cutout
+                    cutout.derive(r)
+                    src, kind = sid.split("/")
+                    url = f"/media/{src}/{kind}"
+                    proxy = os.path.join(os.path.dirname(os.path.dirname(r["file"])), "proxy", kind + ".mp4")
+                    _proxy(r["file"], proxy, 960)
+                    self.media[url] = proxy
+                    self.sizes.setdefault(url, probe_size(proxy))
                 for sid, st in p["streams"].items():
                     src, kind = sid.split("/")
                     url = f"/media/{src}/{kind}"

@@ -166,6 +166,9 @@ def cmd_build(a):
         p = resolve.resolve(sc, name, sessions=sessions, fps=a.fps, t_from=a.start, t_to=a.end)
         for w in p["warnings"]:
             print(f"warning: {w}", file=sys.stderr)
+        if p.get("derive"):   # cut-out scenes: the matted, restyled camera (made once, cached)
+            from . import cutout
+            cutout.ensure(p)
         suffix = "" if a.start == 0 and a.end is None else f"-{a.start:g}-{a.end or p['duration']:g}"
         preset = a.preset or "medium"
         crf, preset = (min(a.crf, 14), "slow" if preset == "medium" else preset) if a.hq else (a.crf, preset)
@@ -177,6 +180,25 @@ def cmd_build(a):
         if a.whatsapp and not r:
             rc |= cmd_whatsapp(argparse.Namespace(file=out, out=None))
     return rc
+
+
+def cmd_matte(a):
+    """The cut-out streams an edit needs (matte + restyled camera), made now instead of at build."""
+    from . import cutout
+    from .edit import resolve, script
+    try:
+        sc = script.load(edit_path(a.edit))
+    except script.ScriptError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    sessions = resolve.load_sessions(sc)
+    n = 0
+    for out in sc["outputs"]:
+        p = resolve.resolve(sc, out["name"], sessions=sessions, fps=5)
+        n += len(p.get("derive") or {})
+        cutout.ensure(p)
+    print(f"matte: {n} cut-out stream(s) ready" if n else "matte: no scene asks for a cut-out", file=sys.stderr)
+    return 0
 
 
 def cmd_whatsapp(a):
@@ -299,6 +321,11 @@ def main(argv=None):
     b.add_argument("--out-dir", help="default: next to edit.yaml")
     b.add_argument("--whatsapp", action="store_true", help="also write build-<output>-whatsapp.mp4 (plays inline)")
     b.set_defaults(fn=cmd_build)
+
+    mt = sub.add_parser("matte", help="cut the speaker out of the camera for an edit's cut-out scenes "
+                                      "(build/preview do this when missing)")
+    mt.add_argument("edit", help="edit.yaml, or a session folder containing one")
+    mt.set_defaults(fn=cmd_matte)
 
     wa = sub.add_parser("whatsapp", help="make a copy of an MP4 that WhatsApp plays inline (< 16 MB)")
     wa.add_argument("file")
