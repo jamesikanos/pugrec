@@ -459,6 +459,13 @@ class Session:
             self.notice("no camera found; recording without")
             self.cam_ready.set()
             return
+        who = camera_holders(dev)   # read-only /proc scan: a meeting's camera is never touched
+        if who:
+            msg = f"camera is busy - in use by {', '.join(who)}; recording without it"
+            self.notice(msg)
+            notify("Camera busy", msg[0].upper() + msg[1:], "critical")
+            self.cam_ready.set()
+            return
         self.set_camera_controls(dev)
         w, h = self.args.camera_size.lower().split("x")
         self.cam_file = os.path.join(self.dir, "camera.mkv")

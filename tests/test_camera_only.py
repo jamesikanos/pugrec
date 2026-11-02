@@ -89,6 +89,44 @@ class CameraOnly(unittest.TestCase):
             self.assertEqual(p["audio"], [])
 
 
+class BusyCameraAndInfo(unittest.TestCase):
+    def test_a_busy_camera_is_left_alone(self):
+        # No device is opened: the /proc scan is stubbed to report a holder (a meeting).
+        import argparse
+        from unittest import mock
+        from pugrec import recorder
+        with tempfile.TemporaryDirectory() as d:
+            dev = os.path.join(d, "video0")
+            open(dev, "w").close()
+            args = argparse.Namespace(dir=d, camera=dev)
+            sess = recorder.Session(args)
+            with mock.patch.object(recorder, "camera_holders", return_value=["chrome (pid 1)"]), \
+                    mock.patch.object(recorder, "notify"), \
+                    mock.patch.object(recorder.Session, "set_camera_controls") as controls, \
+                    mock.patch.object(recorder.subprocess, "Popen") as popen:
+                sess.start_camera()
+            controls.assert_not_called()          # no zoom/exposure jump in someone's meeting
+            popen.assert_not_called()
+            self.assertTrue(sess.cam_ready.is_set())
+            self.assertTrue(any("camera is busy - in use by chrome" in m for m in sess.pending))
+            sess.out.close()
+
+    def test_info_reports_the_mic_as_audio(self):
+        import argparse
+        import contextlib
+        import io
+        from pugrec import __main__ as cli
+        with tempfile.TemporaryDirectory() as d:
+            make_camera_only(d)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                cli.cmd_info(argparse.Namespace(session=d))
+            text = out.getvalue()
+        self.assertIn("stream    mic: mic.mka flac source=alsa_input.test", text)
+        self.assertNotIn("mic: no readable video", text)
+        self.assertIn("audio: ? (no readable audio packets)", text)   # the fake file is empty
+
+
 class AlignMic(unittest.TestCase):
     """The recorder pads / trims mic.mka at the stop so its sample 0 is the session's t = 0."""
 
