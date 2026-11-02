@@ -738,4 +738,5 @@ audio. Drawn above the video (and the bubble), below callouts and captions.
 - **`radius`** (px at 1080p: 18 card, 14 corner, 0 full/face), **`shadow`** (0-1: 0.6 card and
   corner, 0 full/face), **`source`** (default the first), **`pause`** (as callouts': only
   where the speaker already left a break).
-- Two up at once in the same place: `check` warns.
+- Two up at once in the same place: `check` warns - except a `full` one with `in: none`, which
+  covers what's under it by design (a flip-book burst of frames).

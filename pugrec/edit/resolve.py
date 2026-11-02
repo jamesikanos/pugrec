@@ -873,7 +873,9 @@ class OutputResolver:
         for i, o in enumerate(self.sc.get("overlays") or []):
             ov = o["outputs"][name]
             where = ov["place"] if ov["place"] in ("full", "face") else f"{ov['place']} {ov['corner']}"
-            for j, oo, w in seen:
+            # A full-frame one that cuts in covers whatever is under it by design (a flip-book burst).
+            covers = where == "full" and ov["in"]["kind"] == "none"
+            for j, oo, w in ([] if covers else seen):
                 if w == where and oo["source"] == o["source"] and oo["at"] <= o["at"] < oo["at"] + oo["outputs"][name]["duration"]:
                     self.warnings.append(f"[{name}] overlays[{i}] starts while overlays[{j}] is still up "
                                          f"in the same place ({where}): they overlap")

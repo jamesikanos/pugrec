@@ -178,6 +178,13 @@ class Overlays(unittest.TestCase):
         p = self.p([{"at": 1, "image": "shot.png"}, {"at": 2, "text": "Hi", "corner": "bottom"}], "main")
         self.assertFalse([w for w in p["warnings"] if "overlap" in w])
 
+    def test_full_frame_cut_in_over_another_doesnt_warn(self):
+        burst = [{"at": 1 + 0.14 * k, "image": "shot.png", "place": "full", "duration": 0.25,
+                  "in": "none", "out": "none"} for k in range(5)]
+        self.assertFalse([w for w in self.p(burst, "main")["warnings"] if "overlap" in w])
+        faded = [dict(o, **{"in": {"fade": 0.1}}) for o in burst]
+        self.assertTrue([w for w in self.p(faded, "main")["warnings"] if "overlap" in w])
+
     def test_pause_holds_the_recording(self):
         p = self.p([{"at": 2, "image": "shot.png", "pause": 1}], "main")
         holds = [f for f in p["frames"] if f.get("hold")]
