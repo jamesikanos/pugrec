@@ -348,7 +348,7 @@ scenes:
 | `cuts` | a list `[[from, to], ...]`, or `{pauses: s, fillers: bool, ranges: [...]}` (pauses/fillers need `transcript.jsonl`) |
 | `timeline` | instead of cuts: explicit segments `[{source, from, to}]` in order (splicing; reordering) |
 | `sources` | `{main: {session: .}}` (default). Image sources: `{page: {image: shots/page.png}}` - a still shown with `shot: {source: page}` (Shots, below). The first session times the edit; videos are planned. |
-| `audio` | `{source: mic-clean | raw | none}` - mic-clean (from `pugrec audio`) if it exists, else raw |
+| `audio` | `{source: mic-clean | raw | none, music, sfx, loudness}` - source: mic-clean (from `pugrec audio`) if it exists, else raw; a music bed, sound effects and final loudness (Music and sound effects, below) |
 | `style` | defaults, below |
 | `scenes` | the list of scenes, by `at` |
 | `intro` / `outro` | title cards before/after the video: `"Title"` or `{title, subtitle, duration}` |
@@ -642,6 +642,42 @@ only all-lowercase words change, so names and codes (FieldPal, ACME, AC-42) stay
 small words (and, of, the, ...) stay lowercase except first and last.
 A **theme** may carry `intro:` / `outro:` too (a brand's standard closing card): an edit gets them
 unless it sets its own, and `outro: false` / `intro: false` in edit.yaml turns them off.
+
+#### Music and sound effects
+
+```yaml
+audio:
+  source: mic-clean
+  music:                         # or just: music: music/track.mp3
+    file: music/track.mp3        # relative to edit.yaml (wav, flac, mp3, ogg, opus, m4a, aac)
+    volume: -22                  # dB under the voice (mic-clean sits at -16 LUFS; the track is measured)
+    duck: 8                      # dB further down while someone is speaking
+    start: 0                     # seconds into the track
+    fade_in: 1.0
+    fade_out: 2.0                # ending at the end of the output (outro included)
+    loop: true                   # a track shorter than the edit starts again
+  sfx:
+    - {at: 12.4, file: sfx/whoosh.wav, volume: -6}   # source seconds; dB, 0 = as recorded
+  loudness: -14                  # optional: the build's final integrated loudness (LUFS)
+callouts:
+  - {at: 40.6, title: Next, sfx: sfx/whoosh.wav}    # callouts and overlays take `sfx: file` too
+```
+- **Music runs on the output clock**: it doesn't jump at cuts, and it plays on under title cards
+  and holds. Its level is relative to the voice: the track's own loudness is measured once
+  (cached), so `volume: -22` means 22 dB under the voice whatever the file.
+- **Ducking** follows the transcript (`pugrec transcript`): words, padded a little, with gaps
+  under 0.5 s counted as speech. It goes down over 0.15 s and comes back over 0.5 s. With no
+  transcript there's no ducking and `check` says so.
+- **Sound effects** fire when the source reaches `at` (like callouts): once, at that frame's
+  output time. One whose moment is cut away never plays, and `check` warns. Sounds are in the
+  same `sfx` list whether written there or as a callout's / overlay's `sfx:`.
+- **`loudness`**: loudnorm on the final mix (-14 for social platforms). Without it, the voice
+  stays at -16 LUFS and the mix is as set.
+- With music or sfx the build's audio is stereo (the voice in the middle); without, it's mono
+  as before.
+- Resolve decides the levels (the plan's `mix`: the music's gain curve and each effect's time);
+  the build's audio graph and the preview both play exactly that.
+- No licence or attribution handling: the files are the edit's responsibility.
 
 #### Callouts: info boxes and section headers
 
