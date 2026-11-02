@@ -241,8 +241,14 @@ style:
   captions: {show: true, size: 0.045, position: auto, max_words: 6, highlight: true,   # auto = bottom / lower third on 9:16
              font: IBM Plex Sans, weight: 600, color: "#f1e4d9",                       # any installed font family
              background: "#16171a", background_opacity: 0.78,                           # the box behind the words
-             fix: {}}                # {Misheard: Right}; keys may be several words ("Field Pal": FieldPal),
+             fix: {},                # {Misheard: Right}; keys may be several words ("Field Pal": FieldPal),
                                      # case-insensitive; edit.yaml's fix MERGES with the theme's
+             animation: none,        # pop: each line springs in (0.6x -> ~1.07x -> 1x over 0.2 s)
+             case: none,             # upper: words in capitals
+             look: box,              # outline: no box - letters with a stroke (outline: {color, width})
+             outline: {color: "#000000", width: 6},   # width px at 1080p; only for look: outline
+             emphasis: [],           # single words always in the accent colour, e.g. [never, hours]
+             break_on_pause: null}   # s: a new line at a pause this long (default 0.6), e.g. 0.3
   logo: null                 # {file: logo.png, corner: top-right, size: 0.12, margin: 0.03, opacity: 0.9}
   card: {background: "#16171a", color: "#f1e4d9", font: null, duration: 3.0,         # intro/outro cards; font null = captions'
          image: null, image_size: 0.12,   # image: a brand icon, centred above the title; size = its height / the shorter side
@@ -307,6 +313,11 @@ captions: {font: Inter, weight: 700, color: "#ffffff", background: "#0b1f3a"}
 bubble: {border: {color: "#2f80ff", width: 4}}
 card: {background: "#0b1f3a", color: "#ffffff"}
 logo: {file: acme-logo.png, corner: top-right, size: 0.1}   # next to the theme file
+```
+Short, punchy captions for social clips (a talking head, 9:16):
+```yaml
+captions: {max_words: 3, size: 0.075, weight: 800, animation: pop, case: upper,
+           look: outline, emphasis: [never, hours], break_on_pause: 0.3}
 ```
 
 ### Title cards: `intro` / `outro`

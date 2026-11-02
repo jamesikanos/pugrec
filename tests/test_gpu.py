@@ -162,7 +162,10 @@ class Parity(Compare, unittest.TestCase):
                        {"type": "image", "img": png, "dst": [10.4, 10.6, 96, 72], "shape": "round", "radius": 10},
                        {"type": "image", "img": png, "dst": [150, 10, 64, 48], "pixelated": True, "flip": True,
                         "opacity": 0.7},
-                       dict(text, opacity=op), dict(text, y=60, x=180, align="left", bg_opacity=0.0)]
+                       dict(text, opacity=op), dict(text, y=60, x=180, align="left", bg_opacity=0.0),
+                       # captions look: outline (a stroke, no box) + an emphasis word's own colour
+                       dict(text, y=100, size=26, bg_opacity=0.0, stroke=3, stroke_color="#000000", opacity=op,
+                            words=[{"w": "NEVER", "hi": False, "c": "#ff6b2c"}, {"w": "AGAIN", "hi": True}])]
                       for op in (1.0, 0.5)]
             plan = card_plan(frames)
             plan["images"] = {png: {"file": png, "size": [64, 48]}}

@@ -361,14 +361,21 @@ def _shifted(l, dx, dy):
     return m
 
 
+def text_key(l):
+    """Everything that changes a text layer's picture (not where it goes or its opacity)."""
+    words = tuple((w["w"], w["hi"], w.get("c")) for w in l["words"])
+    return (max(6, int(round(l["size"]))), words, l["color"], l["hi"], l["bg"], l["bg_opacity"],
+            l.get("font", "IBM Plex Sans"), l.get("weight", 600), l.get("pad"), l.get("radius"),
+            l.get("stroke"), l.get("stroke_color"))
+
+
 def text_image(l):
     """(BGR uint8, alpha (h, w, 1)) for a caption line: pill background + words, the
     spoken one highlighted. Same geometry as player.js: height size*1.5, pad each side."""
     from PIL import Image, ImageDraw
     size = max(6, int(round(l["size"])))
     family, weight = l.get("font", "IBM Plex Sans"), l.get("weight", 600)
-    key = (size, tuple((w["w"], w["hi"]) for w in l["words"]), l["color"], l["hi"], l["bg"], l["bg_opacity"],
-           family, weight, l.get("pad"), l.get("radius"))
+    key = text_key(l)
     hit = _texts.get(key)
     if hit:
         return hit
@@ -382,9 +389,16 @@ def text_image(l):
     d = ImageDraw.Draw(im)
     bg = tuple(int(c) for c in hex_bgr(l["bg"])[::-1]) + (int(255 * l["bg_opacity"]),)
     d.rounded_rectangle((0, 0, W - 1, H - 1), radius=int(l["radius"]), fill=bg)
+    stroke = int(round(l.get("stroke") or 0))
+    if stroke:   # all the words' strokes first, so one word's stroke never covers its neighbour's letters
+        sc = tuple(int(c) for c in hex_bgr(l["stroke_color"])[::-1]) + (255,)
+        x = pad
+        for w, wd in zip(l["words"], widths):
+            d.text((x, H / 2), w["w"], font=font, fill=sc, anchor="lm", stroke_width=stroke, stroke_fill=sc)
+            x += wd + space
     x = pad
     for w, wd in zip(l["words"], widths):
-        col = l["hi"] if w["hi"] else l["color"]
+        col = l["hi"] if w["hi"] else w.get("c") or l["color"]
         d.text((x, H / 2), w["w"], font=font, fill=tuple(int(c) for c in hex_bgr(col)[::-1]) + (255,), anchor="lm")
         x += wd + space
     a = np.asarray(im, np.uint8)

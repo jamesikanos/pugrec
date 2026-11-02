@@ -77,7 +77,14 @@ DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's sty
     "captions": {"show": True, "size": 0.045, "position": "auto", "max_words": 6, "highlight": True,
                  "fix": {},  # word -> correction, for names the transcript gets wrong (Akme -> Acme)
                  "font": "IBM Plex Sans", "weight": 600, "color": "#f1e4d9",
-                 "background": "#16171a", "background_opacity": 0.78},
+                 "background": "#16171a", "background_opacity": 0.78,
+                 # Social-clip options (2026-11-02); these defaults draw exactly as before.
+                 "animation": "none",    # pop: each line springs in (scale, on the output clock)
+                 "case": "none",         # upper: words drawn in capitals
+                 "look": "box",          # outline: no box, letters with a stroke
+                 "outline": {"color": "#000000", "width": 6},   # look: outline - px at 1080p
+                 "emphasis": [],         # words always drawn in the accent colour
+                 "break_on_pause": None},   # s: a new line at a pause this long (default 0.6)
 }
 THEMES_HELP = "~/.config/pugrec/themes/<name>.yaml"
 CALLOUT_LOOKS = ("draw", "bar", "pill", "section")
@@ -539,7 +546,28 @@ def captions(v, path, base):
             out[k] = _color(val, f"{path}.{k}")
         elif k == "background_opacity":
             out[k] = _num(val, f"{path}.{k}", 0, 1)
+        elif k in CAPTION_CHOICES:
+            if val not in CAPTION_CHOICES[k]:
+                _err(f"{path}.{k}", f"expected one of {', '.join(CAPTION_CHOICES[k])}, got {val!r}")
+            out[k] = val
+        elif k == "outline":
+            _keys(val, f"{path}.outline", ["color", "width"])
+            o = dict(base["outline"])
+            if "color" in val:
+                o["color"] = _color(val["color"], f"{path}.outline.color")
+            if "width" in val:
+                o["width"] = _num(val["width"], f"{path}.outline.width", 0, 40)
+            out[k] = o
+        elif k == "emphasis":
+            if not isinstance(val, list) or not all(isinstance(w, str) and w.strip() and " " not in w.strip() for w in val):
+                _err(f"{path}.emphasis", "a list of single words, e.g. [never, hours]")
+            out[k] = [w.strip() for w in val]
+        elif k == "break_on_pause":
+            out[k] = None if val is None else _num(val, f"{path}.break_on_pause", 0.1, 5)
     return out
+
+
+CAPTION_CHOICES = {"animation": ("none", "pop"), "case": ("none", "upper"), "look": ("box", "outline")}
 
 
 def _color(v, path):
