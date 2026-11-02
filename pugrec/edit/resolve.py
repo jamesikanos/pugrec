@@ -597,7 +597,9 @@ class OutputResolver:
                 if nxt is not None and p["at"] >= nxt["at"]:
                     self.warn(s, f"punch at {p['at']} is after the scene ends ({nxt['at']}); ignored")
         self.check_callouts()
-        gap = {"gap": cap["break_on_pause"]} if cap.get("break_on_pause") else {}
+        self.overlay_t0, self.overlay_geo = {}, {}   # overlay index -> output clock it appeared, its rest geometry
+        self.check_overlays()
+        gap ={"gap": cap["break_on_pause"]} if cap.get("break_on_pause") else {}
         self.lines = {name: caption_lines(sess.transcript or [], cap["max_words"], fixes=cap.get("fix"), **gap)
                       for name, sess in sessions.items()}
         self.caption_t0 = {}   # (source, line) -> output clock when it first showed (pop runs on that)
@@ -817,6 +819,213 @@ class OutputResolver:
             if clip:
                 l["clip"] = clip
             layers.append(l)
+        return layers
+
+    # -- overlays --------------------------------------------------------
+    def check_overlays(self):
+        name, seen = self.out["name"], []
+        for i, o in enumerate(self.sc.get("overlays") or []):
+            ov = o["outputs"][name]
+            where = ov["place"] if ov["place"] in ("full", "face") else f"{ov['place']} {ov['corner']}"
+            for j, oo, w in seen:
+                if w == where and oo["source"] == o["source"] and oo["at"] <= o["at"] < oo["at"] + oo["outputs"][name]["duration"]:
+                    self.warnings.append(f"[{name}] overlays[{i}] starts while overlays[{j}] is still up "
+                                         f"in the same place ({where}): they overlap")
+            seen.append((i, o, where))
+
+    def overlay_layers(self, source, t, layers):
+        """Overlays showing at source time t. Like callouts: one appears when the source reaches
+        `at` (or is inside it after a cut) and then runs on the output clock."""
+        out = []
+        for i, o in enumerate(self.sc["overlays"]):
+            if o["source"] != source:
+                continue
+            ov = o["outputs"][self.out["name"]]
+            if i not in self.overlay_t0 and o["at"] <= t < o["at"] + ov["duration"]:
+                self.overlay_t0[i] = self.clock
+                self.overlay_geo[i] = self.overlay_rest(i, o, ov, t, layers)
+            if i in self.overlay_t0:
+                e = self.clock - self.overlay_t0[i]
+                if e < ov["duration"]:
+                    out += self.overlay(o, ov, self.overlay_geo[i], e)
+        return out
+
+    def face_on_screen(self, source, t, layers):
+        """(cx, cy, h) of the speaker's face in output px, from the largest sharp camera picture
+        in this frame (a camera shot, a split pane, the bubble), or None if none shows it."""
+        sess = self.sessions[source]
+        face = sess.face_at(t) if sess.camera is not None else None
+        if face is None:
+            return None
+        cw, ch = sess.cam_size
+        best = None
+        for l in layers:
+            if l["type"] != "video" or l.get("bg") or l.get("blur") or not l["src"].startswith(f"{source}/camera"):
+                continue
+            (rx, ry, rw, rh), (dx, dy, dw, dh) = l["rect"], l["dst"]
+            fx, fy = dx + (face[0] * cw - rx) * dw / rw, dy + (face[1] * ch - ry) * dh / rh
+            if dx <= fx <= dx + dw and dy <= fy <= dy + dh and (best is None or dw * dh > best[0]):
+                best = (dw * dh, fx, fy, face[2] * ch * dh / rh)
+        return best[1:] if best else None
+
+    def overlay_rest(self, i, o, ov, t, layers):
+        """Where an overlay sits once in: its box, the image's crop window(s), the credit's place."""
+        W, H, s = self.W, self.H, min(self.W, self.H)
+        m = 0.045 * s
+        band = 0.14 * H if self.style["captions"]["show"] else 0.0   # bottom ones sit above the captions
+        place, corner = ov["place"], ov["corner"]
+        g = {"credit_size": 0.024 * s}
+        if o["text"] is not None:
+            cs = self.style["card"]
+            font = cs["font"] or self.style["captions"]["font"]
+            ts = ov["text_size"] * s
+            words = [[{"w": w.strip("*"), "hi": False, **({"c": self.style["accent"]} if len(w) > 2 and
+                       w.startswith("*") and w.endswith("*") else {})} for w in line.split()] for line in o["text"]]
+            tw = max(text_width(" ".join(w["w"] for w in ws), ts, font, 800) for ws in words)
+            room = ov["size"] * W
+            for _ in range(3):   # too wide: smaller type, never past `size` (width isn't linear in size)
+                if tw + 1.2 * ts <= room:
+                    break
+                ts *= room / (tw + 1.2 * ts) * 0.99
+                tw = max(text_width(" ".join(w["w"] for w in ws), ts, font, 800) for ws in words)
+            w, h = tw + 1.2 * ts, (len(words) * 1.25 + 0.7) * ts
+            g.update(words=words, ts=ts, font=font)
+        else:
+            iw, ih = image_size(o["image"])
+            self.images[o["image"]] = {"file": o["image"], "size": [iw, ih]}
+            cx, cy, cw, ch = (ov["crop"][0] * iw, ov["crop"][1] * ih, ov["crop"][2] * iw, ov["crop"][3] * ih) \
+                if ov["crop"] else (0.0, 0.0, float(iw), float(ih))
+            a = cw / ch
+            if place == "full":
+                w, h = float(W), float(H)
+                ww, wh = (ch * W / H, ch) if a > W / H else (cw, cw * H / W)   # cover; the top of a tall image
+                win = (cx + (cw - ww) / 2, cy, ww, wh)
+            elif place == "face":
+                f = self.face_on_screen(o["source"], t, layers)
+                if f is None:
+                    self.warnings.append(f"[{self.out['name']}] overlays[{i}]: place: face, but no face is on "
+                                         f"screen at {o['at']:g}s - shown top-right")
+                    w = 0.15 * s
+                    h = w / a
+                    x, y = W - m - w, m
+                else:
+                    fx, fy, fh = f
+                    w = ov["size"] * fh
+                    h = w / a
+                    side = 1 if fx <= W / 2 else -1         # beside the face, on the roomier side (centred: right)
+                    x = fx + side * (0.45 * fh + 0.4 * w) - w / 2
+                    y = fy - 0.45 * fh - h / 2              # level with the top of the head
+                    x, y = min(max(x, m), W - m - w), min(max(y, m), H - m - h)
+                win = (cx, cy, cw, ch)
+            else:
+                max_w, max_h = ov["size"] * W, (0.7 if place == "card" else 0.4) * H
+                if ov["scroll"]:   # a window down the image, the box's shape
+                    w, h = max_w, min(max_w / a, max_h)
+                else:
+                    w = min(max_w, max_h * a)
+                    h = w / a
+                wh = min(ch, cw * h / w)
+                win = (cx, cy, cw, wh)
+            g.update(win=win, scroll_h=ch - win[3], top=cy)
+        if place == "full":
+            x, y = 0.0, 0.0
+        elif place != "face":
+            if corner in ("top", "bottom", "center"):
+                x = (W - w) / 2
+            else:
+                x = m if "left" in corner else W - m - w
+            credit = 2.0 * g["credit_size"] if ov["credit"] else 0.0
+            y = m if corner.startswith("top") else (H - h) / 2 if corner == "center" else H - m - h - band - credit
+        if ov["in"]["dir"] == "auto" or ov["out"]["dir"] == "auto":
+            if place in ("full", "face") or corner in ("bottom", "center"):
+                auto = "up"
+            elif corner == "top":
+                auto = "down"
+            else:
+                auto = "right" if "left" in corner else "left"
+            g["auto"] = auto
+        g["box"] = (x, y, w, h)
+        return g
+
+    def overlay(self, o, ov, g, e):
+        """One overlay `e` output seconds after it appeared: in, hold (a scroll pans meanwhile), out."""
+        W, H, s, D = self.W, self.H, min(self.W, self.H), ov["duration"]
+        x, y, w, h = g["box"]
+        mi, mo = ov["in"], ov["out"]
+        op, scale, dx, dy = 1.0, 1.0, 0.0, 0.0
+        opp = {"up": "down", "down": "up", "left": "right", "right": "left"}
+        vec = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+        far = (H if ov["place"] == "full" else 0.06 * s)    # a full frame slides in from off the edge
+        if mi["kind"] != "none" and mi["s"] > 0 and e < mi["s"]:
+            u = e / mi["s"]
+            if mi["kind"] == "fade":
+                op = ease(u)
+            elif mi["kind"] == "pop":
+                scale = pop_scale(e, mi["s"], 0.5 if ov["place"] == "face" else 0.92)
+                op = clamp01(2 * u)
+            else:
+                d = g["auto"] if mi["dir"] == "auto" else mi["dir"]
+                k = 1 - (1 - u) ** 3                          # ease out: arrives softly
+                vx, vy = vec[d]
+                dist = far if ov["place"] != "full" or vy else W
+                dx, dy = -vx * dist * (1 - k), -vy * dist * (1 - k)
+                op = 1.0 if ov["place"] == "full" else clamp01(1.6 * u)
+        t_out = D - mo["s"]
+        if mo["kind"] != "none" and mo["s"] > 0 and e > t_out:
+            u = ease((e - t_out) / mo["s"])
+            op *= 1 - u
+            if mo["kind"] == "pop":
+                scale *= 1 - 0.2 * u
+            elif mo["kind"] == "slide":
+                d = opp[g["auto"]] if mo["dir"] == "auto" else mo["dir"]   # auto: back the way it came
+                vx, vy = vec[d]
+                dist = far if ov["place"] != "full" or vy else W
+                dx, dy = dx + vx * dist * u, dy + vy * dist * u
+                if ov["place"] == "full":
+                    op = 1.0
+        if op <= 0.001:
+            return []
+        bx, by = x + w / 2 * (1 - scale) + dx, y + h / 2 * (1 - scale) + dy
+        bw, bh = w * scale, h * scale
+        radius = ov["radius"] * self.unit * scale
+        layers = []
+        if ov["shadow"] > 0:
+            layers.append({"type": "shadow", "dst": rr((bx, by, bw, bh)), "radius": r1(radius),
+                           "blur": r1(36 * self.unit * scale), "offset": r1(10 * self.unit * scale),
+                           "opacity": round(min(1.0, 0.6 * ov["shadow"]) * op, 3)})
+        shape = {"shape": "round", "radius": r1(radius)} if radius > 0 else {}
+        if o["text"] is not None:
+            cs = self.style["card"]
+            layers.append(dict({"type": "fill", "dst": rr((bx, by, bw, bh)), "color": cs["background"],
+                                "opacity": round(0.95 * op, 3)}, **shape))
+            ts = g["ts"] * scale
+            n = len(g["words"])
+            for k, ws in enumerate(g["words"]):
+                layers.append({"type": "text", "x": r1(bx + bw / 2), "y": r1(by + bh / 2 + (k - (n - 1) / 2) * 1.25 * ts),
+                               "size": r1(ts), "words": ws, "color": cs["color"], "hi": self.style["accent"],
+                               "bg": cs["background"], "bg_opacity": 0.0, "font": g["font"], "weight": 800,
+                               "pad": 0.0, "radius": 0.0, "opacity": round(op, 3)})
+        else:
+            wx, wy, ww, wh = g["win"]
+            if ov["scroll"] and g["scroll_h"] > 0:
+                a, b = ov["scroll"]
+                u = ease(clamp01((e - mi["s"]) / max(1e-6, D - mi["s"] - mo["s"])))
+                wy = g["top"] + (a + (b - a) * u) * g["scroll_h"]
+            layers.append(dict({"type": "image", "img": o["image"], "dst": rr((bx, by, bw, bh)),
+                                "rect": rr((wx, wy, ww, wh)), "opacity": round(op, 3)}, **shape))
+        if ov["credit"]:
+            cs_ = g["credit_size"] * scale
+            if ov["place"] == "full":
+                cx, cy = 0.045 * s, H - 0.045 * s - (0.14 * H if self.style["captions"]["show"] else 0) - 0.75 * cs_
+            elif by + bh + 0.3 * cs_ + 1.5 * cs_ <= H:
+                cx, cy = bx, by + bh + 0.3 * cs_ + 0.75 * cs_          # just under the card, left aligned
+            else:
+                cx, cy = bx + 0.4 * cs_, by + bh - 0.4 * cs_ - 0.75 * cs_   # no room: inside its bottom edge
+            layers.append({"type": "text", "align": "left", "x": r1(cx), "y": r1(cy), "size": r1(cs_),
+                           "words": [{"w": ov["credit"], "hi": False}], "color": self.style["card"]["color"],
+                           "hi": self.style["accent"], "bg": self.style["card"]["background"], "bg_opacity": 0.78,
+                           "font": self.style["captions"]["font"], "weight": 500, "pad": r1(0.5 * cs_),
+                           "radius": r1(4 * self.unit), "opacity": round(op, 3)})
         return layers
 
     # -- sparkle / sweep transitions ------------------------------------
@@ -1345,6 +1554,8 @@ class OutputResolver:
         layers += self.ring_layers(scene, t, views)
         if self.sessions[source].camera is not None:
             layers += self.bubble_layer(scene, t, dt, changed, trans["duration"] if not jumped else 0)
+        if self.sc.get("overlays"):
+            layers += self.overlay_layers(source, t, layers)
         layers += self.logo_layers()
         layers += self.callout_layers(source, t)
         if not hold:   # nothing is being said during a hold
@@ -1385,7 +1596,9 @@ def segments(sc, sessions):
     # Title cards are segments without a source ("card:intro"/"card:outro", times = card time).
     # A callout's pause holds its source at `at`: a "hold:<source>" segment (times = the frozen
     # moment .. + the pause) spliced in where the source reaches `at`.
-    for c in sorted((c for c in sc.get("callouts") or [] if c["pause"] > 0), key=lambda c: c["at"]):
+    # Overlays pause the same way.
+    for c in sorted((c for c in (sc.get("callouts") or []) + (sc.get("overlays") or []) if c["pause"] > 0),
+                    key=lambda c: c["at"]):
         for i, (src, a, b) in enumerate(segs):
             if src == c["source"] and a <= c["at"] < b:
                 segs[i:i + 1] = [(src, a, c["at"]), ("hold:" + src, c["at"], c["at"] + c["pause"]), (src, c["at"], b)]

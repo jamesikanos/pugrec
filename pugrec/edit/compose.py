@@ -286,6 +286,7 @@ def _font(size, family="IBM Plex Sans", weight=600):
 
 
 _images = {}
+_decoded = {}   # path -> the decoded RGBA image (overlays crop/scale one big screenshot many ways)
 
 
 def image_bgra(path, w, h, pixelated=False, flip=False, rect=None):
@@ -296,14 +297,18 @@ def image_bgra(path, w, h, pixelated=False, flip=False, rect=None):
     hit = _images.get(key)
     if hit is None:
         from PIL import Image
-        with Image.open(path) as im:
-            im = im.convert("RGBA")
-            if rect:
-                sx, sy, sw, sh = rect
-                im = im.crop((int(round(sx)), int(round(sy)), int(round(sx + sw)), int(round(sy + sh))))
-            if flip:
-                im = im.transpose(Image.FLIP_LEFT_RIGHT)
-            a = np.asarray(im.resize((w, h), Image.NEAREST if pixelated else Image.LANCZOS), np.uint8)
+        im = _decoded.get(path)
+        if im is None:   # decoded once: a scroll or a pop asks for a new crop / size every frame
+            with Image.open(path) as f:
+                im = _decoded[path] = f.convert("RGBA")
+            while len(_decoded) > 4:
+                _decoded.pop(next(iter(_decoded)))
+        if rect:
+            sx, sy, sw, sh = rect
+            im = im.crop((int(round(sx)), int(round(sy)), int(round(sx + sw)), int(round(sy + sh))))
+        if flip:
+            im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        a = np.asarray(im.resize((w, h), Image.NEAREST if pixelated else Image.LANCZOS), np.uint8)
         hit = (np.ascontiguousarray(a[..., 2::-1]), a[..., 3:4].astype(np.float32) / 255)
         _images[key] = hit
         if len(_images) > 16:

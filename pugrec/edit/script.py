@@ -485,8 +485,10 @@ def parse(data, base_dir="."):
         if cuts or auto_cuts:
             _err("cuts", "use either timeline (explicit segments) or cuts, not both")
 
-    if data.get("overlays"):
-        _err("overlays", "not supported yet (planned: picture-in-picture of other sources)")
+    raw_overlays = data.get("overlays") or []
+    if not isinstance(raw_overlays, list):
+        _err("overlays", "expected a list of {at, image} / {at, text}")
+    overlays = [overlay(o, f"overlays[{i}]", out_names, sources, base_dir) for i, o in enumerate(raw_overlays)]
 
     raw_scenes = data["scenes"]
     if not isinstance(raw_scenes, list) or not raw_scenes:
@@ -510,7 +512,8 @@ def parse(data, base_dir="."):
 
     return {"version": 1, "outputs": outs, "sources": sources, "style": style,
             "audio": {"source": audio.get("source", "mic-clean")}, "cuts": cuts, "auto_cuts": auto_cuts,
-            "timeline": timeline, "scenes": scenes, "intro": intro, "outro": outro, "callouts": callouts}
+            "timeline": timeline, "scenes": scenes, "intro": intro, "outro": outro, "callouts": callouts,
+            **({"overlays": overlays} if overlays else {})}   # only when used: old scripts parse as before
 
 
 def _ranges(v, path):
@@ -894,6 +897,129 @@ def callout(v, path, style, sources):
     if c["in"] + c["out"] > c["duration"]:
         _err(f"{path}.duration", f"{c['duration']} is shorter than in + out ({c['in'] + c['out']})")
     return c
+
+
+# ---------------------------------------------------------------- overlays --
+# An overlay: an image (a screenshot, an emoji PNG) or a short text, shown over the video for a
+# while - a card, the full frame, a corner, or beside the speaker's face. Defaults per place.
+OVERLAY_PLACES = ("card", "full", "corner", "face")
+OVERLAY_CORNERS = CALLOUT_CORNERS + ("center",)
+MOTIONS = ("slide", "fade", "pop", "none")
+OVERLAY_DEFAULTS = {
+    "card": {"duration": 4.0, "size": 0.8, "radius": 18.0, "shadow": 0.6,
+             "in": {"kind": "slide", "s": 0.45, "dir": "auto"}, "out": {"kind": "fade", "s": 0.3, "dir": "auto"}},
+    "corner": {"duration": 4.0, "size": 0.32, "radius": 14.0, "shadow": 0.6, "corner": "top-right",
+               "in": {"kind": "slide", "s": 0.45, "dir": "auto"}, "out": {"kind": "fade", "s": 0.3, "dir": "auto"}},
+    "full": {"duration": 4.0, "size": 1.0, "radius": 0.0, "shadow": 0.0,
+             "in": {"kind": "fade", "s": 0.3, "dir": "auto"}, "out": {"kind": "fade", "s": 0.3, "dir": "auto"}},
+    "face": {"duration": 1.2, "size": 0.6, "radius": 0.0, "shadow": 0.0,
+             "in": {"kind": "pop", "s": 0.3, "dir": "auto"}, "out": {"kind": "fade", "s": 0.25, "dir": "auto"}},
+}
+OVERLAY_LOOK_KEYS = ["place", "corner", "size", "text_size", "crop", "in", "out", "radius", "shadow", "scroll",
+                     "duration", "credit"]
+OVERLAY_KEYS = ["at", "source", "image", "text", "pause"] + OVERLAY_LOOK_KEYS
+
+
+def motion(v, path, default):
+    """in/out: none | fade | pop | slide, or {fade: s} / {pop: s} / {slide: up|down|left|right|auto, s: s}."""
+    if isinstance(v, str):
+        _choice(v, path, MOTIONS)
+        return {"kind": v, "s": 0.0 if v == "none" else default["s"], "dir": "auto"}
+    if not isinstance(v, dict) or len(set(v) & set(MOTIONS)) != 1:
+        _err(path, f"expected one of {', '.join(MOTIONS)}, or e.g. {{fade: 0.3}}, {{slide: up, s: 0.45}}")
+    kind = next(k for k in v if k in MOTIONS)
+    _keys(v, path, [kind] + (["s"] if kind == "slide" else []))
+    if kind == "slide":
+        d = _choice(v["slide"], f"{path}.slide", ("auto", "up", "down", "left", "right"))
+        return {"kind": "slide", "s": _num(v.get("s", default["s"]), f"{path}.s", 0, 5), "dir": d}
+    if kind == "none":
+        return {"kind": "none", "s": 0.0, "dir": "auto"}
+    return {"kind": kind, "s": _num(v[kind], f"{path}.{kind}", 0, 5), "dir": "auto"}
+
+
+def overlay_look(v, path, is_text):
+    """One output's look of an overlay (its place's defaults <- the overlay's keys)."""
+    place = _choice(v.get("place", "card"), f"{path}.place", OVERLAY_PLACES)
+    if is_text and place not in ("card", "corner"):
+        _err(f"{path}.place", "a text overlay is a card or a corner (full / face need an image)")
+    d = OVERLAY_DEFAULTS[place]
+    o = {"place": place, "corner": d.get("corner", "top"),   # top: clear of a talking head's face
+         "size": d["size"], "text_size": 0.075, "crop": None, "radius": d["radius"], "shadow": d["shadow"],
+         "scroll": None, "duration": d["duration"], "credit": None}
+    for k, val in v.items():
+        p = f"{path}.{k}"
+        if k == "corner":
+            if place in ("full", "face"):
+                _err(p, f"place: {place} has no corner")
+            o[k] = _choice(val, p, OVERLAY_CORNERS)
+        elif k == "size":
+            if place == "full":
+                _err(p, "place: full always fills the frame")
+            o[k] = _num(val, p, 0.02, 3 if place == "face" else 1)
+        elif k == "text_size":
+            if not is_text:
+                _err(p, "text_size is for text overlays (image: size)")
+            o[k] = _num(val, p, 0.01, 0.3)
+        elif k == "crop":
+            if is_text:
+                _err(p, "crop is for image overlays")
+            r = _rect(val, p)
+            if r[0] + r[2] > 1.0001 or r[1] + r[3] > 1.0001:
+                _err(p, "fractions of the image: x + w and y + h at most 1")
+            o[k] = r
+        elif k in ("radius",):
+            o[k] = _num(val, p, 0, 200)
+        elif k == "shadow":
+            o[k] = _num(val, p, 0, 1)
+        elif k == "duration":
+            o[k] = _num(val, p, 0.2, 60)
+        elif k == "credit":
+            o[k] = None if val in (None, "") else str(val)
+            if o[k] and "\n" in o[k]:
+                _err(p, "one line")
+        elif k == "scroll":
+            if is_text or place == "face":
+                _err(p, "scroll pans an image card or a full-frame image")
+            if val is True:
+                o[k] = [0.0, 1.0]
+            elif val in (False, None):
+                o[k] = None
+            else:
+                _keys(val, p, ["from", "to"])
+                o[k] = [_num(val.get("from", 0), f"{p}.from", 0, 1), _num(val.get("to", 1), f"{p}.to", 0, 1)]
+    o["in"] = motion(v["in"], f"{path}.in", d["in"]) if "in" in v else dict(d["in"])
+    o["out"] = motion(v["out"], f"{path}.out", d["out"]) if "out" in v else dict(d["out"])
+    if o["in"]["s"] + o["out"]["s"] > o["duration"]:
+        _err(f"{path}.duration", f"{o['duration']} is shorter than in + out ({o['in']['s'] + o['out']['s']:g})")
+    return o
+
+
+def overlay(v, path, out_names, sources, base_dir):
+    """{at, image | text, ...look keys, <output>: {look overrides}} -> {at, source, pause, image, text,
+    outputs: {name: look}}."""
+    if not isinstance(v, dict):
+        _err(path, "expected {at, image: file} or {at, text: ...}")
+    _keys(v, path, OVERLAY_KEYS + out_names, ["at"])
+    if ("image" in v) == ("text" in v):
+        _err(path, "give either image: (a file) or text: (a short line)")
+    o = {"at": _num(v["at"], f"{path}.at", 0), "source": v.get("source", next(iter(sources))),
+         "pause": _num(v.get("pause", 0), f"{path}.pause", 0, 10), "image": None, "text": None}
+    if o["source"] not in sources:
+        _err(f"{path}.source", f"unknown source {o['source']!r} (have: {', '.join(sources)})")
+    if "image" in v:
+        o["image"] = _image_file(v["image"], f"{path}.image", base_dir)
+    else:
+        lines = str(v["text"]).strip().split("\n")
+        if not lines[0] or len(lines) > 3:
+            _err(f"{path}.text", "one to three short lines: a flash card is read in a glance")
+        o["text"] = lines
+    own = {k: val for k, val in v.items() if k in OVERLAY_LOOK_KEYS}
+    o["outputs"] = {}
+    for name in out_names:
+        ov = v.get(name) or {}
+        _keys(ov, f"{path}.{name}", OVERLAY_LOOK_KEYS)
+        o["outputs"][name] = overlay_look(dict(own, **ov), f"{path}.{name}" if ov else path, o["text"] is not None)
+    return o
 
 
 def card(v, path, style):

@@ -72,9 +72,6 @@ class ScriptErrors(unittest.TestCase):
         self.check({"cuts": [[1, 2]], "timeline": [{"source": "main"}], "scenes": [{"at": 0, "shot": "screen"}]},
                    "either timeline")
 
-    def test_overlays_not_yet(self):
-        self.check({"overlays": [{"source": "main"}], "scenes": [{"at": 0, "shot": "screen"}]}, "not supported yet")
-
     def test_output_override_key_checked(self):
         self.check({"outputs": [{"name": "vertical", "size": "1080x1920"}],
                     "scenes": [{"at": 0, "shot": "screen", "vertical": {"shoot": "camera"}}]},

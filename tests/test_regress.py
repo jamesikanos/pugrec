@@ -12,6 +12,8 @@ import sys
 import tempfile
 import unittest
 
+from PIL import Image
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -58,6 +60,12 @@ FIXTURES = {
                                   {"at": 2, "shot": {"window": {"title": "right"}}, "fit": "inset", "push": True},
                                   {"at": 6, "shot": {"split": ["screen", "camera"]}, "punch": 7}],
                        "callouts": [{"at": 2.5, "title": "Acme", "text": "One line"}]},
+    "overlays": {"outputs": V, "scenes": [{"at": 0, "shot": "camera", "bubble": False}],
+                 "overlays": [{"at": 1, "image": "shot.png", "duration": 2, "credit": "Source: Acme",
+                               "vertical": {"size": 0.95}},
+                              {"at": 3.5, "text": "Big *news*", "in": "pop", "pause": 0.5},
+                              {"at": 5, "image": "shot.png", "place": "full", "scroll": True, "duration": 3},
+                              {"at": 8, "image": "shot.png", "place": "face"}]},
 }
 
 
@@ -70,13 +78,16 @@ def snapshots():
             make_session(d)
             add_transcript(d)
             open(os.path.join(d, "mic-clean.flac"), "w").close()   # the audio graph's mic-clean branch
+            Image.new("RGB", (400, 1200), (200, 40, 40)).save(os.path.join(d, "shot.png"))   # overlays
             path = os.path.join(d, "edit.yaml")
             with open(path, "w") as f:
                 json.dump(data, f)            # JSON is YAML
             sc = S.load(path)
+            # The temp dir becomes <S> before frames are hashed (an overlay's image is a path).
             snap = {"check": regress.check_output(path),
-                    "outputs": {o["name"]: regress.plan_snapshot(R.resolve(sc, o["name"], fps=10))
-                                for o in sc["outputs"]}}
+                    "outputs": {o["name"]: regress.plan_snapshot(
+                        json.loads(json.dumps(R.resolve(sc, o["name"], fps=10)).replace(d, "<S>")))
+                        for o in sc["outputs"]}}
             out[name] = json.loads(json.dumps(snap).replace(d, "<S>"))
     return out
 
