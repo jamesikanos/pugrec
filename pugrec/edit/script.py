@@ -13,7 +13,7 @@ import re
 CORNERS = ("top-left", "top-right", "bottom-left", "bottom-right")
 FITS = ("auto", "cover", "contain", "inset")
 BACKGROUNDS = "blur, backdrop or a colour like '#16171a'"
-SHOT_KINDS = ("screen", "camera", "auto", "window", "cursor", "rect", "split")
+SHOT_KINDS = ("screen", "camera", "auto", "window", "cursor", "rect", "split", "source")
 DEFAULT_STYLE = {  # = the PugPal look; a theme (style.theme) or edit.yaml's style overrides any of it
     "theme": None,                     # name in ~/.config/pugrec/themes/, or a path to a .yaml
     "accent": "#ff6b2c",               # FieldPal orange: click rings, caption highlight, card accent
@@ -208,6 +208,18 @@ def shot(v, path):
         _keys(opt, p, ["zoom", "dead_zone"])
         return {"kind": "cursor", "zoom": _num(opt.get("zoom", 2.0), f"{p}.zoom", 1, 8),
                 "dead_zone": _num(opt.get("dead_zone", 0.2), f"{p}.dead_zone", 0, 0.45)}
+    if kind == "source":   # another source as the picture: an image source (sources: {page: {image: ...}})
+        _keys(v, path, ["source", "scroll"])
+        if not isinstance(v["source"], str):
+            _err(p, f"the name of an image source, got {v['source']!r}")
+        out = {"kind": "image", "source": v["source"], "scroll": None}
+        if v.get("scroll") is True:
+            out["scroll"] = [0.0, 1.0]
+        elif v.get("scroll") not in (None, False):
+            _keys(v["scroll"], f"{path}.scroll", ["from", "to"])
+            out["scroll"] = [_num(v["scroll"].get("from", 0), f"{path}.scroll.from", 0, 1),
+                             _num(v["scroll"].get("to", 1), f"{path}.scroll.to", 0, 1)]
+        return out
     if kind == "rect":
         _keys(v, path, ["rect"])
         return {"kind": "rect", "rect": _rect(v["rect"], p)}
@@ -333,13 +345,27 @@ def spotlight(v, path, base):
             "dim": _num(v.get("dim", (base or {}).get("dim", 0.35)), f"{path}.dim", 0, 0.95)}
 
 
-def _scene(v, path, out_names, style, sources):
+def image_shots(sh, path, images):
+    """Give each image shot (a split's panes too) its file; an unknown image source is an error."""
+    for i, s in enumerate(sh["panes"] if sh["kind"] == "split" else [sh]):
+        if s["kind"] == "image":
+            if s["source"] not in images:
+                where = f"{path}.split[{i}]" if sh["kind"] == "split" else path
+                _err(f"{where}.source", f"no image source {s['source']!r}" +
+                     (f" (have: {', '.join(images)})" if images else " (add it under sources: {name: {image: file}})"))
+            s["file"] = images[s["source"]]
+    return sh
+
+
+def _scene(v, path, out_names, style, sources, images=None):
     _keys(v, path, SCENE_KEYS + list(out_names), ["at", "shot"])
     sc = {"at": _num(v["at"], f"{path}.at", 0), "source": v.get("source", next(iter(sources))),
           "label": v.get("label")}
+    if sc["source"] in (images or {}):
+        _err(f"{path}.source", f"{sc['source']!r} is an image (no clock): show it with shot: {{source: {sc['source']}}}")
     if sc["source"] not in sources:
         _err(f"{path}.source", f"unknown source {sc['source']!r} (have: {', '.join(sources)})")
-    sc["shot"] = shot(v["shot"], f"{path}.shot")
+    sc["shot"] = image_shots(shot(v["shot"], f"{path}.shot"), f"{path}.shot", images or {})
     fit = v.get("fit", "auto")
     if fit not in FITS:
         _err(f"{path}.fit", f"expected one of {', '.join(FITS)}, got {fit!r}")
@@ -365,6 +391,9 @@ def _scene(v, path, out_names, style, sources):
         if name in v:
             ov = v[name]
             _keys(ov, f"{path}.{name}", [k for k in SCENE_KEYS if k not in ("at", "source")])
+            if "shot" in ov and images is not None:   # parsed again per output; image sources checked now
+                image_shots(shot(ov["shot"], f"{path}.{name}.shot"), f"{path}.{name}.shot", images)
+                ov = dict(ov, shot_images=images)
             sc["overrides"][name] = ov
     return sc
 
@@ -377,6 +406,8 @@ def scene_for_output(sc, output, style, path, bubble_base=None):
     if ov:
         if "shot" in ov:
             s["shot"] = shot(ov["shot"], f"{path}.{output}.shot")
+            if "shot_images" in ov:
+                s["shot"] = image_shots(s["shot"], f"{path}.{output}.shot", ov["shot_images"])
         if "fit" in ov:
             if ov["fit"] not in FITS:
                 _err(f"{path}.{output}.fit", f"expected one of {', '.join(FITS)}")
@@ -450,13 +481,20 @@ def parse(data, base_dir="."):
     out_names = [o["name"] for o in outs]
 
     srcs = data.get("sources") or {"main": {"session": "."}}
-    sources = {}
+    sources, images = {}, {}   # sessions (they have a clock) / images (a still, shown as a shot)
     for name, s in srcs.items():
         p = f"sources.{name}"
         _keys(s, p, ["session", "video", "image"])
-        if "session" not in s:
-            _err(p, "only session sources are supported in this version (video/image: later)")
-        sources[name] = {"kind": "session", "path": os.path.normpath(os.path.join(base_dir, s["session"]))}
+        if len(s) != 1:
+            _err(p, "one of session: or image:")
+        if "image" in s:
+            images[name] = _image_file(s["image"], f"{p}.image", base_dir)
+        elif "session" not in s:
+            _err(p, "video sources aren't supported yet (session or image)")
+        else:
+            sources[name] = {"kind": "session", "path": os.path.normpath(os.path.join(base_dir, s["session"]))}
+    if not sources:
+        _err("sources", "at least one session: an image has no clock of its own")
 
     style = build_style(data.get("style"), base_dir)
     # A card from edit.yaml wins; else the theme's; `intro: false` / `outro: false` = none.
@@ -493,7 +531,7 @@ def parse(data, base_dir="."):
     raw_scenes = data["scenes"]
     if not isinstance(raw_scenes, list) or not raw_scenes:
         _err("scenes", "expected a non-empty list")
-    scenes = [_scene(s, f"scenes[{i}]", out_names, style, sources) for i, s in enumerate(raw_scenes)]
+    scenes = [_scene(s, f"scenes[{i}]", out_names, style, sources, images) for i, s in enumerate(raw_scenes)]
     for i, (a, b) in enumerate(zip(scenes, scenes[1:])):
         if a["source"] == b["source"] and b["at"] <= a["at"]:
             _err(f"scenes[{i + 1}].at", f"{b['at']} must be after the previous scene's {a['at']} (same source)")
@@ -513,7 +551,7 @@ def parse(data, base_dir="."):
     return {"version": 1, "outputs": outs, "sources": sources, "style": style,
             "audio": {"source": audio.get("source", "mic-clean")}, "cuts": cuts, "auto_cuts": auto_cuts,
             "timeline": timeline, "scenes": scenes, "intro": intro, "outro": outro, "callouts": callouts,
-            **({"overlays": overlays} if overlays else {})}   # only when used: old scripts parse as before
+            **({"overlays": overlays} if overlays else {}), **({"images": images} if images else {})}   # only when used: old scripts parse as before
 
 
 def _ranges(v, path):

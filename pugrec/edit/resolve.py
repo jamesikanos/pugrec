@@ -454,6 +454,10 @@ class ShotEval:
         scene_at = span[0]
         self.kind = shot["kind"]
         self.source = "camera" if self.kind == "camera" else "screen"
+        self.span = span
+        if self.kind == "image":   # an image source: its own pixels, no clock (timed by the session)
+            self.source = "image"
+            self.isize = image_size(shot["file"])
         self.spring = None
         self.frozen = None
         self.addr = None
@@ -476,6 +480,8 @@ class ShotEval:
         self.held_face = sess.face_held(*span) if self.kind == "camera" and not shot.get("follow") else None
 
     def bounds(self):
+        if self.source == "image":
+            return self.isize
         if self.source == "camera":
             return self.s.cam_size
         return (self.s.tl.W, self.s.tl.H)
@@ -483,6 +489,17 @@ class ShotEval:
     def raw_target(self, t):
         tl = self.s.tl
         k = self.kind
+        if k == "image":
+            # The whole image, or for one taller than the view the view's shape from its top -
+            # panned down over the scene with `scroll` (on the source clock of the scene's span).
+            iw, ih = self.isize
+            h = min(float(ih), iw / self.aspect)
+            a, b = self.shot["scroll"] or (0.0, 0.0)
+            t0, t1 = self.span
+            u = ease((t - t0) / (t1 - t0)) if t1 > t0 else 0.0
+            if h >= ih:
+                return (0.0, 0.0, float(iw), float(ih))
+            return (0.0, (a + (b - a) * u) * (ih - h), float(iw), h)
         if k == "screen":
             return (0.0, 0.0, float(tl.W), float(tl.H))
         if k == "rect":
@@ -544,10 +561,12 @@ class ShotEval:
     def target(self, t, dt, first):
         """Smoothed target rect at t."""
         r = self.raw_target(t)
+        if self.kind == "image" and self.shot["scroll"]:
+            return r
         # follow: false holds a window where it was when the scene started; a camera holds by
         # default, on the face's usual place (a still frame instead of one that bobs with every
         # lean - the push gives it movement).
-        if self.kind in ("screen", "rect") or (self.kind in ("window", "camera") and not self.shot.get("follow", True)):
+        if self.kind in ("screen", "rect", "image") or (self.kind in ("window", "camera") and not self.shot.get("follow", True)):
             if self.frozen is None:
                 self.frozen = r
             return self.frozen
@@ -1169,7 +1188,7 @@ class OutputResolver:
         rects = pane_rects(layout, shot["ratio"], self.W, self.H, self.style["gap"] * min(self.W, self.H))
         return list(zip(shot["panes"], rects))
 
-    PUNCH_KINDS = ("camera", "window", "screen", "rect")  # cursor/auto already move
+    PUNCH_KINDS = ("camera", "window", "screen", "rect", "image")  # cursor/auto already move
 
     def pushed(self, scene, kind, view):
         """The view, slowly tightened while the scene holds (`push`), on the output clock - cuts
@@ -1295,7 +1314,11 @@ class OutputResolver:
                 mode = "cover"  # a face is never letterboxed
             if fit == "inset":
                 mode = "inset"
-            stream = f"{src}/{ev.source}"
+            stream = f"{src}/{ev.source}" if ev.source != "image" else "image:" + shot["file"]
+            if ev.source == "image" and bg in (None, "blur"):
+                if bg == "blur":
+                    self.warn(scene, "background: blur needs a video; an image pane uses the backdrop")
+                bg = "backdrop"
             cut = (shot.get("cutout") or scene.get("cutout")) if ev.kind == "camera" else None
             if cut:
                 stream = self.cutout_stream(src, cut)
@@ -1340,7 +1363,15 @@ class OutputResolver:
                                "shape": "round", "radius": r1(self.style["radius"] * self.unit)})
                 if views_out is not None:
                     views_out.append((stream, tgt, inner))
-        return layers
+        return [self.as_image(l) if l["type"] == "video" and l["src"].startswith("image:") else l for l in layers]
+
+    def as_image(self, l):
+        """An image pane's picture: the same framing as a video's, drawn as an image layer."""
+        file = l["src"][6:]
+        if file not in self.images:
+            iw, ih = image_size(file)
+            self.images[file] = {"file": file, "size": [iw, ih]}
+        return {k: v for k, v in dict(l, type="image", img=file).items() if k not in ("src", "t")}
 
     # -- spotlight -------------------------------------------------------
     def spotlight_rect(self, scene, t):
@@ -1493,8 +1524,9 @@ class OutputResolver:
                 self.trans = dict(trans)
                 if trans["type"] == "move":
                     if self.prev_view is None or self._move_incompatible(prev, scene):
-                        self.warn(scene, "move needs one view of the same source before and after "
-                                         "(not a split, not screen <-> camera); using fade")
+                        if "image" not in (prev["shot"]["kind"], scene["shot"]["kind"]):   # an image: a quiet fade
+                            self.warn(scene, "move needs one view of the same source before and after "
+                                             "(not a split, not screen <-> camera); using fade")
                         self.trans["type"] = "fade"
                     else:
                         self.move_from = dict(self.prev_view)
@@ -1566,6 +1598,8 @@ class OutputResolver:
 
     def _move_incompatible(self, a, b):
         if a["shot"]["kind"] == "split" or b["shot"]["kind"] == "split":
+            return True
+        if "image" in (a["shot"]["kind"], b["shot"]["kind"]):
             return True
         sa = "camera" if a["shot"]["kind"] == "camera" else "screen"
         sb = "camera" if b["shot"]["kind"] == "camera" else "screen"
@@ -1756,4 +1790,6 @@ def describe(shot):
         return "split: " + " | ".join(describe(p) for p in shot["panes"])
     if k == "cursor":
         return f"cursor x{shot['zoom']:g}"
+    if k == "image":
+        return f"image {shot['source']}" + (" scroll" if shot.get("scroll") else "")
     return k
