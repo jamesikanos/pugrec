@@ -49,9 +49,10 @@ def make_proxies(session):
     """{stream: (path, size)} for one resolve.Session; audio as FLAC the browser can play."""
     d = os.path.join(session.path, "proxy")
     out = {}
-    scr = os.path.join(session.path, session.screen["file"])
-    _proxy(scr, os.path.join(d, "screen.mp4"), 2560)
-    out["screen"] = os.path.join(d, "screen.mp4")
+    if session.screen:   # a camera-only session has none
+        scr = os.path.join(session.path, session.screen["file"])
+        _proxy(scr, os.path.join(d, "screen.mp4"), 2560)
+        out["screen"] = os.path.join(d, "screen.mp4")
     if session.camera:
         cam = os.path.join(session.path, session.camera["file"])
         _proxy(cam, os.path.join(d, "camera.mp4"), 960)
@@ -59,10 +60,11 @@ def make_proxies(session):
     clean = os.path.join(session.path, "mic-clean.flac")
     if os.path.exists(clean):
         out["audio"] = clean
-    elif session.screen.get("audio"):
+    elif session.mic:
         raw = os.path.join(d, "audio.flac")
         if not os.path.exists(raw):
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", scr, "-map", "0:a:0", "-ac", "1", raw], check=True)
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(session.path, session.mic),
+                            "-map", "0:a:0", "-ac", "1", raw], check=True)
         out["audio"] = raw
     return out
 

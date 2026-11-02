@@ -1,4 +1,4 @@
-# pugrec session format (version 1)
+# pugrec session format (version 1; 2 = camera-only)
 
 A session is a folder, by default `~/Videos/PugRec/<YYYY-MM-DD_HH-MM-SS>/`:
 
@@ -7,7 +7,8 @@ A session is a folder, by default `~/Videos/PugRec/<YYYY-MM-DD_HH-MM-SS>/`:
 | `session.jsonl` | the timeline: metadata and every event, append-only |
 | `screen.mkv` | screen video, AV1 (VAAPI), native resolution, variable frame rate (frames only when the screen changes), plus the mic as an Opus track |
 | `camera.mkv` | webcam, AV1, 1920x1080 @ up to 30 fps (the BRIO lowers it in low light), PTS from 0 = its first frame; no audio |
-| `wf-recorder.log`, `camera.log` | the capture tools' logs, for debugging |
+| `mic.mka` | camera-only sessions (`record --no-screen`) only: the mic, FLAC mono 48 kHz, its own process; padded/trimmed at the stop so **sample 0 = t 0** (as screen.mkv's track) |
+| `wf-recorder.log`, `camera.log`, `mic.log` | the capture tools' logs, for debugging |
 | `faces.jsonl` | **derived** (`pugrec faces`, recomputable): the webcam face track, see below |
 | `transcript.jsonl` | **derived** (`pugrec transcript`): a `meta` line (model, backend, speed, `vocabulary` it was given), then `segment` lines `{t, end, text, words: [{t, end, w, p}]}`, ns on the session clock |
 | `edit.yaml` | the scene script ([EDIT.md](EDIT.md)) - by hand, by Claude or by `pugrec draft` (`edit.draft.yaml` if one exists) |
@@ -39,7 +40,8 @@ every 100 ms, so a crash leaves a valid file up to that point. Readers must:
 ### Time
 
 Every record has `t`: **integer nanoseconds since the screen video's PTS 0** (its first
-frame). To find the video frame for an event, seek the video to `t / 1e9` seconds.
+frame) - in a camera-only session (`record --no-screen`, format 2) since the **camera's** first
+frame (`first_frame_t` = 0). To find the video frame for an event, seek the video to `t / 1e9` seconds.
 Accuracy: within about one frame (16-33 ms). The anchor is the moment wf-recorder
 logs its first frame, measured in CLOCK_MONOTONIC (`session_start.sync` says how it
 was found).
@@ -55,9 +57,10 @@ coordinates**, as Hyprland reports them. Screen video pixels:
 
 | `type` | Fields | When |
 | --- | --- | --- |
-| `session_start` | `format` (1), `started` (ISO wall clock), `host`, `monitors` [monitor state], `windows` [window state], `focus` (address), `sync` | first line |
+| `session_start` | `format` (1; 2 = no screen stream), `started` (ISO wall clock), `host`, `monitors` [monitor state], `windows` [window state], `focus` (address), `sync`, `anchor_mono` (CLOCK_MONOTONIC ns of t = 0, for tools logging alongside; from 2026-11-02) | first line |
 | `stream_start` | `stream` ("screen"), `file`, `monitor`, `logical` [x, y, w, h], `pixels` [w, h], `scale`, `fps` (cap), `codec`, `audio` (source name or null), `cursor` ("embedded") | once the stream runs |
 | `stream_start` (camera) | `stream` ("camera"), `file`, `device`, `pixels`, `fps`, `codec`, **`first_frame_t`** (ns): camera PTS 0 is at this session t. Its own `t` is the same. `controls`: the camera's zoom/pan/tilt during the recording. Optional `quality` (`level` high/medium/small, `rc_mode`, `global_quality`): only when recorded with `--camera-quality`; absent = the encoder's default. | when the camera's first frame arrives (~1.2 s in: BRIO warm-up) |
+| `stream_start` (mic) | camera-only sessions: `stream` ("mic"), `file` ("mic.mka"), `source` (PulseAudio/PipeWire source), `codec` ("flac"), `first_sample_t` (ns): where capture really began (ffmpeg's pulse timestamp, ~10 ms); the file is aligned to t = 0 at the stop, so readers use it as is | when the mic's first sample arrives |
 | `marker` | `name` ("start"), `countdown` (s), `warmup` (s from the key press to the countdown: password + camera start), `countdown_s` (s it was on screen; more than `countdown` = paused) | `start`: the end of the recorder's 3-2-1 countdown. Before it the files hold only the camera warm-up and the countdown overlay (the password prompt now comes before the screen recorder starts): edits begin here by default. A recording stopped before this marker is discarded |
 | `mic_mute` | `source`, `muted` (bool or null = unknown) | at start, then on every change (polled 1 Hz). Muted = the audio track is silence: the recorder never overrides the user's mute |
 | `cursor` | `x`, `y` | polled at 120 Hz, written only when it moved |
@@ -91,4 +94,7 @@ while the screen is locked or the focused window's class/title matches
 ### Compatibility
 
 New record types and fields may appear in later versions; readers ignore what they don't
-know. A breaking change bumps `session_start.format`.
+know. A breaking change bumps `session_start.format`. Format 2 = a session with no screen
+stream (camera-only): no `screen` stream_start, no window/cursor/input records, the mic in
+`mic.mka`. Readers find the mic with `timeline.mic_track` (the `mic` stream, else screen.mkv's
+audio); only camera (and image) shots can be edited from it. Screen sessions stay format 1.

@@ -108,7 +108,7 @@ def draft(session_dir):
     begin = sess.start  # after the recorder's countdown (0 for older recordings)
     intro = begin + (INTRO_S if sess.camera else 0.0)
     if sess.camera:
-        add(begin, "camera", "Intro")
+        add(begin, "camera", "Intro" if sess.screen else "Camera")
     for t0, t1, addr in spans:
         if t1 <= intro:
             continue

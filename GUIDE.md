@@ -70,7 +70,9 @@ screen video stalled (cursor kept moving after the last video frame).
 
 Useful flags: `--keys` (also key presses; password prompt), `--no-keys` (overrides config),
 `--no-input` (no keys, no clicks), `--countdown N`
-(`0` = none), `--no-camera`, `--no-mic`, `--mic SOURCE`, `--dir DIR`.
+(`0` = none), `--no-camera`, `--no-mic`, `--mic SOURCE`, `--dir DIR`, `--no-screen` (a talking head:
+camera + mic only, the camera's first frame is the clock, the mic in `mic.mka`; only camera and image
+shots can be edited from it - `check` errors on screen, window, cursor and auto shots).
 For a test recording without the author (e.g. checking the pipeline): `--countdown 0` (no `--keys`)
 into a temp `--dir`, and stop it with SIGINT (Ctrl+C) or `pugrec stop`.
 

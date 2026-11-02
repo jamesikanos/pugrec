@@ -26,7 +26,8 @@ bin/pugrec build $S               # build-main.mp4 (1920x1080) + build-vertical.
 bin/pugrec whatsapp $S/build-vertical.mp4   # a copy WhatsApp plays inline (H.264 Main, no B-frames, < 16 MB)
 ```
 
-Other commands: `record --no-input` (no keys, no clicks), `record --camera-quality high|medium|small`
+Other commands: `record --no-input` (no keys, no clicks), `record --no-screen` (camera + mic only,
+for talking heads: no screen.mkv), `record --camera-quality high|medium|small`
 (a smaller camera.mkv: about 1/2, 1/4, 1/8 of the default's ~19.5 Mbit/s), `toggle` (for a keybind),
 `info SESSION`, `check SESSION` (validate an edit, list scenes), `faces SESSION`,
 `proxy SESSION`, `matte EDIT` (the camera cut-out an edit's `cutout:` scenes need; build/preview make it when missing),

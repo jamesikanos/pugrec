@@ -9,13 +9,29 @@ import bisect
 import re
 
 
+def mic_track(records):
+    """The file holding the mic, its sample 0 at t = 0: a camera-only session's mic.mka (the
+    `mic` stream, aligned by the recorder at the stop), else screen.mkv's audio. None if none."""
+    streams = {r["stream"]: r for r in records if r["type"] == "stream_start"}
+    if "mic" in streams:
+        return streams["mic"]["file"]
+    if streams.get("screen", {}).get("audio"):
+        return streams["screen"]["file"]
+    return None
+
+
 class Timeline:
     def __init__(self, records):
         records = sorted(records, key=lambda r: r.get("t", 0))  # stable: equal t keeps file order
         start = next((r for r in records if r["type"] == "session_start"), None)
         screen = next((r for r in records if r["type"] == "stream_start" and r["stream"] == "screen"), None)
-        if not start or not screen:
-            raise SystemExit("not a pugrec session (no session_start / screen stream_start)")
+        camera = next((r for r in records if r["type"] == "stream_start" and r["stream"] == "camera"), None)
+        if not start or not (screen or camera):
+            raise SystemExit("not a pugrec session (no session_start / screen or camera stream_start)")
+        self.has_screen = screen is not None
+        if screen is None:   # camera-only (record --no-screen): no screen space; the camera's size stands in
+            screen = {"pixels": camera["pixels"], "logical": [0, 0] + list(camera["pixels"]), "scale": 1,
+                      "monitor": None}
         self.W, self.H = screen["pixels"]
         lx, ly, _, _ = screen["logical"]
         s = self.scale = screen["scale"]

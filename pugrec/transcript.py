@@ -65,10 +65,11 @@ def audio_input(session_dir):
     if os.path.exists(clean):
         return clean, "mic-clean.flac"
     recs = jsonl.read(os.path.join(session_dir, "session.jsonl"))
-    screen = next(r for r in recs if r["type"] == "stream_start" and r["stream"] == "screen")
-    if not screen.get("audio"):
+    from .timeline import mic_track
+    mic = mic_track(recs)
+    if not mic:
         raise SystemExit("transcript: this session has no mic track")
-    return os.path.join(session_dir, screen["file"]), screen["file"]
+    return os.path.join(session_dir, mic), mic
 
 
 def words_from_tokens(tokens, seg_end_ms):
