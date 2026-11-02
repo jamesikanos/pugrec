@@ -68,7 +68,7 @@ scenes:
 | `scenes` | the list of scenes, by `at` |
 | `intro` / `outro` | title cards before/after the video: `"Title"` or `{title, subtitle, duration}` |
 | `callouts` | animated info boxes and section headers over the video: `[{at, title, text, look, ...}]` (Callouts, below) |
-| `overlays` | reserved (picture-in-picture of other sources, later) |
+| `overlays` | screenshots, emoji and text flash cards over the video: `[{at, image \| text, place, ...}]` (Overlays, below) |
 
 ## Scenes
 
@@ -400,6 +400,56 @@ can't say (a role, what a feature is, what's next). Few of them - one every 30-4
   shedding its sparkle trail. Like the sparkle/sweep transitions, only with a theme that has a
   `sparkle:` section - anywhere else `check` refuses it.
 - Two boxes up at once in the same corner (or two sections): `check` warns.
+
+### Overlays: screenshots, emoji and flash cards over the video
+
+```yaml
+overlays:                                   # source seconds, like callouts; each up for `duration`
+  - {at: 16.2, image: shots/article.png, duration: 2.5, credit: "Source: acme.example"}   # a reference card
+  - {at: 22.2, image: emoji/fire.png, place: face}                    # pops in beside the speaker's head
+  - {at: 35.2, text: "*Focused*\nsolutions", in: pop, duration: 2}    # a text flash card, big type
+  - {at: 40.6, image: shots/page-full.png, place: full, scroll: true, duration: 4}   # B-roll: the page scrolls
+  - at: 50
+    image: shots/chart.png
+    crop: [0, 0, 1, 0.4]                    # just the top 40% of the image (fractions)
+    in: {slide: left, s: 0.5}
+    out: {fade: 0.3}
+    vertical: {size: 0.95, corner: bottom}  # per output, like scenes
+```
+An image (PNG, JPEG, WebP, relative to edit.yaml) or a short text over the running video and
+audio. Drawn above the video (and the bubble), below callouts and captions.
+- **`place`**:
+  - `card` (default) - a rounded card, `size` 0.8 of the width (at most 70% of the height),
+    `corner` `top` (default), `bottom`, `center` or one of the four corners, with a soft shadow.
+  - `corner` - a small one, `size` 0.32, `corner` `top-right` by default.
+  - `full` - fills the frame (cover; the top of a tall image) - the "B-roll" look. The video and
+    the audio carry on underneath.
+  - `face` - beside the speaker's face (an emoji reacting to a word), level with the top of the
+    head, on the roomier side (the right when centred). `size` = width as a fraction of the face's
+    height on screen (0.6). It finds the face in the largest camera picture of that moment (a
+    camera shot, a split pane, the bubble); with none on screen it goes top-right and `check` warns.
+- **`text`** instead of `image`: a flash card in the card colours (`style.card`), 1-3 lines
+  (`\n`), weight 800, `text_size` 0.075 of the shorter side, shrunk if a line would be wider than
+  `size`. `*word*` = that word in the accent colour. A card or a corner only.
+- **`in` / `out`**: `none`, `fade`, `pop`, `slide`, or with a time: `{fade: 0.3}`, `{pop: 0.35}`,
+  `{slide: up, s: 0.45}` (`up|down|left|right` = the way it travels; `auto` = in from its own
+  side, out back the way it came). `pop` springs in with a small overshoot (from 92%; from 50% for
+  `face`); out, it shrinks a little as it fades. A slide travels a short way and fades (a `full`
+  one comes in from off the edge). Defaults: card and corner `{slide: auto, s: 0.45}` in,
+  `{fade: 0.3}` out; full `{fade: 0.3}` both; face `{pop: 0.3}` in, `{fade: 0.25}` out.
+- **`duration`** (total, in and out included): 4 s, 1.2 s for `face`. Like callouts, it appears
+  when the source reaches `at` and then runs on the output clock; one whose start was cut away
+  still shows if the source is inside it.
+- **`crop: [x, y, w, h]`** (fractions of the image): show part of it, e.g. just the headline.
+- **`scroll: true`** or `{from: 0, to: 1}` (`card` and `full`): the image's window pans down
+  over the duration (eased), for a long page capture. A scrolled card is `size` wide and as
+  tall as it can be.
+- **`credit: "..."`**: a small line under the card, left aligned (inside its bottom edge if
+  there's no room; bottom-left for `full`), in the caption font.
+- **`radius`** (px at 1080p: 18 card, 14 corner, 0 full/face), **`shadow`** (0-1: 0.6 card and
+  corner, 0 full/face), **`source`** (default the first), **`pause`** (as callouts': only
+  where the speaker already left a break).
+- Two up at once in the same place: `check` warns.
 
 ## Writing an edit from a recording (for Claude, and anyone else)
 

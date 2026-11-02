@@ -187,5 +187,8 @@ James's rule (2026-10-13): **commit little and often.**
   - **Options with milder defaults** for all of the above: James found today's punch overdone even
     at the default 6%. Changing a default changes existing edits' plans, against the "new looks
     are options" rule above - agree which defaults move before changing them.
-- Next ideas: move transitions between contain views; overlays / other sources; key-shortcut
+- Done 2026-11-02: overlays (`overlays:`) - an image or text card over the video (card, full frame +
+  scroll, corner, beside the face), from existing layer types only (image/shadow/fill/text): no
+  compositor change. compose keeps decoded images (`_decoded`): a scroll or pop re-crops every frame.
+- Next ideas: move transitions between contain views; other sources; key-shortcut
   captions from `key` events; title cards; VAAPI decode in builds; a keybind in the dotfiles.
