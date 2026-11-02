@@ -866,6 +866,68 @@ class Captions(unittest.TestCase):
         self.assertEqual(len(p["segments"]), 3)
 
 
+class SocialCaptions(unittest.TestCase):
+    """The 2026-11-02 caption options: pop, case, look: outline, emphasis, break_on_pause."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = make_session(self.tmp.name)
+        add_transcript(self.d)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def texts(self, captions, t=None, fps=10):
+        p = plan({"style": {"captions": captions}, "scenes": [{"at": 0, "shot": "screen"}]}, self.d, fps=fps)
+        if t is None:
+            return p
+        return [l for l in frame_at(p, t)["layers"] if l["type"] == "text"]
+
+    def test_defaults_add_nothing_to_the_layer(self):
+        (l,) = self.texts({}, 1.6)
+        self.assertNotIn("stroke", l)
+        self.assertFalse(any("c" in w for w in l["words"]))
+
+    def test_pop_springs_in_on_the_output_clock(self):
+        p = self.texts({"animation": "pop"}, fps=60)
+        sizes = [l["size"] for f in p["frames"] for l in f["layers"] if l["type"] == "text" and f["t"] < 1.3]
+        full = self.texts({}, 1.6)[0]["size"]
+        self.assertLess(sizes[0], 0.7 * full)                    # starts small
+        self.assertGreater(max(sizes), 1.03 * full)              # overshoots
+        self.assertEqual(sizes[-1], full)                        # and settles at the plain size
+
+    def test_upper_case_and_emphasis(self):
+        (l,) = self.texts({"case": "upper", "emphasis": ["Demo"]}, 2.2)
+        self.assertEqual([w["w"] for w in l["words"]], ["SO", "THIS", "IS", "THE", "DEMO."])
+        self.assertEqual([w.get("c") for w in l["words"]], [None] * 4 + [S.DEFAULT_STYLE["accent"]])   # "demo." matches
+
+    def test_outline_look(self):
+        (l,) = self.texts({"look": "outline", "outline": {"width": 8}}, 1.6)
+        self.assertEqual(l["bg_opacity"], 0.0)
+        self.assertEqual((l["stroke"], l["stroke_color"]), (8.0, "#000000"))
+
+    def test_break_on_pause(self):
+        # "We never ship | on Fridays" with a 0.3 s pause: default (0.6) keeps one line, 0.25 breaks it.
+        words = [(1.0, 1.2, "We"), (1.25, 1.5, "never"), (1.55, 1.8, "ship"), (2.1, 2.3, "on"), (2.35, 2.8, "Fridays.")]
+        seg = {"type": "segment", "t": SEC, "end": 3 * SEC, "text": "...",
+               "words": [{"t": int(a * SEC), "end": int(b * SEC), "w": w, "p": 0.9} for a, b, w in words]}
+        with open(os.path.join(self.d, "transcript.jsonl"), "w") as f:
+            f.write(json.dumps({"type": "meta", "t": 0}) + "\n" + json.dumps(seg) + "\n")
+        line = lambda cap, t: " ".join(w["w"] for w in self.texts(cap, t)[0]["words"])
+        self.assertEqual(line({}, 1.6), "We never ship on Fridays.")
+        self.assertEqual(line({"break_on_pause": 0.25}, 1.6), "We never ship")
+        self.assertEqual(line({"break_on_pause": 0.25}, 2.5), "on Fridays.")
+
+    def test_validation(self):
+        for cap, needle in (({"animation": "bounce"}, "expected one of none, pop"), ({"look": "boxed"}, "box, outline"),
+                            ({"emphasis": "never"}, "list of single words"), ({"emphasis": ["two words"]}, "single"),
+                            ({"outline": {"colour": "#000000"}}, "did you mean 'color'"),
+                            ({"break_on_pause": 9}, "out of range")):
+            with self.assertRaises(S.ScriptError) as cm:
+                S.parse({"style": {"captions": cap}, "scenes": [{"at": 0, "shot": "screen"}]}, self.d)
+            self.assertIn(needle, str(cm.exception))
+
+
 class Themes(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

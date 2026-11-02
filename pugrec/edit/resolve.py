@@ -184,6 +184,19 @@ def apply_fixes(words, fixes):
     return out
 
 
+def bare_word(w):
+    """A caption word without its punctuation, lower case: what `emphasis` matches."""
+    return w.strip(".,!?;:\"'()[]\u2018\u2019\u201c\u201d-").lower()
+
+
+def pop_scale(e, dur=0.2, start=0.6, back=2.4):
+    """Caption pop: scale from `start` to 1 over `dur` s with an overshoot (~6% at back 2.4), then 1."""
+    if e >= dur:
+        return 1.0
+    u = max(0.0, e / dur) - 1
+    return round(start + (1 - start) * (1 + (back + 1) * u ** 3 + back * u ** 2), 4)
+
+
 def caption_lines(segments, max_words=6, gap=0.6, lead=0.1, tail=0.4, fixes=None):
     """Transcript words -> caption lines [(t0, t1, [(t, end, word)])] in seconds. A line
     ends at sentence punctuation, a pause > gap, or max_words; it shows from just before
@@ -580,7 +593,10 @@ class OutputResolver:
                 if nxt is not None and p["at"] >= nxt["at"]:
                     self.warn(s, f"punch at {p['at']} is after the scene ends ({nxt['at']}); ignored")
         self.check_callouts()
-        self.lines = {name: caption_lines(sess.transcript or [], cap["max_words"], fixes=cap.get("fix")) for name, sess in sessions.items()}
+        gap = {"gap": cap["break_on_pause"]} if cap.get("break_on_pause") else {}
+        self.lines = {name: caption_lines(sess.transcript or [], cap["max_words"], fixes=cap.get("fix"), **gap)
+                      for name, sess in sessions.items()}
+        self.caption_t0 = {}   # (source, line) -> output clock when it first showed (pop runs on that)
         self.lines_t = {name: [l[0] for l in ls] for name, ls in self.lines.items()}
 
     def caption_layers(self, source, t):
@@ -592,20 +608,35 @@ class OutputResolver:
             return []
         t0, t1, words = self.lines[source][i]
         size = cap["size"] * min(self.W, self.H)
+        scale = 1.0
+        if cap.get("animation") == "pop":
+            t0_out = self.caption_t0.setdefault((source, i), self.clock)
+            scale = pop_scale(self.clock - t0_out)
         pos = cap["position"]
         if pos == "auto":
             pos = "bottom" if self.W >= self.H else "lower"
         y = {"bottom": self.H - 0.09 * self.H, "lower": 0.72 * self.H, "middle": self.H / 2, "top": 0.1 * self.H}[pos]
         out_words = []
+        emph = {e.lower() for e in cap.get("emphasis") or []}
         for k, (wt, we, w) in enumerate(words):
             nxt = words[k + 1][0] if k + 1 < len(words) else we
-            out_words.append({"w": w, "hi": bool(cap["highlight"] and wt <= t < max(nxt, we))})
+            ow = {"w": w.upper() if cap.get("case") == "upper" else w,
+                  "hi": bool(cap["highlight"] and wt <= t < max(nxt, we))}
+            if emph and bare_word(w) in emph:
+                ow["c"] = self.style["accent"]     # an emphasis word: the accent colour, spoken or not
+            out_words.append(ow)
         fade = 0.12
         op = min(1.0, (t - t0) / fade, (t1 - t) / fade)
-        return [{"type": "text", "x": r1(self.W / 2), "y": r1(y), "size": r1(size), "words": out_words,
+        layer = {"type": "text", "x": r1(self.W / 2), "y": r1(y), "size": r1(size * scale), "words": out_words,
                  "color": cap["color"], "hi": self.style["accent"], "bg": cap["background"],
                  "bg_opacity": cap["background_opacity"], "font": cap["font"], "weight": cap["weight"],
-                 "pad": r1(0.45 * size), "radius": r1(self.style["radius"] * self.unit), "opacity": round(max(0.0, op), 3)}]
+                 "pad": r1(0.45 * size * scale), "radius": r1(self.style["radius"] * self.unit * scale),
+                 "opacity": round(max(0.0, op), 3)}
+        if cap.get("look") == "outline":   # no box: the letters carry a stroke instead
+            layer["bg_opacity"] = 0.0
+            layer["stroke"] = r1(cap["outline"]["width"] * self.unit * scale)
+            layer["stroke_color"] = cap["outline"]["color"]
+        return [layer]
 
     # -- callouts --------------------------------------------------------
     def check_callouts(self):

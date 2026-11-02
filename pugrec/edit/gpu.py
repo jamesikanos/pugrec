@@ -195,8 +195,7 @@ class Job:
             path = self._coverage(key, lambda im: cv2.circle(im, (cx - x0, cy - y0), r, 255, lw, cv2.LINE_AA))
             return {"k": "fill", "box": [x0, y0, x1 - x0, y1 - y0], "mask": path, "rgb": _rgb(l["color"]), "op": op}
         if t == "text":
-            key = ("text", round(l["size"]), tuple((w["w"], w["hi"]) for w in l["words"]), l["color"], l["hi"],
-                   l["bg"], l["bg_opacity"], l.get("font"), l.get("weight"), l.get("pad"), l.get("radius"))
+            key = ("text",) + compose.text_key(l)
             path, w, h = self._sprite(key, lambda: compose.text_image(l))
             x = l["x"] if l.get("align") == "left" else l["x"] - w / 2
             return {"k": "sprite", "file": path, "box": [int(round(x)), int(round(l["y"] - h / 2)), w, h], "op": op}

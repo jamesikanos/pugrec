@@ -192,9 +192,14 @@ function drawText(l) {
   ctx.globalAlpha = (l.opacity ?? 1) * l.bg_opacity;
   ctx.beginPath(); ctx.roundRect(x0, y0, W, H, l.radius); ctx.fillStyle = l.bg; ctx.fill();
   ctx.globalAlpha = l.opacity ?? 1;
+  if (l.stroke) {   // look: outline - every stroke first (as compose), then the letters
+    ctx.lineWidth = 2 * Math.round(l.stroke); ctx.lineJoin = "round"; ctx.strokeStyle = l.stroke_color;
+    let sx = x0 + l.pad;
+    l.words.forEach((w, i) => { ctx.strokeText(w.w, sx, l.y); sx += widths[i] + space; });
+  }
   let x = x0 + l.pad;
   l.words.forEach((w, i) => {
-    ctx.fillStyle = w.hi ? l.hi : l.color;
+    ctx.fillStyle = w.hi ? l.hi : (w.c || l.color);
     ctx.fillText(w.w, x, l.y);
     x += widths[i] + space;
   });
