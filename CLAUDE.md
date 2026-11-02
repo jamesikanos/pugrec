@@ -190,5 +190,8 @@ James's rule (2026-10-13): **commit little and often.**
 - Done 2026-11-02: overlays (`overlays:`) - an image or text card over the video (card, full frame +
   scroll, corner, beside the face), from existing layer types only (image/shadow/fill/text): no
   compositor change. compose keeps decoded images (`_decoded`): a scroll or pop re-crops every frame.
-- Next ideas: move transitions between contain views; other sources; key-shortcut
+- Done 2026-11-02 (pugtake spec): image sources, music + sfx (`audio.music/sfx/loudness`: resolve emits the
+  gain curve, plan["mix"]; ducking from transcript words), `record --no-screen` (format 2, mic.mka aligned
+  to t 0 at the stop; readers use `timeline.mic_track`). --no-screen not yet tried live (camera was busy).
+- Next ideas: move transitions between contain views; video sources; `behind:` (speaker over a source); key-shortcut
   captions from `key` events; title cards; VAAPI decode in builds; a keybind in the dotfiles.
