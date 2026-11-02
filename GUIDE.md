@@ -347,7 +347,7 @@ scenes:
 | `outputs` | `[{name, size: WxH, fps}]` - default `main` 1920x1080 @ 60. Names are used for per-output overrides (`vertical:` in a scene). Sizes must be even. |
 | `cuts` | a list `[[from, to], ...]`, or `{pauses: s, fillers: bool, ranges: [...]}` (pauses/fillers need `transcript.jsonl`) |
 | `timeline` | instead of cuts: explicit segments `[{source, from, to}]` in order (splicing; reordering) |
-| `sources` | `{main: {session: .}}` (default). Other sources (sessions, videos, images) are planned. |
+| `sources` | `{main: {session: .}}` (default). Image sources: `{page: {image: shots/page.png}}` - a still shown with `shot: {source: page}` (Shots, below). The first session times the edit; videos are planned. |
 | `audio` | `{source: mic-clean | raw | none}` - mic-clean (from `pugrec audio`) if it exists, else raw |
 | `style` | defaults, below |
 | `scenes` | the list of scenes, by `at` |
@@ -385,6 +385,7 @@ Each scene lasts until the next scene's `at`.
 | `{window: SEL, follow: true, region: [x, y, w, h], padding: 0.04}` | a window. `follow` (default true) tracks it as it moves/resizes; `follow: false` freezes it where it was when the scene started. `region` = part of the window, fractions of its size. |
 | `{cursor: {zoom: 2, dead_zone: 0.2}}` | follows the mouse; the view only moves when the cursor leaves the middle `1 - 2*dead_zone` |
 | `{rect: [x, y, w, h]}` | a fixed screen area, pixels - or fractions of the screen if all values <= 1 |
+| `{source: page, scroll: {from: 0, to: 1}}` | an image source (`sources: {page: {image: file}}`, PNG/JPEG/WebP): a page capture, a slide. It has no clock of its own - it's shown while the scene lasts, the session's video and audio carry on (the bubble shows over it). One taller than the view shows its top; `scroll` (`true` = 0 to 1) pans down over the scene, eased. `fit`, `inset`, `punch`, `transition` and split panes work as for a window; it's never pushed (push is camera-only), a `background: blur` becomes the backdrop, and a `move` to or from it is a fade |
 | `{split: [SHOT, SHOT], ratio: 0.5, layout: auto}` | two panes; `auto` = side by side on wide outputs, stacked on tall ones (`row`/`column` to force). A pane may carry its own `fit`, `inset`, `background` and `cutout` next to its shot (`{camera: {}, fit: inset}`); they win over the scene's |
 
 **Window selectors** (`SEL`): `{class: regex}`, `{title: regex}`, both, `{address: "0x..."}` (exact; the draft
