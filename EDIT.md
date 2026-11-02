@@ -269,7 +269,8 @@ style:
              look: box,              # outline: no box - letters with a stroke (outline: {color, width})
              outline: {color: "#000000", width: 6},   # width px at 1080p; only for look: outline
              emphasis: [],           # single words always in the accent colour, e.g. [never, hours]
-             break_on_pause: null}   # s: a new line at a pause this long (default 0.6), e.g. 0.3
+             break_on_pause: null,   # s: a new line at a pause this long (default 0.6), e.g. 0.3
+             fit: false}             # true: a line that would reach the edges is shrunk to stay 6% inside
   logo: null                 # {file: logo.png, corner: top-right, size: 0.12, margin: 0.03, opacity: 0.9}
   card: {background: "#16171a", color: "#f1e4d9", font: null, duration: 3.0,         # intro/outro cards; font null = captions'
          image: null, image_size: 0.12,   # image: a brand icon, centred above the title; size = its height / the shorter side
@@ -338,7 +339,7 @@ logo: {file: acme-logo.png, corner: top-right, size: 0.1}   # next to the theme 
 Short, punchy captions for social clips (a talking head, 9:16):
 ```yaml
 captions: {max_words: 3, size: 0.075, weight: 800, animation: pop, case: upper,
-           look: outline, emphasis: [never, hours], break_on_pause: 0.3}
+           look: outline, emphasis: [never, hours], break_on_pause: 0.3, fit: true}
 ```
 
 ### Title cards: `intro` / `outro`
