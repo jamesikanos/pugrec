@@ -77,13 +77,14 @@ coordinates**, as Hyprland reports them. Screen video pixels:
 | `notice` | `message` | something the editor should know ("keys/clicks unavailable: ...") |
 | `session_end` | `duration` (ns), `counts` {type: n} | last line, clean stop only |
 
-**Window state:** `address`, `class`, `title`, `at` [x, y], `size` [w, h], `workspace` (id),
+**Window state:** `address`, `class`, `title`, `at` [x, y], `size` [w, h], `workspace` (id; a special
+workspace recorded on Hyprland >= 0.57 has no number, so its address string, e.g. `"special:magic"`),
 `floating`, `fullscreen` (0/1/2), `monitor` (index), `mapped`, `hidden`, `pid`.
 A window is visible when its `workspace` is its monitor's `workspace` or `special`. A window that isn't visible has an
 empty `title` (privacy: other workspaces aren't in the picture); it comes back when it is.
 
 **Monitor state:** `name`, `x`, `y`, `width`, `height` (pixels), `scale`, `transform`,
-`workspace` (active id), `special` (special workspace id, 0 = none), `focused`, `locked`.
+`workspace` (active id), `special` (special workspace id or address, 0 = none), `focused`, `locked`.
 
 ### Redaction
 

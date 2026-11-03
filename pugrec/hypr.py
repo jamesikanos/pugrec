@@ -50,6 +50,14 @@ def events(stop):
                 yield name, data
 
 
+def workspace_key(w):
+    """A workspace object from j/clients or j/monitors -> what the session records: its numeric
+    id, or (Hyprland >= 0.57, where only numbered workspaces print an "id") its address, e.g.
+    "special:magic". 0 when there's none (a monitor without a special workspace)."""
+    w = w or {}
+    return w["id"] if "id" in w else (w.get("address") or 0)
+
+
 # The window fields worth tracking; everything else in j/clients is noise.
 def window_state(c):
     return {
@@ -58,7 +66,7 @@ def window_state(c):
         "title": c.get("title", ""),
         "at": c["at"],
         "size": c["size"],
-        "workspace": c["workspace"]["id"],
+        "workspace": workspace_key(c.get("workspace")),
         "floating": c.get("floating", False),
         "fullscreen": c.get("fullscreen", 0),
         "monitor": c.get("monitor"),
@@ -101,8 +109,8 @@ def monitor_state(m):
         "width": m["width"], "height": m["height"],
         "scale": m["scale"],
         "transform": m.get("transform", 0),
-        "workspace": m["activeWorkspace"]["id"],
-        "special": (m.get("specialWorkspace") or {}).get("id", 0),
+        "workspace": workspace_key(m.get("activeWorkspace")),
+        "special": workspace_key(m.get("specialWorkspace")),
         "focused": m.get("focused", False),
         # The session-lock screen (DMS) isn't a layer or window; this is where it shows.
         "locked": "LOCK" in (m.get("solitaryBlockedBy") or []),

@@ -64,6 +64,29 @@ class OffscreenTitleTest(unittest.TestCase):
         self.assertEqual(out["0xd"]["workspace"], 2)          # the window itself is kept
 
 
+class WorkspaceKeyTest(unittest.TestCase):
+    """Hyprland 0.57 dropped "id" from special workspaces (only numbered ones print it): a
+    window on the scratchpad crashed the recorder with KeyError: 'id'."""
+    def test_057_special_workspace(self):
+        win = {"address": "0xa", "at": [0, 0], "size": [10, 10],
+               "workspace": {"address": "special:magic", "type": "special", "name": "special:magic"}}
+        self.assertEqual(hypr.window_state(win)["workspace"], "special:magic")
+        mon = {"name": "DP-3", "x": 0, "y": 0, "width": 10, "height": 10, "scale": 1,
+               "activeWorkspace": {"address": "1", "id": 1, "type": "normal", "name": "1"},
+               "specialWorkspace": {"address": "special:magic", "type": "special", "name": "special:magic"}}
+        st = hypr.monitor_state(mon)
+        self.assertEqual((st["workspace"], st["special"]), (1, "special:magic"))
+        out = hypr.blank_offscreen_titles({"0xa": dict(hypr.window_state(win), title="Chat")}, [st])
+        self.assertEqual(out["0xa"]["title"], "Chat")   # shown scratchpad keeps its title
+
+    def test_057_no_special_and_056_ids(self):
+        none = {"address": "", "type": "", "name": ""}
+        self.assertEqual(hypr.workspace_key(none), 0)
+        self.assertEqual(hypr.workspace_key(None), 0)
+        self.assertEqual(hypr.workspace_key({"id": -98, "name": "special:magic"}), -98)  # 0.56
+        self.assertEqual(hypr.workspace_key({"id": 0, "name": ""}), 0)
+
+
 class RedactTest(unittest.TestCase):
     def test_password_windows(self):
         for name in ("1Password", "pinentry-gnome3", "polkit-gnome-authentication-agent-1", "gcr-prompter"):
