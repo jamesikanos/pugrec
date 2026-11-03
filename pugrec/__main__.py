@@ -192,7 +192,7 @@ def cmd_build(a):
             print(f"warning: {w}", file=sys.stderr)
         if p.get("derive"):   # cut-out scenes: the matted, restyled camera (made once, cached)
             from . import cutout
-            cutout.ensure(p)
+            cutout.ensure(p, matte=a.matte)
         suffix = "" if a.start == 0 and a.end is None else f"-{a.start:g}-{a.end or p['duration']:g}"
         preset = a.preset or "medium"
         crf, preset = (min(a.crf, 14), "slow" if preset == "medium" else preset) if a.hq else (a.crf, preset)
@@ -220,7 +220,7 @@ def cmd_matte(a):
     for out in sc["outputs"]:
         p = resolve.resolve(sc, out["name"], sessions=sessions, fps=5)
         n += len(p.get("derive") or {})
-        cutout.ensure(p)
+        cutout.ensure(p, matte=a.matte)
     print(f"matte: {n} cut-out stream(s) ready" if n else "matte: no scene asks for a cut-out", file=sys.stderr)
     return 0
 
@@ -344,6 +344,9 @@ def main(argv=None):
                    help="auto (default): the GPU compositor when scripts/build-gpu.sh has built it, else the CPU")
     b.add_argument("--encoder", choices=["gpu", "x264"],
                    help="video encoder for GPU builds (default gpu; x264 with --hq/--preset). CPU builds use x264")
+    b.add_argument("--matte", choices=["auto", "gpu", "cpu"], default="cpu",
+                   help="cut-out matting: cpu (default, onnxruntime); auto = the GPU (PyTorch ROCm, pugcam's "
+                   "venv) when it can - not while pugcam is in a call - else the CPU; gpu = the GPU or fail")
     b.add_argument("--jobs", type=int, default=4, help="parallel render processes for CPU builds (default 4)")
     b.add_argument("--out-dir", help="default: next to edit.yaml")
     b.add_argument("--whatsapp", action="store_true", help="also write build-<output>-whatsapp.mp4 (plays inline)")
@@ -352,6 +355,9 @@ def main(argv=None):
     mt = sub.add_parser("matte", help="cut the speaker out of the camera for an edit's cut-out scenes "
                                       "(build/preview do this when missing)")
     mt.add_argument("edit", help="edit.yaml, or a session folder containing one")
+    mt.add_argument("--matte", choices=["auto", "gpu", "cpu"], default="cpu",
+                   help="cut-out matting: cpu (default, onnxruntime); auto = the GPU (PyTorch ROCm, pugcam's "
+                   "venv) when it can - not while pugcam is in a call - else the CPU; gpu = the GPU or fail")
     mt.set_defaults(fn=cmd_matte)
 
     wa = sub.add_parser("whatsapp", help="make a copy of an MP4 that WhatsApp plays inline (< 16 MB)")

@@ -119,7 +119,7 @@ class Pipeline(unittest.TestCase):
                     return scene_frame(rgb8.shape[1], rgb8.shape[0])[1]
 
             with mock.patch.object(cutout, "Matter", Disc):
-                cutout.derive(r, workers=0, progress=False)
+                cutout.derive(r, workers=0, progress=False, matte="cpu")
             for f in (r["matte"], r["file"]):
                 n = subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0",
                                     "-show_entries", "stream=nb_read_frames", "-of", "csv=p=0", f],
@@ -128,5 +128,112 @@ class Pipeline(unittest.TestCase):
             self.assertFalse(os.path.exists(r["file"] + ".parts"))
             os.remove(r["file"])                                             # a restyle reuses the matte
             with mock.patch.object(cutout, "Matter", side_effect=AssertionError("re-matted")):
-                cutout.derive(dict(r, strength=0.5), workers=0, progress=False)
+                cutout.derive(dict(r, strength=0.5), workers=0, progress=False, matte="cpu")
             self.assertTrue(os.path.exists(r["file"]))
+
+
+FAKE_WORKER = """#!/usr/bin/env python3
+import sys
+w, h, n, skip = map(int, sys.argv[4:8])
+got = 0
+while got < n:
+    b = sys.stdin.buffer.read(w * h * 3)   # testsrc2 frames: enough of them, a pipe may split one
+    if not b:
+        break
+    got += 1
+for k in range(skip, n):
+    sys.stdout.buffer.write(bytes([200]) * (w * h))
+sys.exit(RC)
+"""
+
+
+def camera(d):
+    cam = os.path.join(d, "camera.mkv")
+    subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=320x180:r=30:d=8",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", cam], check=True)
+    return {"camera": cam, "offset": 0.5, "size": [320, 180], "from": 2.0, "to": 5.0,
+            "matte": os.path.join(d, "cutout", "matte-x.mkv"), "style": "frost", "strength": 0.2,
+            "feather": 2, "file": os.path.join(d, "cutout", "frost-x.mkv")}
+
+
+def frames(f):
+    return int(subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries",
+                               "stream=nb_read_frames", "-of", "csv=p=0", f], capture_output=True, text=True).stdout)
+
+
+class GpuMatte(unittest.TestCase):
+    """--matte auto|gpu|cpu: the GPU pass's plumbing with a stand-in worker (no torch, no GPU in tests)."""
+
+    def run_derive(self, d, matte="auto", rc=0, why=None):
+        fake = os.path.join(d, "fake-python")
+        with open(fake, "w") as f:
+            f.write(FAKE_WORKER.replace("RC", str(rc)))
+        os.chmod(fake, 0o755)
+        r = camera(d)
+
+        class Half:   # the CPU's stand-in: a different value, to tell which path made the matte
+            def __init__(self, threads=4):
+                pass
+
+            def __call__(self, rgb8):
+                return np.full(rgb8.shape[:2], 0.25, np.float32)
+
+        with mock.patch.object(cutout, "TORCH_PYTHON", fake), \
+             mock.patch.object(cutout, "gpu_unavailable", return_value=why), \
+             mock.patch("pugrec.audio.fetch", return_value="model.torchscript"), \
+             mock.patch.object(cutout, "Matter", Half):
+            cutout.derive(r, workers=0, progress=False, matte=matte)
+        return r
+
+    def matte_value(self, r):
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", r["matte"], "-frames:v", "1", "-f", "rawvideo",
+                              "-pix_fmt", "gray", "-"], capture_output=True, check=True).stdout
+        return int(np.median(np.frombuffer(raw, np.uint8)))
+
+    def test_gpu_makes_the_matte_then_cpu_styles(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = self.run_derive(d)
+            self.assertEqual(frames(r["matte"]), 90)                # 3 s at 30 fps; the preroll not kept
+            self.assertEqual(frames(r["file"]), 90)
+            self.assertAlmostEqual(self.matte_value(r), 200, delta=2)
+            self.assertFalse(os.path.exists(r["matte"] + ".gpu.mkv"))
+
+    def test_falls_back_to_cpu(self):
+        for rc, why in ((99, None), (98, None), (0, "pugcam is in a call")):
+            with tempfile.TemporaryDirectory() as d:
+                r = self.run_derive(d, rc=rc, why=why)
+                self.assertAlmostEqual(self.matte_value(r), 64, delta=2, msg=(rc, why))   # 0.25: the CPU's
+                self.assertFalse(os.path.exists(r["matte"] + ".gpu.mkv"))
+
+    def test_gpu_asked_but_unavailable_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(SystemExit):
+                self.run_derive(d, matte="gpu", why="no /dev/kfd (ROCm)")
+
+    def test_cpu_never_tries_the_gpu(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = self.run_derive(d, matte="cpu")
+            self.assertAlmostEqual(self.matte_value(r), 64, delta=2)
+
+
+@unittest.skipUnless(os.access(cutout.TORCH_PYTHON, os.X_OK), "no PyTorch Python (pugcam's venv)")
+class TorchParity(unittest.TestCase):
+    """matte_gpu.py's maths = cutout.Matter's: the TorchScript export run on the CPU (never the GPU in
+    tests) against the ONNX one, on the same frames. Only with both models already downloaded."""
+
+    def test_torchscript_matches_onnx(self):
+        from pugrec.audio import _cache
+        ts = os.path.join(_cache(), "rvm_mobilenetv3_fp32.torchscript")
+        if not (os.path.exists(ts) and os.path.exists(os.path.join(_cache(), "rvm_mobilenetv3_fp32.onnx"))):
+            self.skipTest("RVM models not downloaded")
+        w, h = 320, 180
+        src = [np.roll(scene_frame(w, h)[0], 3 * k, 1) for k in range(6)]
+        m = cutout.Matter(threads=2)
+        onnx = np.stack([(m(f) * 255 + 0.5).clip(0, 255).astype(np.uint8) for f in src])
+        out = subprocess.run([cutout.TORCH_PYTHON, "-I", os.path.join(os.path.dirname(cutout.__file__),
+                              "matte_gpu.py"), ts, str(w), str(h), str(len(src)), "1", "--device", "cpu"],
+                             input=b"".join(f.tobytes() for f in src), capture_output=True, check=True)
+        torch_a = np.frombuffer(out.stdout, np.uint8).reshape(-1, h, w)
+        self.assertEqual(len(torch_a), len(src) - 1)                    # SKIP = 1: the first frame not written
+        d = np.abs(onnx[1:].astype(int) - torch_a.astype(int))
+        self.assertLessEqual(d.max(), 2)
