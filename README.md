@@ -83,11 +83,14 @@ within a few levels per pixel. Options:
   qp = `--crf` + 4 (CRF 18 by default).
 - `--compositor cpu`: the old CPU compositor, in parallel chunks (`--jobs`, default 4), x264.
   A GPU build that fails falls back to it by itself.
-- `--matte auto|gpu|cpu` (also on `pugrec matte`): where cut-out scenes' matte is made. `cpu`
-  (default): onnxruntime, in parallel chunks. `auto`: on the GPU with PyTorch ROCm - pugcam's venv
+- `--matte auto|gpu|cpu` (also on `pugrec matte`): where cut-out scenes' matte is made. `auto`
+  (default): on the GPU with PyTorch ROCm - pugcam's venv
   (`/var/lib/pugcam/venv`; `PUGREC_TORCH_PYTHON` points elsewhere) - capped at 2 GB of GPU memory
   over what was in use, never while pugcam is in a call; anything that stops it falls back to the
-  CPU. Same model and maths: the two mattes agree to within a level. The style pass stays on the CPU.
+  CPU. `cpu`: onnxruntime, in parallel chunks. Same model and maths: the two mattes agree to within
+  a level on the same frames; the CPU's chunks restart the model's memory at each boundary, so edges
+  (hair, headphones) differ a little after one until it settles. The GPU's single pass doesn't, and
+  runs ~4x faster (38 vs 9 frames/s at 1080p on the RX 9070 XT). The style pass stays on the CPU.
 
 ## Tests
 
