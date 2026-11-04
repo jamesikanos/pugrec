@@ -9,8 +9,9 @@ Delete either to redo it. The resolver names them (plan["derive"]); nothing here
 The style maths is ported from pugcam (the PugPal dotfiles' live camera, pugcam.py: Pipeline.composite,
 frost, grain) - numpy/OpenCV instead of torch, offline frames instead of a live loop. pugcam is not
 used at run time. RVM (GPL-3.0, github.com/PeterL1n/RobustVideoMatting) is downloaded on first use with
-a pinned SHA-256, never vendored, and run on the CPU with onnxruntime (no GPU memory used: the desktop
-shares the card).
+a pinned SHA-256, never vendored. The matte is made on the GPU when it can be (matte_gpu.py: PyTorch ROCm,
+run with pugcam's venv, one sequential pass, a GPU memory cap; not while pugcam is in a call) and otherwise
+on the CPU with onnxruntime (parallel chunks) - the reference. The style pass is always the CPU's.
 """
 
 import hashlib
@@ -25,6 +26,10 @@ import numpy as np
 
 MODEL_URL = "https://github.com/PeterL1n/RobustVideoMatting/releases/download/v1.0.0/rvm_mobilenetv3_fp32.onnx"
 MODEL_SHA256 = "88d4531297118f595bf2fd60f6f566aec2e559393802d1f436c380f0cbbd2828"
+TS_URL = "https://github.com/PeterL1n/RobustVideoMatting/releases/download/v1.0.0/rvm_mobilenetv3_fp32.torchscript"
+TS_SHA256 = "f01e0c9338b9a6a31b881ea6d4360d70c1e549701b3792e14c9ed88d6196c5a1"   # = pugcam's models.txt
+TORCH_PYTHON = os.environ.get("PUGREC_TORCH_PYTHON", "/var/lib/pugcam/venv/bin/python")   # PyTorch ROCm
+GPU_VRAM_MB = 2048  # over the baseline at start, as pugrec-gpu; matte_gpu.py stops (exit 99) above it
 FPS = 30            # derived streams: the camera's nominal rate, resampled on the session clock
 PREROLL = 45        # frames run through RVM before a chunk (its recurrent state settles; not kept)
 ALGO = 1            # bump when the style maths changes: the file names change, old files are redone
@@ -223,12 +228,101 @@ def _concat(parts, dest):
     os.remove(lst)
 
 
-def derive(r, workers=None, progress=True):
-    """Make one derived stream (plan["derive"] entry) and its matte, if missing. Parallel chunks:
-    RVM barely speeds up with threads (4 -> 8: 103 -> 93 ms a 1080p frame), processes scale."""
+# ------------------------------------------------------------------ GPU matte --
+def pugcam_live():
+    """True while pugcam (the dotfiles' live camera) is in a call: it has the GPU, leave it alone."""
+    import json
+    import socket
+    sock = os.path.join(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"), "pugcam.sock")
+    try:
+        with socket.socket(socket.AF_UNIX) as s:
+            s.settimeout(1)
+            s.connect(sock)
+            s.sendall(b'{"get": true}\n')
+            st = json.loads(s.makefile(encoding="utf-8").readline())
+        return st.get("session") not in ("idle", "off", None)
+    except (OSError, ValueError):
+        return False
+
+
+def gpu_unavailable():
+    """Why the GPU matte can't run now (None = it can)."""
+    if not os.access(TORCH_PYTHON, os.X_OK):
+        return f"no PyTorch Python at {TORCH_PYTHON} (pugcam's venv; PUGREC_TORCH_PYTHON overrides)"
+    if not os.path.exists("/dev/kfd"):
+        return "no /dev/kfd (ROCm)"
+    if pugcam_live():
+        return "pugcam is in a call"
+    return None
+
+
+def gpu_matte(r, progress=True, device="cuda"):
+    """The whole matte in one sequential pass on the GPU: decoder -> matte_gpu.py -> encoder, piped
+    process to process. Returns 0, or the worker's exit code (99 memory cap, 98 pugcam went live)."""
+    from .audio import fetch
+    w, h = r["size"]
+    n = int(round((r["to"] - r["from"]) * FPS))
+    pre = min(PREROLL, int(r["from"] * FPS))   # as a CPU chunk at i0 = 0
+    part = r["matte"] + ".gpu.mkv"
+    cam = _decoder(r["camera"], r["offset"], r["from"] - pre / FPS, n + pre, w, h, "rgb24")
+    env = dict(os.environ, MIOPEN_FIND_MODE=os.environ.get("MIOPEN_FIND_MODE", "FAST"),
+               OMP_WAIT_POLICY="PASSIVE", OMP_NUM_THREADS=os.environ.get("OMP_NUM_THREADS", "2"))
+    worker = subprocess.Popen([TORCH_PYTHON, "-I", os.path.join(os.path.dirname(__file__), "matte_gpu.py"),
+                               fetch(TS_URL, TS_SHA256, "rvm_mobilenetv3_fp32.torchscript"),
+                               str(w), str(h), str(n + pre), str(pre), "--device", device,
+                               "--vram-mb", str(GPU_VRAM_MB)], stdin=cam.stdout, stdout=subprocess.PIPE, env=env)
+    cam.stdout.close()   # the worker has it now
+    enc = _encoder(part, w, h, "gray", 6)
+    done = 0
+    try:
+        while True:
+            b = _read(worker, w * h)
+            if b is None:
+                break
+            enc.stdin.write(b)
+            done += 1
+            if progress and done % FPS == 0:
+                print(f"\rcutout: matting (GPU) {done}/{n} frames", end="", file=sys.stderr, flush=True)
+    finally:
+        enc.stdin.close()
+        enc.wait()
+        worker.stdout.close()
+        rc = worker.wait()
+        try:
+            cam.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            cam.kill()
+            cam.wait()
+    if progress:
+        print(file=sys.stderr)
+    if rc == 0 and done != n:
+        rc = 1
+    if rc == 0 and enc.returncode == 0:
+        os.replace(part, r["matte"])
+        return 0
+    if os.path.exists(part):
+        os.remove(part)
+    return rc or enc.returncode
+
+
+def derive(r, workers=None, progress=True, matte="cpu"):
+    """Make one derived stream (plan["derive"] entry) and its matte, if missing. matte: auto (the GPU
+    when it can, else the CPU), gpu (or fail), cpu. CPU: parallel chunks - RVM barely speeds up with
+    threads (4 -> 8: 103 -> 93 ms a 1080p frame), processes scale."""
     if os.path.exists(r["file"]) and (not r.get("style") or os.path.exists(r["matte"])):
         return
     os.makedirs(os.path.dirname(r["file"]), exist_ok=True)
+    if matte != "cpu" and not os.path.exists(r["matte"]):
+        why = gpu_unavailable()
+        if why and matte == "gpu":
+            raise SystemExit(f"cutout: --matte gpu: {why}")
+        if why is None:
+            rc = gpu_matte(r, progress)
+            if rc:
+                why = {99: "GPU memory limit", 98: "pugcam went live"}.get(rc, f"exit {rc}")
+                print(f"cutout: GPU matte stopped ({why}): matting on the CPU", file=sys.stderr)
+        if os.path.exists(r["file"]) and (not r.get("style") or os.path.exists(r["matte"])):
+            return   # the matte was all it needed
     n = int(round((r["to"] - r["from"]) * FPS))
     # Memory bandwidth is the limit (a Ryzen 3900X tops out at ~9 frames/s whether 3x4, 5x4 or 6x2
     # processes x RVM threads): 3 workers get all of it and leave the desktop some room.
@@ -267,7 +361,7 @@ def derive(r, workers=None, progress=True):
     os.rmdir(tmp)
 
 
-def ensure(plan, **kw):
+def ensure(plan, **kw):   # kw: derive's (workers, progress, matte)
     """Every derived stream a plan names, made if missing."""
     for r in (plan.get("derive") or {}).values():
         derive(r, **kw)
